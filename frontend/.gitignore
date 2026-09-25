@@ -65,3 +65,43 @@ ehthumbs_vista.db
 
 # NativeWind / Tailwind cache
 .nativewind/
+
+# Package Manager Logs
+pnpm-debug.log*
+lerna-debug.log*
+.pnpm-store/
+
+# Testing
+/coverage
+.nyc_output
+
+# Keystores & Certificates (Security)
+*.keystore
+*.crt
+*.cer
+*.profile
+google-services.json
+GoogleService-Info.plist
+credentials.json
+
+# Environment variables
+.env.*
+!.env.example
+
+# macOS specific
+.AppleDouble
+.LSOverride
+Icon
+._*
+.Spotlight-V100
+.Trashes
+
+# Firebase / GCP
+firebase-debug.log
+firebase-debug.*
+.firebase/
+
+# Build artifacts
+build/
+coverage/
+*.patch
