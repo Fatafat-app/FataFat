@@ -1,14 +1,43 @@
-import React from 'react';
-import { View, Text, ScrollView, TextInput, TouchableOpacity, Image, StyleSheet, Dimensions } from 'react-native';
+import React, { useState } from 'react';
+import { View, Text, ScrollView, TextInput, TouchableOpacity, Image, StyleSheet, Dimensions, NativeSyntheticEvent, NativeScrollEvent } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons, MaterialCommunityIcons, Feather } from '@expo/vector-icons';
 import { useAuthStore } from '../../store';
 
 const { width } = Dimensions.get('window');
 const ORANGE = '#FF6000';
+const BANNER_WIDTH = width - 32; // 16 padding on each side
 
 export default function HomeScreen() {
   const logout = useAuthStore((state) => state.logout);
+  const [activeBanner, setActiveBanner] = useState(0);
+
+  const banners = [
+    {
+      id: 1,
+      title: 'Cravings?',
+      subtitle: 'Ftafat!',
+      desc: 'Delicious food delivered\nto your doorstep.',
+      image: 'https://images.pexels.com/photos/2983101/pexels-photo-2983101.jpeg',
+      bgColor: '#FFF0E6'
+    },
+    {
+      id: 2,
+      title: 'Midnight',
+      subtitle: 'Hunger?',
+      desc: 'Hot meals delivered\nin just 15 minutes!',
+      image: 'https://images.pexels.com/photos/1146760/pexels-photo-1146760.jpeg',
+      bgColor: '#FDF7EC'
+    },
+    {
+      id: 3,
+      title: 'Party',
+      subtitle: 'Time!',
+      desc: 'Flat 50% Off on\nlarge group orders.',
+      image: 'https://images.pexels.com/photos/1639557/pexels-photo-1639557.jpeg',
+      bgColor: '#FEE2E2'
+    }
+  ];
 
   const categories = [
     { id: 1, name: 'Pizza', image: 'https://images.pexels.com/photos/1146760/pexels-photo-1146760.jpeg' },
@@ -18,11 +47,24 @@ export default function HomeScreen() {
     { id: 5, name: 'Noodles', image: 'https://images.pexels.com/photos/2347311/pexels-photo-2347311.jpeg' },
   ];
 
+  const cuisines = [
+    { id: 1, name: 'North Indian', color: '#FEF3C7', icon: '🍲' },
+    { id: 2, name: 'Chinese', color: '#FEE2E2', icon: '🍜' },
+    { id: 3, name: 'South Indian', color: '#E0E7FF', icon: '🥞' },
+    { id: 4, name: 'Italian', color: '#D1FAE5', icon: '🍕' },
+  ];
+
   const recommended = [
     { id: 1, name: "La Pino'z Pizza", rating: 4.3, reviews: '1.2k', time: '30-40 min', tag: '20% OFF', tagColor: '#FF6000', image: 'https://images.pexels.com/photos/1146760/pexels-photo-1146760.jpeg' },
     { id: 2, name: "Burger Hub", rating: 4.4, reviews: '980', time: '25-35 min', tag: '₹50 OFF', tagColor: '#FF6000', image: 'https://images.pexels.com/photos/1639557/pexels-photo-1639557.jpeg' },
     { id: 3, name: "Paratha Point", rating: 4.5, reviews: '2.1k', time: '20-30 min', tag: 'Top Rated', tagColor: '#FF6000', image: 'https://images.pexels.com/photos/12737656/pexels-photo-12737656.jpeg' },
   ];
+
+  const handleBannerScroll = (event: NativeSyntheticEvent<NativeScrollEvent>) => {
+    const scrollPosition = event.nativeEvent.contentOffset.x;
+    const index = Math.round(scrollPosition / BANNER_WIDTH);
+    setActiveBanner(index);
+  };
 
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
@@ -96,28 +138,42 @@ export default function HomeScreen() {
           </TouchableOpacity>
         </ScrollView>
 
-        {/* Banner */}
-        <View style={styles.bannerContainer}>
-          <View style={styles.bannerTextContent}>
-            <Text style={styles.bannerCravings}>Cravings?</Text>
-            <Text style={styles.bannerFtafat}>Ftafat!</Text>
-            <Text style={styles.bannerDesc}>Delicious food delivered{"\n"}to your doorstep.</Text>
-            <TouchableOpacity style={styles.orderNowBtn}>
-              <Text style={styles.orderNowText}>Order Now</Text>
-              <Ionicons name="arrow-forward" size={16} color="white" style={{ marginLeft: 4 }} />
-            </TouchableOpacity>
-            
-            <View style={styles.dotsContainer}>
-              <View style={[styles.dot, { backgroundColor: ORANGE }]} />
-              <View style={styles.dot} />
-              <View style={styles.dot} />
-            </View>
+        {/* Banners Swiper */}
+        <View style={styles.bannerWrapper}>
+          <ScrollView 
+            horizontal 
+            pagingEnabled 
+            showsHorizontalScrollIndicator={false}
+            onMomentumScrollEnd={handleBannerScroll}
+            snapToInterval={BANNER_WIDTH}
+            decelerationRate="fast"
+          >
+            {banners.map((banner, index) => (
+              <View key={banner.id} style={[styles.bannerContainer, { backgroundColor: banner.bgColor }]}>
+                <View style={styles.bannerTextContent}>
+                  <Text style={styles.bannerCravings}>{banner.title}</Text>
+                  <Text style={styles.bannerFtafat}>{banner.subtitle}</Text>
+                  <Text style={styles.bannerDesc}>{banner.desc}</Text>
+                  <TouchableOpacity style={styles.orderNowBtn}>
+                    <Text style={styles.orderNowText}>Order Now</Text>
+                    <Ionicons name="arrow-forward" size={16} color="white" style={{ marginLeft: 4 }} />
+                  </TouchableOpacity>
+                </View>
+                <Image 
+                  source={{ uri: banner.image }} 
+                  style={styles.bannerImage}
+                  resizeMode="cover"
+                />
+              </View>
+            ))}
+          </ScrollView>
+
+          {/* Banner Dots */}
+          <View style={styles.dotsContainer}>
+            {banners.map((_, i) => (
+              <View key={i} style={[styles.dot, i === activeBanner && { backgroundColor: ORANGE, width: 12 }]} />
+            ))}
           </View>
-          <Image 
-            source={{ uri: 'https://images.pexels.com/photos/2983101/pexels-photo-2983101.jpeg' }} 
-            style={styles.bannerImage}
-            resizeMode="cover"
-          />
         </View>
 
         {/* Categories */}
@@ -129,6 +185,19 @@ export default function HomeScreen() {
               </View>
               <Text style={styles.categoryName}>{cat.name}</Text>
             </View>
+          ))}
+        </ScrollView>
+
+        {/* Explore Cuisines (New Demo Section) */}
+        <View style={styles.sectionHeader}>
+          <Text style={styles.sectionTitle}>Explore Cuisines</Text>
+        </View>
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.cuisinesScroll} contentContainerStyle={styles.cuisinesContent}>
+          {cuisines.map((cuisine) => (
+            <TouchableOpacity key={cuisine.id} style={[styles.cuisineCard, { backgroundColor: cuisine.color }]}>
+              <Text style={styles.cuisineIcon}>{cuisine.icon}</Text>
+              <Text style={styles.cuisineName}>{cuisine.name}</Text>
+            </TouchableOpacity>
           ))}
         </ScrollView>
 
@@ -349,14 +418,16 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     color: '#333',
   },
+  bannerWrapper: {
+    marginBottom: 24,
+  },
   bannerContainer: {
+    width: BANNER_WIDTH,
     marginHorizontal: 16,
-    backgroundColor: '#FFF0E6',
     borderRadius: 16,
     height: 180,
     flexDirection: 'row',
     overflow: 'hidden',
-    marginBottom: 24,
   },
   bannerTextContent: {
     flex: 1.2,
@@ -399,14 +470,15 @@ const styles = StyleSheet.create({
   },
   dotsContainer: {
     flexDirection: 'row',
-    marginTop: 16,
+    justifyContent: 'center',
+    marginTop: 12,
   },
   dot: {
     width: 6,
     height: 6,
     borderRadius: 3,
     backgroundColor: '#D1D5DB',
-    marginRight: 4,
+    marginHorizontal: 4,
   },
   bannerImage: {
     flex: 1,
@@ -441,6 +513,29 @@ const styles = StyleSheet.create({
   categoryName: {
     fontSize: 13,
     fontWeight: '600',
+    color: '#333',
+  },
+  cuisinesScroll: {
+    marginBottom: 24,
+  },
+  cuisinesContent: {
+    paddingHorizontal: 16,
+  },
+  cuisineCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    borderRadius: 12,
+    marginRight: 12,
+  },
+  cuisineIcon: {
+    fontSize: 24,
+    marginRight: 8,
+  },
+  cuisineName: {
+    fontSize: 14,
+    fontWeight: 'bold',
     color: '#333',
   },
   sectionHeader: {
