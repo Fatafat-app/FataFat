@@ -1,17 +1,9 @@
-export interface User {
-  id: string;
-  name: string;
-  email: string;
-}
-
-export interface Restaurant {
-  id: string;
-  name: string;
-  address: string;
-}
-
-export interface Food {
-  id: string;
-  name: string;
-  price: number;
-}
+export * from './common.types';
+export * from './user.types';
+export * from './auth.types';
+export * from './restaurant.types';
+export * from './menu.types';
+export * from './order.types';
+export * from './payment.types';
+export * from './socket.types';
+export * from './coupon.types';

@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { View, Text, ScrollView, TextInput, TouchableOpacity, Image, StyleSheet, Dimensions, NativeSyntheticEvent, NativeScrollEvent, Animated, ActivityIndicator } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons, MaterialCommunityIcons, Feather, FontAwesome5 } from '@expo/vector-icons';
-import { useAuthStore } from '../../store';
+import { useAuthStore, useLocationStore } from '../../store';
 
 const { width } = Dimensions.get('window');
 const ORANGE = '#FF6000';
@@ -10,10 +10,17 @@ const BANNER_WIDTH = width - 32; // 16 padding on each side
 
 export default function HomeScreen() {
   const logout = useAuthStore((state) => state.logout);
+  const user = useAuthStore((state) => state.user);
+  const { locationTitle, locationSubtitle, isDetectingLocation, detectCurrentLocation } = useLocationStore();
   const [activeBanner, setActiveBanner] = useState(0);
   const [timeLeft, setTimeLeft] = useState(8640); // 2 hours, 24 mins
   const scrollRef = useRef<ScrollView>(null);
-  
+
+  // Auto-detect GPS Location on load
+  useEffect(() => {
+    detectCurrentLocation();
+  }, []);
+
   // States for interactive Order Again buttons
   const [reorderingId, setReorderingId] = useState<number | null>(null);
   const [addedId, setAddedId] = useState<number | null>(null);
@@ -52,7 +59,7 @@ export default function HomeScreen() {
   };
 
   const timeDisplay = formatTime(timeLeft);
-  
+
   const handleReorder = (id: number) => {
     setReorderingId(id);
     // Simulate network request for 1.5 seconds
@@ -145,29 +152,45 @@ export default function HomeScreen() {
     <SafeAreaView style={styles.container} edges={['top']}>
       <View style={{ flex: 1 }}>
         <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent}>
-          
+
           {/* Header */}
           <View style={styles.header}>
-            <View style={styles.locationContainer}>
+            <TouchableOpacity
+              style={styles.locationContainer}
+              onPress={detectCurrentLocation}
+              activeOpacity={0.7}
+            >
               <Ionicons name="location" size={24} color={ORANGE} />
               <View style={styles.locationTextContainer}>
                 <View style={styles.locationRow}>
-                  <Text style={styles.locationTitle}>Home</Text>
-                  <Ionicons name="chevron-down" size={16} color="#000" style={{ marginLeft: 2 }} />
+                  <Text style={styles.locationTitle} numberOfLines={1}>
+                    {locationTitle || 'Home'}
+                  </Text>
+                  {isDetectingLocation ? (
+                    <ActivityIndicator size="small" color={ORANGE} style={{ marginLeft: 4 }} />
+                  ) : (
+                    <Ionicons name="chevron-down" size={16} color="#000" style={{ marginLeft: 2 }} />
+                  )}
                 </View>
-                <Text style={styles.locationSubtitle}>Bikaner, Rajasthan</Text>
+                <Text style={styles.locationSubtitle} numberOfLines={1}>
+                  {locationSubtitle || 'Detecting GPS...'}
+                </Text>
               </View>
-            </View>
+            </TouchableOpacity>
 
             <View style={styles.headerRight}>
               <View style={styles.greetingContainer}>
-                <Text style={styles.greetingText}>Good Evening! 👋</Text>
+                <Text style={styles.greetingText}>
+                  {user?.name ? `Hi, ${user.name.split(' ')[0]}! 👋` : 'Good Day! 👋'}
+                </Text>
               </View>
               <TouchableOpacity style={styles.bellIcon}>
                 <Ionicons name="notifications-outline" size={24} color="#000" />
               </TouchableOpacity>
               <TouchableOpacity style={styles.profileAvatar} onPress={logout}>
-                <Text style={styles.profileAvatarText}>P</Text>
+                <Text style={styles.profileAvatarText}>
+                  {user?.name ? user.name.charAt(0).toUpperCase() : 'P'}
+                </Text>
               </TouchableOpacity>
             </View>
           </View>
@@ -176,8 +199,8 @@ export default function HomeScreen() {
           <View style={styles.searchRow}>
             <View style={styles.searchContainer}>
               <Ionicons name="search" size={20} color="#666" style={styles.searchIcon} />
-              <TextInput 
-                placeholder="Search for 'Biryani'..." 
+              <TextInput
+                placeholder="Search for 'Biryani'..."
                 placeholderTextColor="#888"
                 style={styles.searchInput}
               />
@@ -213,9 +236,9 @@ export default function HomeScreen() {
 
           {/* Banners Swiper */}
           <View style={styles.bannerWrapper}>
-            <ScrollView 
+            <ScrollView
               ref={scrollRef}
-              horizontal 
+              horizontal
               showsHorizontalScrollIndicator={false}
               onScroll={handleBannerScroll}
               scrollEventThrottle={16}
@@ -236,8 +259,8 @@ export default function HomeScreen() {
                       <Ionicons name="arrow-forward" size={16} color="white" style={{ marginLeft: 4 }} />
                     </TouchableOpacity>
                   </View>
-                  <Image 
-                    source={{ uri: banner.image }} 
+                  <Image
+                    source={{ uri: banner.image }}
                     style={styles.bannerImage}
                     resizeMode="cover"
                   />
@@ -298,11 +321,11 @@ export default function HomeScreen() {
                     <Text style={styles.orderAgainRest} numberOfLines={1}>{order.restaurant}</Text>
                     <Text style={styles.orderAgainTime}>{order.time}</Text>
                   </View>
-                  
+
                   {/* Interactive Reorder Button */}
-                  <TouchableOpacity 
+                  <TouchableOpacity
                     style={[
-                      styles.reorderBtn, 
+                      styles.reorderBtn,
                       addedId === order.id && { backgroundColor: '#DCFCE7', borderColor: '#16A34A' }
                     ]}
                     onPress={() => handleReorder(order.id)}
@@ -443,7 +466,7 @@ export default function HomeScreen() {
               <Text style={styles.sparkleText}>✨ Unique</Text>
             </View>
           </View>
-          
+
           <View style={styles.uniqueGridContainer}>
             {moreProducts.map((product) => (
               <TouchableOpacity key={product.id} style={styles.uniqueCard} activeOpacity={0.8}>
@@ -452,10 +475,10 @@ export default function HomeScreen() {
                   <Ionicons name="star" size={10} color="#FFF" />
                   <Text style={styles.uniqueRatingText}>{product.rating}</Text>
                 </View>
-                
+
                 <Text style={styles.uniqueProductName} numberOfLines={1}>{product.name}</Text>
                 <Text style={styles.uniqueProductRest} numberOfLines={1}>{product.restaurant}</Text>
-                
+
                 <View style={styles.uniqueCardFooter}>
                   <Text style={styles.uniquePrice}>{product.price}</Text>
                   <TouchableOpacity style={styles.uniqueAddBtn}>
@@ -469,11 +492,11 @@ export default function HomeScreen() {
           {/* Trending Products (Replaced Tags Cloud) */}
           <View style={[styles.sectionHeader, { marginBottom: 12 }]}>
             <Text style={styles.sectionTitle}>Trending Products</Text>
-            <View style={{backgroundColor: '#FFF5F0', paddingHorizontal: 8, paddingVertical: 4, borderRadius: 12}}>
+            <View style={{ backgroundColor: '#FFF5F0', paddingHorizontal: 8, paddingVertical: 4, borderRadius: 12 }}>
               <Ionicons name="trending-up" size={16} color={ORANGE} />
             </View>
           </View>
-          
+
           <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.trendingScroll} contentContainerStyle={styles.trendingContent}>
             {[
               { id: 1, name: "Cold Coffee", price: "₹89", image: "https://images.pexels.com/photos/1209029/pexels-photo-1209029.jpeg" },
@@ -500,7 +523,7 @@ export default function HomeScreen() {
                 <View style={styles.proBadge}>
                   <Text style={styles.proBadgeText}>PRO</Text>
                 </View>
-                <FontAwesome5 name="crown" size={16} color="#FBBF24" style={{marginLeft: 8}} />
+                <FontAwesome5 name="crown" size={16} color="#FBBF24" style={{ marginLeft: 8 }} />
               </View>
               <Text style={styles.proDesc}>Get unlimited free delivery and 30% extra off on all orders!</Text>
               <TouchableOpacity style={styles.proBtn}>
@@ -511,7 +534,7 @@ export default function HomeScreen() {
               <Ionicons name="star" size={120} color="rgba(255,255,255,0.05)" style={{ position: 'absolute', right: -30, top: -20 }} />
             </View>
           </TouchableOpacity>
-          
+
           {/* Bottom Footer */}
           <View style={styles.footerContainer}>
             <Ionicons name="heart" size={18} color={ORANGE} style={{ marginBottom: 4 }} />

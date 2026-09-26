@@ -5,8 +5,8 @@ const ORANGE = '#FF6000';
 
 export default function TabsLayout() {
   return (
-    <Tabs 
-      screenOptions={{ 
+    <Tabs
+      screenOptions={{
         tabBarActiveTintColor: ORANGE,
         tabBarInactiveTintColor: '#888',
         headerShown: false,
