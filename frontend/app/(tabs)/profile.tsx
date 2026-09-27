@@ -74,7 +74,7 @@ export default function ProfileScreen() {
           <View style={styles.headerNav}>
             <Text style={styles.headerTitle}>My Profile</Text>
             <TouchableOpacity onPress={() => router.push('/profile/edit')} style={styles.editBtn}>
-              <Ionicons name="pencil" size={16} color="#FFF" />
+              <Ionicons name="pencil" size={16} color="#D94E1B" />
             </TouchableOpacity>
           </View>
           
@@ -350,12 +350,14 @@ const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#F3F4F6' },
   scrollContainer: { flex: 1 },
   headerContainer: {
-    backgroundColor: '#0F172A',
+    backgroundColor: '#FDF2E3', // Ftafat Warm Cream
     paddingBottom: 40,
     borderBottomLeftRadius: 36,
     borderBottomRightRadius: 36,
     position: 'relative',
     overflow: 'hidden',
+    borderBottomWidth: 1,
+    borderBottomColor: '#FDE0B4',
   },
   headerGlow1: {
     position: 'absolute',
@@ -364,7 +366,7 @@ const styles = StyleSheet.create({
     width: 200,
     height: 200,
     borderRadius: 100,
-    backgroundColor: 'rgba(217, 78, 27, 0.2)', // Ftafat Orange glow
+    backgroundColor: 'rgba(217, 78, 27, 0.1)', // Subtle Orange
     transform: [{ scaleX: 2 }],
   },
   headerGlow2: {
@@ -374,7 +376,7 @@ const styles = StyleSheet.create({
     width: 150,
     height: 150,
     borderRadius: 75,
-    backgroundColor: 'rgba(99, 102, 241, 0.15)',
+    backgroundColor: 'rgba(245, 158, 11, 0.12)', // Subtle Yellow/Gold
   },
   headerNav: {
     flexDirection: 'row',
@@ -386,18 +388,18 @@ const styles = StyleSheet.create({
   headerTitle: {
     fontSize: 22,
     fontFamily: BOLD_FONT,
-    color: '#FFF',
+    color: '#3E2723', // Dark Brown text
     letterSpacing: -0.5,
   },
   editBtn: {
     width: 36,
     height: 36,
     borderRadius: 18,
-    backgroundColor: 'rgba(255,255,255,0.1)',
+    backgroundColor: 'rgba(217, 78, 27, 0.1)',
     alignItems: 'center',
     justifyContent: 'center',
     borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.15)',
+    borderColor: 'rgba(217, 78, 27, 0.2)',
   },
   profileInfoCore: {
     alignItems: 'center',
@@ -440,34 +442,34 @@ const styles = StyleSheet.create({
   premiumName: {
     fontSize: 24,
     fontFamily: BOLD_FONT,
-    color: '#FFF',
+    color: '#3E2723', // Dark Brown
     marginBottom: 4,
   },
   premiumPhone: {
     fontSize: 14,
     fontFamily: STYLISH_FONT,
     fontWeight: '600',
-    color: '#94A3B8',
+    color: '#795548', // Lighter Brown
   },
   premiumEmail: {
     fontSize: 13,
     fontFamily: STYLISH_FONT,
-    color: '#64748B',
+    color: '#8D6E63',
     marginTop: 2,
   },
   roleBadgePremium: {
     marginTop: 12,
-    backgroundColor: 'rgba(255,255,255,0.1)',
+    backgroundColor: 'rgba(217, 78, 27, 0.1)',
     paddingHorizontal: 12,
     paddingVertical: 4,
     borderRadius: 12,
     borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.2)',
+    borderColor: 'rgba(217, 78, 27, 0.3)',
   },
   roleTextPremium: {
     fontSize: 10,
     fontFamily: BOLD_FONT,
-    color: '#FFF',
+    color: '#D94E1B',
     textTransform: 'uppercase',
     letterSpacing: 1,
   },
