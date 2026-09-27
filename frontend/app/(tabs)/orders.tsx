@@ -223,6 +223,7 @@ export default function OrdersScreen() {
               (order as any).restaurant?.name ||
               (typeof order.restaurantId === 'object' && order.restaurantId !== null ? order.restaurantId.name : null) ||
               'Partner Restaurant';
+            const restImage = (order as any).restaurant?.coverImage || 'https://images.pexels.com/photos/262978/pexels-photo-262978.jpeg';
 
             const isDelivered = order.status === 'DELIVERED';
             const isCancelled = order.status === 'CANCELLED';
@@ -236,9 +237,12 @@ export default function OrdersScreen() {
                 activeOpacity={0.8}
               >
                 <View style={styles.orderCardHeader}>
-                  <View style={{ flex: 1, marginRight: 8 }}>
-                    <Text style={styles.restaurantName}>{restName}</Text>
-                    <Text style={styles.orderNumberSub}>Order #{order.orderNumber}</Text>
+                  <View style={{ flexDirection: 'row', alignItems: 'center', flex: 1, marginRight: 8 }}>
+                    <Image source={{ uri: restImage }} style={styles.restLogo} />
+                    <View style={{ flex: 1 }}>
+                      <Text style={styles.restaurantName} numberOfLines={1}>{restName}</Text>
+                      <Text style={styles.orderNumberSub}>Order #{order.orderNumber}</Text>
+                    </View>
                   </View>
 
                   <View
@@ -288,12 +292,26 @@ export default function OrdersScreen() {
 
                 {/* Footer with Price and Details */}
                 <View style={styles.orderCardFooter}>
-                  <Text style={styles.orderDate}>
-                    {new Date(order.createdAt).toLocaleDateString()}
-                  </Text>
-                  <Text style={styles.orderTotal}>
-                    {formatPaise(totalPrice)}
-                  </Text>
+                  <View>
+                    <Text style={styles.orderTotal}>
+                      {formatPaise(totalPrice)}
+                    </Text>
+                    <Text style={styles.orderDate}>
+                      {new Date(order.createdAt).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })}
+                    </Text>
+                  </View>
+                  <View style={styles.actionButtons}>
+                    {isDelivered && (
+                      <TouchableOpacity style={styles.rateBtn} onPress={() => Alert.alert('Rate Order', 'Rate this delivery (Feature coming soon)')}>
+                        <Ionicons name="star" size={14} color="#EA580C" />
+                        <Text style={styles.rateText}>Rate</Text>
+                      </TouchableOpacity>
+                    )}
+                    <TouchableOpacity style={styles.reorderBtn} onPress={() => router.push(`/restaurant/${(order as any).restaurant?._id || order.restaurantId}`)}>
+                      <Ionicons name="refresh" size={14} color={Colors.white} />
+                      <Text style={styles.reorderText}>Reorder</Text>
+                    </TouchableOpacity>
+                  </View>
                 </View>
               </TouchableOpacity>
             );
@@ -336,17 +354,18 @@ const styles = StyleSheet.create({
   priceHighlight: { ...Typography.title, fontSize: 15 },
   sectionHeading: { ...Typography.label, letterSpacing: 0.5, marginBottom: 10 },
   orderCard: { backgroundColor: Colors.surface, borderRadius: 18, padding: 16, marginBottom: 12, borderWidth: 1, borderColor: Colors.border, shadowColor: '#000', shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.03, shadowRadius: 4, elevation: 1 },
-  orderCardHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 8 },
+  orderCardHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 12 },
+  restLogo: { width: 36, height: 36, borderRadius: 8, marginRight: 10, backgroundColor: '#F3F4F6' },
   restaurantName: { ...Typography.title, fontSize: 16 },
   orderNumberSub: { ...Typography.caption, marginTop: 1 },
-  statusPill: { paddingHorizontal: 10, paddingVertical: 4, borderRadius: 12, backgroundColor: Colors.primaryLight },
+  statusPill: { paddingHorizontal: 10, paddingVertical: 4, borderRadius: 12, backgroundColor: Colors.primaryLight, alignSelf: 'flex-start' },
   statusDelivered: { backgroundColor: '#DCFCE7' },
   statusCancelled: { backgroundColor: '#FEE2E2' },
   statusPillText: { ...Typography.button, fontSize: 10, color: '#C2410C' },
   statusDeliveredText: { color: Colors.success },
   statusCancelledText: { color: Colors.error },
-  itemList: { marginVertical: 8 },
-  itemRow: { flexDirection: 'row', alignItems: 'center', marginBottom: 12 },
+  itemList: { marginVertical: 4 },
+  itemRow: { flexDirection: 'row', alignItems: 'center', marginBottom: 10 },
   itemImage: { width: 44, height: 44, borderRadius: 10, backgroundColor: Colors.border },
   itemTextContainer: { flex: 1, marginLeft: 12, marginRight: 8 },
   itemNameRow: { flexDirection: 'row', alignItems: 'center', marginBottom: 2 },
@@ -355,7 +374,12 @@ const styles = StyleSheet.create({
   itemName: { ...Typography.subtitle, fontSize: 14, flex: 1 },
   itemQuantity: { ...Typography.caption, color: Colors.textSecondary },
   itemPrice: { ...Typography.title, fontSize: 14, color: Colors.text },
-  orderCardFooter: { marginTop: 4, paddingTop: 12, borderTopWidth: 1, borderTopColor: '#F3F4F6', flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
-  orderDate: { ...Typography.caption },
-  orderTotal: { ...Typography.title, fontSize: 16 },
+  orderCardFooter: { marginTop: 4, paddingTop: 14, borderTopWidth: 1, borderTopStyle: 'dashed', borderTopColor: '#E5E7EB', flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
+  orderDate: { ...Typography.caption, color: Colors.textSecondary, marginTop: 2, fontSize: 11 },
+  orderTotal: { ...Typography.heading, fontSize: 16 },
+  actionButtons: { flexDirection: 'row', alignItems: 'center' },
+  rateBtn: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#FFEDD5', paddingHorizontal: 12, paddingVertical: 6, borderRadius: 8, marginRight: 8 },
+  rateText: { ...Typography.button, color: '#EA580C', fontSize: 12, marginLeft: 4 },
+  reorderBtn: { flexDirection: 'row', alignItems: 'center', backgroundColor: Colors.primary, paddingHorizontal: 14, paddingVertical: 6, borderRadius: 8 },
+  reorderText: { ...Typography.button, color: Colors.white, fontSize: 12, marginLeft: 4 },
 });

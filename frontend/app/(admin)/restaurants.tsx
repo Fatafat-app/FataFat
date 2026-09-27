@@ -104,15 +104,22 @@ export default function AdminRestaurantsScreen() {
             return (
               <View key={rest._id} style={styles.restaurantCard}>
                 <View style={styles.cardHeader}>
-                  <View style={{ flex: 1 }}>
-                    <Text style={styles.restName}>{rest.name}</Text>
-                    <Text style={styles.restAddress}>
-                      {rest.address?.street}, {rest.address?.city}
-                    </Text>
+                  <View style={styles.restImagePlaceholder}>
+                    <Ionicons name="storefront" size={20} color={Colors.primary} />
                   </View>
-                  <View style={styles.ratingBadge}>
-                    <Ionicons name="star" size={12} color="#D97706" />
-                    <Text style={styles.ratingText}>{rest.rating?.average?.toFixed(1) || 'N/A'}</Text>
+                  <View style={{ flex: 1 }}>
+                    <View style={styles.nameRow}>
+                      <Text style={styles.restName} numberOfLines={1}>{rest.name}</Text>
+                      {rest.rating?.average && (
+                        <View style={styles.ratingBadge}>
+                          <Ionicons name="star" size={10} color="#D97706" />
+                          <Text style={styles.ratingText}>{rest.rating.average.toFixed(1)}</Text>
+                        </View>
+                      )}
+                    </View>
+                    <Text style={styles.restAddress} numberOfLines={1}>
+                      <Ionicons name="location" size={10} color={Colors.textSecondary} /> {rest.address?.street}, {rest.address?.city}
+                    </Text>
                   </View>
                 </View>
 
@@ -120,19 +127,19 @@ export default function AdminRestaurantsScreen() {
 
                 <View style={styles.cardFooter}>
                   <View style={styles.infoCol}>
-                    <Text style={styles.infoLabel}>Owner</Text>
+                    <Text style={styles.infoLabel}>Restaurant Owner</Text>
                     <Text style={styles.infoValue} numberOfLines={1}>
                       {(rest.owner as any)?.name || (rest.owner as any)?.phone || (typeof rest.ownerId === 'string' ? rest.ownerId : (rest.ownerId as any)?._id || 'Registered Partner')}
                     </Text>
                   </View>
                   <View style={styles.toggleCol}>
                     <Text style={[styles.statusText, { color: isActive ? Colors.success : Colors.error }]}>
-                      {isActive ? 'ACTIVE' : 'SUSPENDED'}
+                      {isActive ? 'STORE ACTIVE' : 'SUSPENDED'}
                     </Text>
                     <Switch
                       value={isActive}
                       onValueChange={() => handleToggleStatus(rest)}
-                      trackColor={{ false: '#FECACA', true: '#BBF7D0' }}
+                      trackColor={{ false: '#FEE2E2', true: '#DCFCE7' }}
                       thumbColor={isActive ? Colors.success : Colors.error}
                     />
                   </View>
@@ -158,17 +165,19 @@ const styles = StyleSheet.create({
   scrollContent: { paddingHorizontal: 16, paddingVertical: 14, paddingBottom: 40 },
   emptyCard: { backgroundColor: Colors.surface, borderRadius: 20, padding: 36, alignItems: 'center', justifyContent: 'center', marginTop: 20, borderWidth: 1, borderColor: Colors.border },
   emptyTitle: { ...Typography.title, fontSize: 16, marginTop: 12 },
-  restaurantCard: { backgroundColor: Colors.surface, borderRadius: 16, padding: 16, marginBottom: 14, borderWidth: 1, borderColor: Colors.border, shadowColor: '#000', shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.03, shadowRadius: 4, elevation: 1 },
-  cardHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start' },
-  restName: { ...Typography.title, fontSize: 16 },
-  restAddress: { ...Typography.caption, marginTop: 2 },
-  ratingBadge: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#FEF3C7', paddingHorizontal: 8, paddingVertical: 4, borderRadius: 12 },
-  ratingText: { ...Typography.button, fontSize: 11, color: '#92400E', marginLeft: 4 },
-  divider: { height: 1, backgroundColor: Colors.border, marginVertical: 12 },
+  restaurantCard: { backgroundColor: Colors.surface, borderRadius: 20, padding: 18, marginBottom: 16, borderWidth: 1, borderColor: '#F1F5F9', shadowColor: '#000', shadowOffset: { width: 0, height: 3 }, shadowOpacity: 0.05, shadowRadius: 6, elevation: 2 },
+  cardHeader: { flexDirection: 'row', alignItems: 'center' },
+  restImagePlaceholder: { width: 44, height: 44, borderRadius: 12, backgroundColor: Colors.primaryLight, alignItems: 'center', justifyContent: 'center', marginRight: 12 },
+  nameRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 2 },
+  restName: { ...Typography.heading, fontSize: 16, flex: 1, marginRight: 8 },
+  ratingBadge: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#FEF3C7', paddingHorizontal: 6, paddingVertical: 2, borderRadius: 8 },
+  ratingText: { ...Typography.button, fontSize: 10, color: '#92400E', marginLeft: 4 },
+  restAddress: { ...Typography.caption, color: Colors.textSecondary, marginTop: 2 },
+  divider: { height: 1, backgroundColor: '#F1F5F9', marginVertical: 14 },
   cardFooter: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
-  infoCol: { flex: 1, marginRight: 8 },
-  infoLabel: { ...Typography.label, fontSize: 10, color: Colors.textSecondary },
-  infoValue: { ...Typography.button, fontSize: 11, marginTop: 2 },
-  toggleCol: { alignItems: 'flex-end' },
-  statusText: { ...Typography.label, fontSize: 9, marginBottom: 2 },
+  infoCol: { flex: 1, marginRight: 12 },
+  infoLabel: { ...Typography.label, fontSize: 10, color: Colors.textSecondary, letterSpacing: 0.5 },
+  infoValue: { ...Typography.title, fontSize: 13, marginTop: 4 },
+  toggleCol: { alignItems: 'flex-end', justifyContent: 'center' },
+  statusText: { ...Typography.label, fontSize: 10, marginBottom: 4, letterSpacing: 0.5 },
 });

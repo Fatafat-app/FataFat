@@ -39,7 +39,7 @@ export default function OwnerDashboardScreen() {
   ).length;
 
   const completedOrders = orders.filter((o) => o.status === 'DELIVERED');
-  const todayRevenue = completedOrders.reduce((sum, o) => sum + (o.pricing?.totalAmount || 0), 0);
+  const todayRevenue = completedOrders.reduce((sum, o) => sum + (o.pricing?.totalAmount || (o as any).totalAmount || 0), 0);
   const pendingAcceptance = orders.filter((o) => o.status === 'PENDING').length;
 
   return (
@@ -118,8 +118,8 @@ export default function OwnerDashboardScreen() {
         <View style={styles.metricsGrid}>
           {/* Revenue */}
           <View style={styles.metricCard}>
-            <View style={[styles.metricIconCircle, { backgroundColor: '#FEF3C7' }]}>
-              <Ionicons name="wallet-outline" size={20} color="#D97706" />
+            <View style={[styles.metricIconCircle, { backgroundColor: '#FFFBEB' }]}>
+              <Ionicons name="wallet" size={24} color="#D97706" />
             </View>
             <Text style={styles.metricValue}>{formatPaise(todayRevenue)}</Text>
             <Text style={styles.metricLabel}>Today's Sales</Text>
@@ -127,8 +127,8 @@ export default function OwnerDashboardScreen() {
 
           {/* Active Orders */}
           <View style={styles.metricCard}>
-            <View style={[styles.metricIconCircle, { backgroundColor: '#FFEDD5' }]}>
-              <Ionicons name="flame-outline" size={20} color="#EA580C" />
+            <View style={[styles.metricIconCircle, { backgroundColor: '#FFF7ED' }]}>
+              <Ionicons name="flame" size={24} color="#EA580C" />
             </View>
             <Text style={[styles.metricValue, { color: '#EA580C' }]}>{activeOrdersCount}</Text>
             <Text style={styles.metricLabel}>In Kitchen / Active</Text>
@@ -136,8 +136,8 @@ export default function OwnerDashboardScreen() {
 
           {/* Completed */}
           <View style={styles.metricCard}>
-            <View style={[styles.metricIconCircle, { backgroundColor: '#DCFCE7' }]}>
-              <Ionicons name="checkmark-done-outline" size={20} color={Colors.success} />
+            <View style={[styles.metricIconCircle, { backgroundColor: '#F0FDF4' }]}>
+              <Ionicons name="checkmark-circle" size={24} color={Colors.success} />
             </View>
             <Text style={styles.metricValue}>{completedOrders.length}</Text>
             <Text style={styles.metricLabel}>Completed Orders</Text>
@@ -145,8 +145,8 @@ export default function OwnerDashboardScreen() {
 
           {/* Rating */}
           <View style={styles.metricCard}>
-            <View style={[styles.metricIconCircle, { backgroundColor: '#E0E7FF' }]}>
-              <Ionicons name="star-outline" size={20} color="#4F46E5" />
+            <View style={[styles.metricIconCircle, { backgroundColor: '#EEF2FF' }]}>
+              <Ionicons name="star" size={24} color="#4F46E5" />
             </View>
             <Text style={styles.metricValue}>
               {restaurant?.rating?.average ? restaurant.rating.average.toFixed(1) : '4.8'} ⭐
@@ -250,34 +250,34 @@ const styles = StyleSheet.create({
   switchModeText: { ...Typography.button, fontSize: 11, color: Colors.text },
   scrollContainer: { flex: 1 },
   scrollContent: { paddingHorizontal: 16, paddingVertical: 14, paddingBottom: 40 },
-  storeStatusCard: { borderRadius: 20, padding: 16, marginBottom: 14, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', borderWidth: 1 },
+  storeStatusCard: { borderRadius: 24, padding: 20, marginBottom: 16, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', borderWidth: 1, shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.04, shadowRadius: 5, elevation: 1 },
   storeOpenBg: { backgroundColor: '#F0FDF4', borderColor: '#BBF7D0' },
   storeClosedBg: { backgroundColor: '#FEF2F2', borderColor: '#FECACA' },
   statusDotRow: { flexDirection: 'row', alignItems: 'center', marginBottom: 4 },
-  statusDot: { width: 8, height: 8, borderRadius: 4, marginRight: 6 },
-  statusTitle: { ...Typography.button, fontSize: 11, letterSpacing: 0.5 },
-  statusSubtitle: { ...Typography.bodySmall, fontSize: 12 },
-  alertBanner: { backgroundColor: '#FEF3C7', borderWidth: 1, borderColor: '#FDE68A', borderRadius: 16, padding: 14, marginBottom: 14, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
+  statusDot: { width: 10, height: 10, borderRadius: 5, marginRight: 8 },
+  statusTitle: { ...Typography.heading, fontSize: 13, letterSpacing: 0.5 },
+  statusSubtitle: { ...Typography.bodySmall, fontSize: 12, marginTop: 4, lineHeight: 18, color: Colors.textSecondary },
+  alertBanner: { backgroundColor: '#FFFBEB', borderWidth: 1, borderColor: '#FDE68A', borderRadius: 20, padding: 16, marginBottom: 16, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
   alertLeft: { flexDirection: 'row', alignItems: 'center' },
-  alertPulseCircle: { width: 36, height: 36, borderRadius: 18, backgroundColor: '#D97706', alignItems: 'center', justifyContent: 'center', marginRight: 12 },
-  alertHeading: { ...Typography.title, fontSize: 13, color: '#92400E' },
-  alertSub: { ...Typography.caption, color: '#B45309' },
-  sectionTitle: { ...Typography.label, fontSize: 11, letterSpacing: 0.5, marginBottom: 10 },
-  metricsGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 10, marginBottom: 14 },
-  metricCard: { width: '48%', backgroundColor: Colors.surface, borderRadius: 18, padding: 14, borderWidth: 1, borderColor: Colors.border, shadowColor: '#000', shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.03, shadowRadius: 4, elevation: 1 },
-  metricIconCircle: { width: 34, height: 34, borderRadius: 17, alignItems: 'center', justifyContent: 'center', marginBottom: 8 },
-  metricValue: { ...Typography.heading, fontSize: 18 },
-  metricLabel: { ...Typography.caption, fontSize: 11, marginTop: 2 },
-  actionCard: { backgroundColor: Colors.surface, borderRadius: 18, padding: 14, marginBottom: 10, flexDirection: 'row', alignItems: 'center', borderWidth: 1, borderColor: Colors.border, shadowColor: '#000', shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.03, shadowRadius: 4, elevation: 1 },
-  actionIconBox: { width: 44, height: 44, borderRadius: 14, alignItems: 'center', justifyContent: 'center', marginRight: 12 },
+  alertPulseCircle: { width: 44, height: 44, borderRadius: 22, backgroundColor: '#D97706', alignItems: 'center', justifyContent: 'center', marginRight: 14 },
+  alertHeading: { ...Typography.title, fontSize: 14, color: '#92400E' },
+  alertSub: { ...Typography.caption, color: '#B45309', marginTop: 2 },
+  sectionTitle: { ...Typography.label, fontSize: 12, letterSpacing: 0.8, marginBottom: 12, color: Colors.textSecondary },
+  metricsGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 12, marginBottom: 16 },
+  metricCard: { width: '48%', backgroundColor: Colors.surface, borderRadius: 20, padding: 16, borderWidth: 1, borderColor: '#F1F5F9', shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.04, shadowRadius: 5, elevation: 2 },
+  metricIconCircle: { width: 44, height: 44, borderRadius: 14, alignItems: 'center', justifyContent: 'center', marginBottom: 12 },
+  metricValue: { ...Typography.heading, fontSize: 22 },
+  metricLabel: { ...Typography.caption, fontSize: 12, marginTop: 4, color: Colors.textSecondary },
+  actionCard: { backgroundColor: Colors.surface, borderRadius: 20, padding: 16, marginBottom: 12, flexDirection: 'row', alignItems: 'center', borderWidth: 1, borderColor: '#F1F5F9', shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.04, shadowRadius: 5, elevation: 2 },
+  actionIconBox: { width: 50, height: 50, borderRadius: 16, alignItems: 'center', justifyContent: 'center', marginRight: 14 },
   actionTextBox: { flex: 1, marginRight: 8 },
-  actionTitle: { ...Typography.title, fontSize: 14 },
-  actionSubtitle: { ...Typography.caption, marginTop: 2 },
-  settingsCard: { backgroundColor: Colors.surface, borderRadius: 18, padding: 16, marginTop: 6, borderWidth: 1, borderColor: Colors.border },
-  cardHeader: { ...Typography.label, fontSize: 11, letterSpacing: 0.5 },
-  editProfileBtn: { flexDirection: 'row', alignItems: 'center', backgroundColor: Colors.primaryLight, paddingHorizontal: 10, paddingVertical: 4, borderRadius: 8 },
-  editProfileText: { ...Typography.button, fontSize: 11, color: Colors.primary },
-  settingRow: { flexDirection: 'row', justifyContent: 'space-between', paddingVertical: 8, borderBottomWidth: 1, borderBottomColor: Colors.background },
-  settingLabel: { ...Typography.bodySmall, fontSize: 12 },
-  settingValue: { ...Typography.button, fontSize: 12 },
+  actionTitle: { ...Typography.title, fontSize: 15, marginBottom: 2 },
+  actionSubtitle: { ...Typography.caption, marginTop: 2, color: Colors.textSecondary, lineHeight: 18 },
+  settingsCard: { backgroundColor: Colors.surface, borderRadius: 20, padding: 20, marginTop: 8, borderWidth: 1, borderColor: '#F1F5F9', shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.04, shadowRadius: 5, elevation: 2 },
+  cardHeader: { ...Typography.label, fontSize: 12, letterSpacing: 0.8, color: Colors.textSecondary },
+  editProfileBtn: { flexDirection: 'row', alignItems: 'center', backgroundColor: Colors.primaryLight, paddingHorizontal: 12, paddingVertical: 6, borderRadius: 10 },
+  editProfileText: { ...Typography.button, fontSize: 12, color: Colors.primary },
+  settingRow: { flexDirection: 'row', justifyContent: 'space-between', paddingVertical: 12, borderBottomWidth: 1, borderBottomColor: '#F8FAFC' },
+  settingLabel: { ...Typography.bodySmall, fontSize: 13, color: Colors.textSecondary },
+  settingValue: { ...Typography.button, fontSize: 13 },
 });

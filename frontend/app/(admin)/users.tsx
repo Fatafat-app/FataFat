@@ -145,8 +145,20 @@ export default function AdminUsersScreen() {
                     <Text style={styles.userPhone}>{item.phone}</Text>
                     {item.email ? <Text style={styles.userEmail}>{item.email}</Text> : null}
 
-                    <View style={styles.roleTag}>
-                      <Text style={styles.roleTagText}>{item.role.replace('_', ' ')}</Text>
+                    <View style={[
+                      styles.roleTag, 
+                      item.role === 'admin' ? { backgroundColor: '#EEF2FF' } : 
+                      item.role === 'restaurant_owner' ? { backgroundColor: '#FFFBEB' } : 
+                      item.role === 'delivery_partner' ? { backgroundColor: '#EFF6FF' } : 
+                      { backgroundColor: '#F0FDF4' }
+                    ]}>
+                      <Text style={[
+                        styles.roleTagText,
+                        item.role === 'admin' ? { color: '#4F46E5' } : 
+                        item.role === 'restaurant_owner' ? { color: '#D97706' } : 
+                        item.role === 'delivery_partner' ? { color: '#2563EB' } : 
+                        { color: '#16A34A' }
+                      ]}>{item.role.replace('_', ' ')}</Text>
                     </View>
                   </View>
                 </View>
@@ -158,7 +170,7 @@ export default function AdminUsersScreen() {
                   <Switch
                     value={isActive}
                     onValueChange={() => handleToggleActive(item)}
-                    trackColor={{ false: '#FECACA', true: '#BBF7D0' }}
+                    trackColor={{ false: '#FEE2E2', true: '#DCFCE7' }}
                     thumbColor={isActive ? Colors.success : Colors.error}
                   />
                 </View>
@@ -177,27 +189,27 @@ const styles = StyleSheet.create({
   pageTitle: { ...Typography.heading, fontSize: 18 },
   pageSubtitle: { ...Typography.bodySmall, fontSize: 11 },
   refreshBtn: { backgroundColor: Colors.background, padding: 8, borderRadius: 10 },
-  searchBox: { flexDirection: 'row', alignItems: 'center', backgroundColor: Colors.surface, marginHorizontal: 16, marginTop: 12, paddingHorizontal: 12, paddingVertical: 9, borderRadius: 14, borderWidth: 1, borderColor: Colors.border },
-  searchInput: { ...Typography.bodySmall, flex: 1, fontSize: 13, color: Colors.text },
-  roleFilterWrapper: { marginTop: 10, marginBottom: 6 },
-  roleScroll: { paddingHorizontal: 16, gap: 8 },
-  rolePill: { paddingHorizontal: 14, paddingVertical: 6, borderRadius: 16, backgroundColor: Colors.surface, borderWidth: 1, borderColor: Colors.border },
-  rolePillActive: { backgroundColor: '#4F46E5', borderColor: '#4F46E5' },
-  rolePillText: { ...Typography.button, fontSize: 11, color: Colors.textSecondary },
-  rolePillTextActive: { color: Colors.white },
+  searchBox: { flexDirection: 'row', alignItems: 'center', backgroundColor: Colors.surface, marginHorizontal: 16, marginTop: 12, paddingHorizontal: 16, paddingVertical: 12, borderRadius: 16, borderWidth: 1, borderColor: '#E2E8F0', shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.04, shadowRadius: 4, elevation: 1 },
+  searchInput: { ...Typography.bodySmall, flex: 1, fontSize: 14, color: Colors.text, marginLeft: 4 },
+  roleFilterWrapper: { marginTop: 14, marginBottom: 8 },
+  roleScroll: { paddingHorizontal: 16, gap: 10 },
+  rolePill: { paddingHorizontal: 16, paddingVertical: 8, borderRadius: 20, backgroundColor: Colors.surface, borderWidth: 1, borderColor: '#E2E8F0' },
+  rolePillActive: { backgroundColor: '#4F46E5', borderColor: '#4F46E5', shadowColor: '#4F46E5', shadowOffset: { width: 0, height: 3 }, shadowOpacity: 0.3, shadowRadius: 4, elevation: 3 },
+  rolePillText: { ...Typography.button, fontSize: 12, color: Colors.textSecondary },
+  rolePillTextActive: { color: Colors.white, fontWeight: '800' },
   scrollContainer: { flex: 1 },
   scrollContent: { paddingHorizontal: 16, paddingVertical: 10, paddingBottom: 40 },
-  emptyCard: { backgroundColor: Colors.surface, borderRadius: 20, padding: 36, alignItems: 'center', justifyContent: 'center', marginTop: 20, borderWidth: 1, borderColor: Colors.border },
-  emptyTitle: { ...Typography.title, fontSize: 16, marginTop: 12 },
-  emptySubtitle: { ...Typography.caption, textAlign: 'center', marginTop: 4 },
-  userCard: { backgroundColor: Colors.surface, borderRadius: 18, padding: 14, marginBottom: 10, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', borderWidth: 1, borderColor: Colors.border, shadowColor: '#000', shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.03, shadowRadius: 4, elevation: 1 },
-  userCardLeft: { flexDirection: 'row', alignItems: 'center', flex: 1, marginRight: 8 },
-  avatarBox: { width: 44, height: 44, borderRadius: 14, alignItems: 'center', justifyContent: 'center', marginRight: 12 },
-  userName: { ...Typography.title, fontSize: 14 },
-  userPhone: { ...Typography.button, fontSize: 12, color: Colors.textSecondary, marginTop: 1 },
-  userEmail: { ...Typography.caption, fontSize: 11 },
-  roleTag: { marginTop: 4, alignSelf: 'flex-start', backgroundColor: Colors.background, paddingHorizontal: 6, paddingVertical: 2, borderRadius: 6 },
-  roleTagText: { ...Typography.button, fontSize: 9, textTransform: 'uppercase' },
-  statusToggleContainer: { alignItems: 'center' },
-  statusLabel: { ...Typography.label, fontSize: 9, marginBottom: 2, letterSpacing: 0.5 },
+  emptyCard: { backgroundColor: Colors.surface, borderRadius: 24, padding: 40, alignItems: 'center', justifyContent: 'center', marginTop: 20, borderWidth: 1, borderColor: '#F1F5F9' },
+  emptyTitle: { ...Typography.title, fontSize: 18, marginTop: 16 },
+  emptySubtitle: { ...Typography.caption, textAlign: 'center', marginTop: 6, color: Colors.textSecondary },
+  userCard: { backgroundColor: Colors.surface, borderRadius: 20, padding: 16, marginBottom: 14, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', borderWidth: 1, borderColor: '#F1F5F9', shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.04, shadowRadius: 5, elevation: 2 },
+  userCardLeft: { flexDirection: 'row', alignItems: 'center', flex: 1, marginRight: 12 },
+  avatarBox: { width: 50, height: 50, borderRadius: 16, alignItems: 'center', justifyContent: 'center', marginRight: 14 },
+  userName: { ...Typography.heading, fontSize: 15 },
+  userPhone: { ...Typography.button, fontSize: 12, color: Colors.textSecondary, marginTop: 2 },
+  userEmail: { ...Typography.caption, fontSize: 11, color: '#94A3B8', marginTop: 1 },
+  roleTag: { marginTop: 6, alignSelf: 'flex-start', paddingHorizontal: 10, paddingVertical: 4, borderRadius: 8 },
+  roleTagText: { ...Typography.button, fontSize: 10, textTransform: 'uppercase', letterSpacing: 0.5 },
+  statusToggleContainer: { alignItems: 'center', paddingLeft: 8, borderLeftWidth: 1, borderLeftColor: '#F1F5F9' },
+  statusLabel: { ...Typography.label, fontSize: 10, marginBottom: 4, letterSpacing: 0.5 },
 });
