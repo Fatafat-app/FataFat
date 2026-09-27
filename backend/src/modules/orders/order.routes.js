@@ -10,6 +10,7 @@ const router = Router();
 router.use(authenticate);
 
 router.post('/', controller.placeOrder);
+router.get('/fees/current', controller.getCurrentFees);
 router.get('/mine', controller.getMyOrders);
 router.get('/:id', controller.getOrder);
 

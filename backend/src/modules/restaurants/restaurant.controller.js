@@ -38,4 +38,9 @@ async function getMyRestaurants(req, res) {
   success(res, { restaurants });
 }
 
-module.exports = { createRestaurant, getRestaurant, updateRestaurant, getNearby, toggleOpen, getMyRestaurants };
+async function listRestaurants(req, res) {
+  const { restaurants, meta } = await restaurantService.listRestaurants(req.query);
+  success(res, { restaurants, items: restaurants }, 'Restaurants retrieved', StatusCodes.OK, meta);
+}
+
+module.exports = { createRestaurant, getRestaurant, updateRestaurant, getNearby, toggleOpen, getMyRestaurants, listRestaurants };

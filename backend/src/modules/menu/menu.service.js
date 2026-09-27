@@ -1,8 +1,9 @@
 'use strict';
 
+const mongoose = require('mongoose');
 const MenuCategory = require('./menuCategory.model');
 const MenuItem = require('./menuItem.model');
-const { NotFoundError, ForbiddenError } = require('../../common/errors');
+const { NotFoundError } = require('../../common/errors');
 const redis = require('../../config/redis');
 const logger = require('../../config/logger');
 
@@ -48,7 +49,10 @@ async function getMenuByRestaurant(restaurantId, includeUnavailable = false) {
   }, {});
 
   const menu = categories.map((cat) => ({
-    ...cat.toJSON(),
+    _id: cat._id,
+    name: cat.name,
+    category: cat.name,
+    sortOrder: cat.sortOrder,
     items: itemsByCategory[cat._id.toString()] || [],
   }));
 
@@ -82,14 +86,22 @@ async function updateCategory(categoryId, restaurantId, updates) {
 }
 
 async function addMenuItem(restaurantId, data) {
-  const category = await MenuCategory.findOne({
-    _id: data.category,
-    restaurant: restaurantId,
-  });
+  let categoryId = data.category;
 
-  if (!category) throw new NotFoundError('Category not found in this restaurant');
+  if (!mongoose.Types.ObjectId.isValid(categoryId)) {
+    const found = await MenuCategory.findOne({
+      restaurant: restaurantId,
+      name: { $regex: new RegExp(`^${categoryId}$`, 'i') },
+      isActive: true,
+    });
+    if (!found) throw new NotFoundError(`Category "${categoryId}" not found in this restaurant`);
+    categoryId = found._id;
+  } else {
+    const exists = await MenuCategory.findOne({ _id: categoryId, restaurant: restaurantId });
+    if (!exists) throw new NotFoundError('Category not found in this restaurant');
+  }
 
-  const item = await MenuItem.create({ restaurant: restaurantId, ...data });
+  const item = await MenuItem.create({ restaurant: restaurantId, ...data, category: categoryId });
   await invalidateMenuCache(restaurantId);
   return item;
 }

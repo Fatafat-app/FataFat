@@ -39,16 +39,19 @@ export default function OrdersScreen() {
   const fetchOrders = useCallback(async () => {
     try {
       const data = await orderService.getOrders({ page: 1, limit: 15 });
-      setOrders(data.items || []);
+      const orderList = data.items || [];
+      setOrders(orderList);
 
-      const ongoing = data.items?.find((o) =>
-        ['PENDING', 'CONFIRMED', 'PREPARING', 'READY_FOR_PICKUP', 'OUT_FOR_DELIVERY'].includes(
-          o.status
-        )
-      );
+      const ongoing = orderList.find((o) => {
+        const s = (o.status || (o as any).orderStatus || '').toString().toUpperCase();
+        return ['PENDING', 'CONFIRMED', 'PREPARING', 'READY_FOR_PICKUP', 'OUT_FOR_DELIVERY'].includes(s);
+      });
+
       if (ongoing) {
         setActiveOrder(ongoing);
         socketService.joinOrderRoom(ongoing._id);
+      } else {
+        setActiveOrder(null);
       }
     } catch (err) {
       console.warn('Failed to load orders:', err);
@@ -131,7 +134,7 @@ export default function OrdersScreen() {
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={[Colors.primary]} />}
       >
         {/* Active Live Tracking Card */}
-        {activeOrder && activeOrder.status !== 'DELIVERED' && activeOrder.status !== 'CANCELLED' && (
+        {activeOrder && !['DELIVERED', 'CANCELLED', 'REFUNDED'].includes((activeOrder.status || (activeOrder as any).orderStatus || '').toString().toUpperCase()) && (
           <TouchableOpacity 
             style={styles.activeCard} 
             onPress={() => router.push(`/order/${activeOrder._id}`)}
@@ -196,7 +199,7 @@ export default function OrdersScreen() {
                 {activeOrder.items?.map((i) => `${i.quantity}x ${i.name}`).join(', ')}
               </Text>
               <Text style={styles.priceHighlight}>
-                {formatPaise(activeOrder.pricing?.totalAmount)}
+                {formatPaise(activeOrder.pricing?.totalAmount || (activeOrder as any).totalAmount || 0)}
               </Text>
             </View>
           </TouchableOpacity>
@@ -216,12 +219,13 @@ export default function OrdersScreen() {
         ) : (
           orders.map((order) => {
             const restName =
-              typeof order.restaurantId === 'object' && order.restaurantId !== null
-                ? order.restaurantId.name
-                : 'Ftafat Restaurant';
+              (order as any).restaurant?.name ||
+              (typeof order.restaurantId === 'object' && order.restaurantId !== null ? order.restaurantId.name : null) ||
+              'Partner Restaurant';
 
             const isDelivered = order.status === 'DELIVERED';
             const isCancelled = order.status === 'CANCELLED';
+            const totalPrice = order.pricing?.totalAmount || (order as any).totalAmount || 0;
 
             return (
               <TouchableOpacity 
@@ -270,7 +274,7 @@ export default function OrdersScreen() {
                     {new Date(order.createdAt).toLocaleDateString()}
                   </Text>
                   <Text style={styles.orderTotal}>
-                    {formatPaise(order.pricing?.totalAmount)}
+                    {formatPaise(totalPrice)}
                   </Text>
                 </View>
               </TouchableOpacity>
@@ -290,7 +294,7 @@ const styles = StyleSheet.create({
   headerTitle: { ...Typography.heading, fontSize: 22 },
   refreshButton: { padding: 6 },
   scrollContainer: { flex: 1 },
-  scrollContent: { paddingHorizontal: 16, paddingVertical: 14, paddingBottom: 40 },
+  scrollContent: { paddingHorizontal: 16, paddingVertical: 14, paddingBottom: 110 },
   activeCard: { backgroundColor: Colors.surface, borderRadius: 20, padding: 18, marginBottom: 18, borderWidth: 2, borderColor: '#FED7AA', shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.05, shadowRadius: 6, elevation: 3 },
   activeHeaderRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 },
   badgeRow: { flexDirection: 'row', alignItems: 'center' },

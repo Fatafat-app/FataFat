@@ -2,7 +2,8 @@
 
 const { ForbiddenError } = require('../common/errors');
 
-function requireRole(...allowedRoles) {
+function requireRole(...roles) {
+  const allowedRoles = roles.flat(Infinity);
   return (req, _res, next) => {
     if (!req.user) {
       throw new ForbiddenError('RBAC check run without authentication middleware');

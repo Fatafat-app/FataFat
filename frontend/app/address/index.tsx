@@ -24,7 +24,7 @@ export default function AddressSelectionScreen() {
     try {
       setLoading(true);
       const data = await addressService.getAddresses();
-      setAddresses(data);
+      setAddresses(Array.isArray(data) ? data : []);
     } catch (err) {
       Alert.alert('Error', 'Could not fetch addresses');
     } finally {

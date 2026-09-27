@@ -37,7 +37,13 @@ async function invalidateCache(pattern) {
 }
 
 async function createRestaurant(ownerId, data) {
-  const restaurant = await Restaurant.create({ ...data, owner: ownerId });
+  const restaurant = await Restaurant.create({
+    ...data,
+    owner: ownerId,
+    isActive: true,
+    isApproved: true,
+    isOpen: true,
+  });
   await invalidateCache('list:*');
   return restaurant;
 }
@@ -70,6 +76,43 @@ async function updateRestaurant(restaurantId, updates, requestingUser) {
     adminFields.forEach((field) => delete updates[field]);
   }
 
+  if (updates.address) {
+    restaurant.address = {
+      line1: updates.address.line1 !== undefined ? updates.address.line1 : restaurant.address?.line1,
+      line2: updates.address.line2 !== undefined ? updates.address.line2 : restaurant.address?.line2,
+      city: updates.address.city !== undefined ? updates.address.city : restaurant.address?.city,
+      state: updates.address.state !== undefined ? updates.address.state : restaurant.address?.state,
+      pincode: updates.address.pincode !== undefined ? updates.address.pincode : restaurant.address?.pincode,
+    };
+    delete updates.address;
+  }
+
+  if (updates.deliveryInfo) {
+    restaurant.deliveryInfo = {
+      minOrderAmount: updates.deliveryInfo.minOrderAmount !== undefined ? Number(updates.deliveryInfo.minOrderAmount) : restaurant.deliveryInfo?.minOrderAmount,
+      deliveryFee: updates.deliveryInfo.deliveryFee !== undefined ? Number(updates.deliveryInfo.deliveryFee) : restaurant.deliveryInfo?.deliveryFee,
+      estimatedMinutes: updates.deliveryInfo.estimatedMinutes !== undefined ? Number(updates.deliveryInfo.estimatedMinutes) : restaurant.deliveryInfo?.estimatedMinutes,
+      radiusKm: updates.deliveryInfo.radiusKm !== undefined ? Number(updates.deliveryInfo.radiusKm) : restaurant.deliveryInfo?.radiusKm,
+    };
+    delete updates.deliveryInfo;
+  }
+
+  if (updates.timings) {
+    restaurant.timings = {
+      open: updates.timings.open !== undefined ? updates.timings.open : restaurant.timings?.open,
+      close: updates.timings.close !== undefined ? updates.timings.close : restaurant.timings?.close,
+    };
+    delete updates.timings;
+  }
+
+  if (updates.location && Array.isArray(updates.location.coordinates)) {
+    restaurant.location = {
+      type: 'Point',
+      coordinates: updates.location.coordinates.map(Number),
+    };
+    delete updates.location;
+  }
+
   Object.assign(restaurant, updates);
   await restaurant.save();
 
@@ -79,19 +122,12 @@ async function updateRestaurant(restaurantId, updates, requestingUser) {
   return restaurant;
 }
 
-async function findNearbyRestaurants({ lat, lng, radiusKm = 5 }, query) {
+async function findNearbyRestaurants({ lat, lng, radiusKm = 50 }, query = {}) {
   const { page, limit, skip } = getPagination(query);
-  const maxDistance = radiusKm * 1000;
+  const maxDistance = Math.max((radiusKm || 50) * 1000, 50000); // at least 50km radius
 
   const filter = {
-    isActive: true,
-    isApproved: true,
-    location: {
-      $near: {
-        $geometry: { type: 'Point', coordinates: [lng, lat] },
-        $maxDistance: maxDistance,
-      },
-    },
+    isActive: { $ne: false },
   };
 
   if (query.cuisine) {
@@ -102,10 +138,39 @@ async function findNearbyRestaurants({ lat, lng, radiusKm = 5 }, query) {
     filter.isOpen = true;
   }
 
-  const [restaurants, total] = await Promise.all([
-    Restaurant.find(filter).skip(skip).limit(limit),
-    Restaurant.countDocuments(filter),
-  ]);
+  const hasCoords = !isNaN(lat) && !isNaN(lng) && (lat !== 0 || lng !== 0);
+
+  let restaurants = [];
+  let total = 0;
+
+  if (hasCoords) {
+    try {
+      const geoFilter = {
+        ...filter,
+        location: {
+          $near: {
+            $geometry: { type: 'Point', coordinates: [lng, lat] },
+            $maxDistance: maxDistance,
+          },
+        },
+      };
+
+      [restaurants, total] = await Promise.all([
+        Restaurant.find(geoFilter).skip(skip).limit(limit),
+        Restaurant.countDocuments(geoFilter),
+      ]);
+    } catch (err) {
+      logger.warn('[GeoQuery] Fallback to standard query', { error: err.message });
+    }
+  }
+
+  // Fallback: if geo query returned 0 items or no coords, return active restaurants
+  if (restaurants.length === 0) {
+    [restaurants, total] = await Promise.all([
+      Restaurant.find(filter).sort('-createdAt').skip(skip).limit(limit),
+      Restaurant.countDocuments(filter),
+    ]);
+  }
 
   return {
     restaurants,
@@ -132,6 +197,32 @@ async function toggleOpenStatus(restaurantId, ownerId) {
   return restaurant;
 }
 
+async function listRestaurants(query = {}) {
+  const { page, limit, skip } = getPagination(query);
+  const filter = {};
+
+  if (query.search) {
+    filter.$or = [
+      { name: { $regex: query.search, $options: 'i' } },
+      { 'address.city': { $regex: query.search, $options: 'i' } },
+    ];
+  }
+
+  if (query.isActive !== undefined) {
+    filter.isActive = query.isActive === 'true' || query.isActive === true;
+  }
+
+  const [restaurants, total] = await Promise.all([
+    Restaurant.find(filter).populate('owner', 'name phone email').sort({ createdAt: -1 }).skip(skip).limit(limit),
+    Restaurant.countDocuments(filter),
+  ]);
+
+  return {
+    restaurants,
+    meta: buildPaginationMeta(total, page, limit),
+  };
+}
+
 async function getOwnerRestaurants(ownerId) {
   return Restaurant.find({ owner: ownerId });
 }
@@ -143,4 +234,5 @@ module.exports = {
   findNearbyRestaurants,
   toggleOpenStatus,
   getOwnerRestaurants,
+  listRestaurants,
 };

@@ -120,8 +120,10 @@ export default function AdminRestaurantsScreen() {
 
                 <View style={styles.cardFooter}>
                   <View style={styles.infoCol}>
-                    <Text style={styles.infoLabel}>Owner ID</Text>
-                    <Text style={styles.infoValue} numberOfLines={1}>{typeof rest.ownerId === 'string' ? rest.ownerId : (rest.ownerId as any)?._id || 'N/A'}</Text>
+                    <Text style={styles.infoLabel}>Owner</Text>
+                    <Text style={styles.infoValue} numberOfLines={1}>
+                      {(rest.owner as any)?.name || (rest.owner as any)?.phone || (typeof rest.ownerId === 'string' ? rest.ownerId : (rest.ownerId as any)?._id || 'Registered Partner')}
+                    </Text>
                   </View>
                   <View style={styles.toggleCol}>
                     <Text style={[styles.statusText, { color: isActive ? Colors.success : Colors.error }]}>

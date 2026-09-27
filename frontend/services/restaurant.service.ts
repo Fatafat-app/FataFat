@@ -14,58 +14,74 @@ export const restaurantService = {
    * Fetch nearby active restaurants sorted by distance
    */
   async getNearbyRestaurants(params: NearbyRestaurantsQueryParams): Promise<Restaurant[]> {
-    const response = await api.get<ApiResponse<Restaurant[]>>('/restaurants/nearby', {
+    const response = await api.get<ApiResponse<any>>('/restaurants/nearby', {
       params,
     });
-    return response.data.data;
+    const data = response.data.data;
+    if (Array.isArray(data)) return data;
+    if (data && Array.isArray(data.restaurants)) return data.restaurants;
+    if (data && Array.isArray(data.items)) return data.items;
+    return [];
   },
 
   /**
    * Search / Filter paginated restaurants
    */
   async getRestaurants(params?: RestaurantQueryParams): Promise<PaginatedData<Restaurant>> {
-    const response = await api.get<ApiResponse<PaginatedData<Restaurant>>>('/restaurants', {
+    const response = await api.get<ApiResponse<any>>('/restaurants', {
       params,
     });
-    return response.data.data;
+    const data = response.data.data;
+    if (data && data.restaurants && Array.isArray(data.restaurants)) {
+      return {
+        items: data.restaurants,
+        total: data.meta?.total || data.restaurants.length,
+        page: data.meta?.page || 1,
+        limit: data.meta?.limit || data.restaurants.length,
+        hasMore: false,
+      };
+    }
+    return data;
   },
 
   /**
    * Get single restaurant details by ID
    */
   async getRestaurantById(id: string): Promise<Restaurant> {
-    const response = await api.get<ApiResponse<Restaurant>>(`/restaurants/${id}`);
-    return response.data.data;
+    const response = await api.get<ApiResponse<any>>(`/restaurants/${id}`);
+    const data = response.data.data;
+    return data?.restaurant || data;
   },
 
   /**
    * Get restaurant menu items grouped by category
    */
   async getRestaurantMenu(restaurantId: string): Promise<MenuCategory[]> {
-    const response = await api.get<ApiResponse<MenuItem[] | MenuCategory[]>>(`/restaurants/${restaurantId}/menu`);
+    const response = await api.get<ApiResponse<any>>(`/restaurants/${restaurantId}/menu`);
     const rawData = response.data.data;
 
-    // Check if backend returned an array of items or grouped categories
-    if (Array.isArray(rawData) && rawData.length > 0 && 'category' in rawData[0] && 'items' in rawData[0]) {
-      return rawData as MenuCategory[];
+    // Backend returns { menu: [...] } shape
+    const data = rawData?.menu ?? rawData;
+
+    if (!Array.isArray(data)) return [];
+
+    // Already grouped with category+items shape
+    if (data.length > 0 && 'items' in data[0]) {
+      return data as MenuCategory[];
     }
 
-    // Otherwise group items by category client-side
-    const items = rawData as MenuItem[];
+    // Flat items array — group client-side
+    const items = data as MenuItem[];
     const categoryMap = new Map<string, MenuItem[]>();
-
     items.forEach((item) => {
       const cat = item.category || 'Recommended';
-      if (!categoryMap.has(cat)) {
-        categoryMap.set(cat, []);
-      }
+      if (!categoryMap.has(cat)) categoryMap.set(cat, []);
       categoryMap.get(cat)!.push(item);
     });
-
     return Array.from(categoryMap.entries()).map(([category, categoryItems]) => ({
       category,
       items: categoryItems,
-    }));
+    })) as unknown as MenuCategory[];
   },
 
   /**

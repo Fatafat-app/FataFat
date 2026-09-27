@@ -59,8 +59,19 @@ export const adminService = {
     role?: string;
     search?: string;
   }): Promise<PaginatedData<User>> {
-    const response = await api.get<ApiResponse<PaginatedData<User>>>('/admin/users', { params });
-    return response.data.data;
+    const response = await api.get<ApiResponse<any>>('/admin/users', { params });
+    const data = response.data.data;
+    if (Array.isArray(data)) {
+      return { items: data, total: data.length, page: 1, limit: data.length, hasMore: false };
+    }
+    const userList = data?.users || data?.items || [];
+    return {
+      items: userList,
+      total: data?.meta?.total || userList.length,
+      page: data?.meta?.page || 1,
+      limit: data?.meta?.limit || userList.length,
+      hasMore: false,
+    };
   },
 
   /**
@@ -78,12 +89,13 @@ export const adminService = {
    * List all partner restaurants
    */
   async listAllRestaurants(): Promise<Restaurant[]> {
-    const response = await api.get<ApiResponse<Restaurant[] | PaginatedData<Restaurant>>>('/restaurants', {
+    const response = await api.get<ApiResponse<any>>('/restaurants', {
       params: { limit: 100 },
     });
     const data = response.data.data;
     if (Array.isArray(data)) return data;
-    if (data && 'items' in data && Array.isArray((data as any).items)) return (data as any).items;
+    if (data && Array.isArray(data.restaurants)) return data.restaurants;
+    if (data && Array.isArray(data.items)) return data.items;
     return [];
   },
 
@@ -91,8 +103,9 @@ export const adminService = {
    * Create and onboard new restaurant
    */
   async createRestaurant(payload: CreateRestaurantPayload): Promise<Restaurant> {
-    const response = await api.post<ApiResponse<{ restaurant: Restaurant }>>('/restaurants', payload);
-    return response.data.data.restaurant || (response.data.data as any);
+    const response = await api.post<ApiResponse<any>>('/restaurants', payload);
+    const data = response.data.data;
+    return data?.restaurant || data;
   },
 
   /**
@@ -102,11 +115,12 @@ export const adminService = {
     restaurantId: string,
     payload: { isActive?: boolean; isVerified?: boolean }
   ): Promise<Restaurant> {
-    const response = await api.patch<ApiResponse<{ restaurant: Restaurant }>>(
+    const response = await api.patch<ApiResponse<any>>(
       `/admin/restaurants/${restaurantId}/status`,
       payload
     );
-    return response.data.data.restaurant;
+    const data = response.data.data;
+    return data?.restaurant || data;
   },
 
   /**
@@ -135,4 +149,98 @@ export const adminService = {
     const response = await api.patch<ApiResponse<{ coupon: Coupon }>>(`/coupons/${couponId}/toggle`);
     return response.data.data.coupon;
   },
+
+  /**
+   * Get dynamic platform fee & tax settings
+   */
+  async getFeeConfig(): Promise<FeeConfig> {
+    const response = await api.get<ApiResponse<{ config: FeeConfig }>>('/admin/fees');
+    return response.data.data.config;
+  },
+
+  /**
+   * Get all categories for admin management
+   */
+  async getCategories(onlyActive?: boolean): Promise<CategoryItem[]> {
+    const response = await api.get<ApiResponse<{ categories: CategoryItem[] }>>('/admin/categories', {
+      params: onlyActive ? { onlyActive: true } : undefined,
+    });
+    return response.data.data.categories;
+  },
+
+  /**
+   * Create new category
+   */
+  async createCategory(payload: CreateCategoryPayload): Promise<CategoryItem> {
+    const response = await api.post<ApiResponse<{ category: CategoryItem }>>('/admin/categories', payload);
+    return response.data.data.category;
+  },
+
+  /**
+   * Update category
+   */
+  async updateCategory(id: string, payload: Partial<CreateCategoryPayload>): Promise<CategoryItem> {
+    const response = await api.put<ApiResponse<{ category: CategoryItem }>>(`/admin/categories/${id}`, payload);
+    return response.data.data.category;
+  },
+
+  /**
+   * Delete category
+   */
+  async deleteCategory(id: string): Promise<void> {
+    await api.delete(`/admin/categories/${id}`);
+  },
+
+  /**
+   * Reorder categories
+   */
+  async reorderCategories(items: { id: string; order: number }[]): Promise<CategoryItem[]> {
+    const response = await api.put<ApiResponse<{ categories: CategoryItem[] }>>('/admin/categories/reorder', {
+      items,
+    });
+    return response.data.data.categories;
+  },
 };
+
+export interface CategoryItem {
+  _id: string;
+  name: string;
+  image: string;
+  order: number;
+  isActive: boolean;
+  description?: string;
+  createdAt?: string;
+  updatedAt?: string;
+}
+
+export interface CreateCategoryPayload {
+  name: string;
+  image: string;
+  order?: number;
+  isActive?: boolean;
+  description?: string;
+}
+
+export interface CustomFeeItem {
+  _id?: string;
+  name: string;
+  amount: number; // in paise
+  isEnabled: boolean;
+  description?: string;
+}
+
+export interface FeeConfig {
+  _id?: string;
+  platformFee: number; // in paise
+  platformFeeEnabled: boolean;
+  taxPercent: number; // e.g. 5
+  taxEnabled: boolean;
+  baseDeliveryFee: number; // in paise
+  deliveryFeeEnabled: boolean;
+  packagingFee: number; // in paise
+  packagingFeeEnabled: boolean;
+  surgeFee: number; // in paise
+  surgeFeeEnabled: boolean;
+  customFees: CustomFeeItem[];
+  updatedAt?: string;
+}

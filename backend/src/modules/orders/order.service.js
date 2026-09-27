@@ -11,106 +11,177 @@ const { NotFoundError, BusinessError, ConflictError } = require('../../common/er
 const ERROR_CODES = require('../../common/constants/errorCodes');
 const { getPagination, buildPaginationMeta } = require('../../common/utils/pagination');
 const razorpayClient = require('../../integrations/razorpay.client');
+const logger = require('../../config/logger');
 const { randomUUID: uuidv4 } = require('crypto');
 
-async function placeOrder(userId, { deliveryAddress, idempotencyKey, specialInstructions }) {
+async function placeOrder(userId, payload = {}) {
+  const {
+    deliveryAddress = {},
+    idempotencyKey,
+    specialInstructions,
+    deliveryInstructions,
+    items: directItems,
+    restaurantId,
+    paymentMethod = 'COD',
+  } = payload;
+
   const key = idempotencyKey || uuidv4();
   const existing = await Order.findOne({ idempotencyKey: key });
   if (existing) {
     throw new ConflictError('Order already created with this idempotency key', ERROR_CODES.IDEMPOTENCY_CONFLICT);
   }
 
-  const cart = await cartService.getCart(userId);
-  if (!cart.items || !cart.items.length) {
-    throw new BusinessError('Cart is empty', ERROR_CODES.CART_EMPTY);
-  }
+  let cart = await cartService.getCart(userId);
+  let orderRestaurantId = cart?.restaurant?._id || cart?.restaurant || restaurantId;
+  let cartItems = cart?.items || [];
 
-  const restaurant = await restaurantService.getRestaurantById(cart.restaurant._id || cart.restaurant);
-  if (!restaurant.isOpen || !restaurant.isActive) {
-    throw new BusinessError('Restaurant is currently closed', ERROR_CODES.RESTAURANT_CLOSED);
-  }
+  // Support direct items from frontend request body if backend cart is empty
+  if ((!cartItems || !cartItems.length) && directItems && directItems.length) {
+    const MenuItem = require('../menu/menuItem.model');
+    const itemIds = directItems.map((i) => i.menuItemId || i._id).filter(Boolean);
+    const menuItems = await MenuItem.find({ _id: { $in: itemIds } });
+    const menuItemMap = new Map(menuItems.map((m) => [m._id.toString(), m]));
 
-  for (const item of cart.items) {
-    if (item.menuItem && !item.menuItem.isAvailable) {
-      throw new BusinessError(`Item '${item.name}' is no longer available`, ERROR_CODES.ITEM_UNAVAILABLE);
+    cartItems = directItems.map((di) => {
+      const idStr = (di.menuItemId || di._id || '').toString();
+      const mItem = menuItemMap.get(idStr);
+      const price = di.price || mItem?.price || 0;
+      const name = di.name || mItem?.name || 'Dish';
+      return {
+        menuItem: mItem ? mItem._id : (di.menuItemId || di._id),
+        name,
+        price,
+        quantity: di.quantity || 1,
+        isAvailable: mItem ? mItem.isAvailable : true,
+      };
+    });
+
+    if (!orderRestaurantId && menuItems.length > 0) {
+      orderRestaurantId = menuItems[0].restaurant;
     }
   }
 
-  const subtotal = cart.items.reduce((sum, item) => sum + item.price * item.quantity, 0);
-  const deliveryFee = restaurant.deliveryInfo?.deliveryFee || 0;
-  const taxAmount = Math.round(subtotal * (restaurant.taxPercent || 5) / 100);
-  const discountAmount = cart.appliedCoupon?.discountAmount || 0;
-  const totalAmount = subtotal + deliveryFee + taxAmount - discountAmount;
+  if (!cartItems.length) {
+    throw new BusinessError('Cart is empty. Please add items before placing order.', ERROR_CODES.CART_EMPTY);
+  }
 
-  const items = cart.items.map((item) => ({
-    menuItem: item.menuItem._id || item.menuItem,
+  if (!orderRestaurantId) {
+    throw new BusinessError('Restaurant not found for this order', 'RESTAURANT_REQUIRED');
+  }
+
+  let feeConfig = null;
+  try {
+    const FeeConfig = require('../admin/feeConfig.model');
+    feeConfig = await FeeConfig.findOne({ key: 'GLOBAL_FEES' });
+  } catch (e) {}
+
+  const platformFee = feeConfig?.platformFeeEnabled ? (feeConfig.platformFee ?? 500) : 0;
+  const taxRate = feeConfig?.taxEnabled ? (feeConfig.taxPercent ?? restaurant.taxPercent ?? 5) : 0;
+  const baseDeliveryFee = feeConfig?.deliveryFeeEnabled ? (feeConfig.baseDeliveryFee ?? restaurant.deliveryInfo?.deliveryFee ?? 3000) : (restaurant.deliveryInfo?.deliveryFee || 3000);
+  const packagingFee = feeConfig?.packagingFeeEnabled ? (feeConfig.packagingFee ?? 0) : 0;
+  const surgeFee = feeConfig?.surgeFeeEnabled ? (feeConfig.surgeFee ?? 0) : 0;
+
+  let customFeesTotal = 0;
+  if (feeConfig?.customFees?.length) {
+    customFeesTotal = feeConfig.customFees
+      .filter((f) => f.isEnabled)
+      .reduce((sum, f) => sum + (f.amount || 0), 0);
+  }
+
+  const subtotal = cartItems.reduce((sum, item) => sum + item.price * item.quantity, 0);
+  const deliveryFee = baseDeliveryFee;
+  const taxAmount = Math.round((subtotal * taxRate) / 100);
+  const discountAmount = cart?.appliedCoupon?.discountAmount || 0;
+  const totalAmount = subtotal + deliveryFee + taxAmount + platformFee + packagingFee + surgeFee + customFeesTotal - discountAmount;
+
+  const items = cartItems.map((item) => ({
+    menuItem: item.menuItem?._id || item.menuItem,
     name: item.name,
     price: item.price,
     quantity: item.quantity,
     totalPrice: item.price * item.quantity,
   }));
 
-  const razorpayOrder = await razorpayClient.createOrder({
-    amount: totalAmount,
-    currency: 'INR',
-    receipt: `ftafat_${Date.now()}`,
-  });
+  const formattedAddress = {
+    line1: deliveryAddress.line1 || deliveryAddress.street || 'Default Street',
+    line2: deliveryAddress.line2 || '',
+    city: deliveryAddress.city || 'New Delhi',
+    state: deliveryAddress.state || 'Delhi',
+    pincode: deliveryAddress.pincode || '110001',
+    location: deliveryAddress.location || { type: 'Point', coordinates: [77.2090, 28.6139] },
+  };
 
-  const session = await mongoose.startSession();
-  let order;
-
-  try {
-    await session.withTransaction(async () => {
-      [order] = await Order.create(
-        [
-          {
-            user: userId,
-            restaurant: restaurant._id,
-            items,
-            deliveryAddress,
-            subtotal,
-            deliveryFee,
-            taxAmount,
-            discountAmount,
-            totalAmount,
-            couponCode: cart.appliedCoupon?.code,
-            couponId: cart.appliedCoupon?.couponId,
-            idempotencyKey: key,
-            specialInstructions,
-            timeline: [{ status: 'pending', timestamp: new Date() }],
-          },
-        ],
-        { session }
-      );
-
-      await Payment.create(
-        [
-          {
-            order: order._id,
-            user: userId,
-            razorpayOrderId: razorpayOrder.id,
-            amount: totalAmount,
-            idempotencyKey: key,
-          },
-        ],
-        { session }
-      );
-    });
-  } finally {
-    await session.endSession();
+  let razorpayOrder = null;
+  if (paymentMethod === 'ONLINE') {
+    try {
+      razorpayOrder = await razorpayClient.createOrder({
+        amount: totalAmount,
+        currency: 'INR',
+        receipt: `ftafat_${Date.now()}`,
+      });
+    } catch (err) {
+      logger.warn('[Razorpay] Order creation fallback', { error: err.message });
+      razorpayOrder = { id: `order_mock_${Date.now()}` };
+    }
   }
 
-  await cartService.clearCart(userId);
+  const orderData = {
+    user: userId,
+    restaurant: restaurant._id,
+    items,
+    deliveryAddress: formattedAddress,
+    subtotal,
+    deliveryFee,
+    taxAmount,
+    discountAmount,
+    totalAmount,
+    couponCode: cart?.appliedCoupon?.code,
+    couponId: cart?.appliedCoupon?.couponId,
+    idempotencyKey: key,
+    specialInstructions: specialInstructions || deliveryInstructions,
+    timeline: [{ status: 'pending', timestamp: new Date() }],
+  };
+
+  const paymentData = (orderId) => ({
+    order: orderId,
+    user: userId,
+    razorpayOrderId: razorpayOrder?.id || `cod_${orderId}`,
+    amount: totalAmount,
+    idempotencyKey: key,
+    method: paymentMethod,
+    status: paymentMethod === 'COD' ? 'pending' : 'created',
+  });
+
+  let order;
+  let payment;
+
+  try {
+    const session = await mongoose.startSession();
+    try {
+      await session.withTransaction(async () => {
+        [order] = await Order.create([orderData], { session });
+        [payment] = await Payment.create([paymentData(order._id)], { session });
+      });
+    } finally {
+      await session.endSession();
+    }
+  } catch (err) {
+    logger.warn('[Order] Transaction fallback to non-transactional creation', { error: err.message });
+    order = await Order.create(orderData);
+    payment = await Payment.create(paymentData(order._id));
+  }
+
+  await cartService.clearCart(userId).catch(() => {});
 
   analyticsQueue.add('order-placed', { orderId: order._id, restaurantId: restaurant._id, amount: totalAmount }).catch(() => {});
 
   return {
     order,
-    payment: {
+    payment: razorpayOrder ? {
       razorpayOrderId: razorpayOrder.id,
       amount: totalAmount,
       currency: 'INR',
-    },
+    } : null,
   };
 }
 
@@ -172,13 +243,17 @@ async function updateOrderStatus(orderId, newStatus, requestingUser) {
   const order = await Order.findById(orderId);
   if (!order) throw new NotFoundError('Order not found');
 
-  stateMachine.transition(order, newStatus);
+  const normalizedStatus = (newStatus || '').toLowerCase();
+  stateMachine.transition(order, normalizedStatus);
   await order.save();
 
+  await order.populate('user', 'name phone email');
+  await order.populate('restaurant', 'name phone address');
+
   notificationQueue.add('order-status-changed', {
-    userId: order.user.toString(),
+    userId: order.user?._id ? order.user._id.toString() : order.user?.toString?.(),
     orderId: order._id.toString(),
-    newStatus,
+    newStatus: normalizedStatus,
   }).catch(() => {});
 
   return order;

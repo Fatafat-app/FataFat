@@ -22,22 +22,32 @@ async function getDashboardOverview() {
     Order.countDocuments({
       orderStatus: {
         $in: [
+          ORDER_STATUS.PENDING,
           ORDER_STATUS.CONFIRMED,
           ORDER_STATUS.PREPARING,
           ORDER_STATUS.READY_FOR_PICKUP,
           ORDER_STATUS.OUT_FOR_DELIVERY,
+          'pending',
+          'confirmed',
+          'preparing',
+          'ready_for_pickup',
+          'out_for_delivery',
         ],
       },
     }),
     DeliveryPartner.countDocuments({ isOnline: true }),
     Order.aggregate([
-      { $match: { paymentStatus: PAYMENT_STATUS.PAID } },
+      {
+        $match: {
+          orderStatus: { $nin: [ORDER_STATUS.CANCELLED, 'cancelled', 'CANCELLED'] },
+        },
+      },
       {
         $group: {
           _id: null,
           totalRevenue: { $sum: '$totalAmount' },
           totalOrders: { $sum: 1 },
-          totalDeliveryFees: { $sum: '$deliveryFee' },
+          totalDeliveryFees: { $sum: { $ifNull: ['$deliveryFee', 0] } },
         },
       },
     ]),
@@ -50,6 +60,11 @@ async function getDashboardOverview() {
     restaurants: { total: totalRestaurants },
     orders: { active: activeOrders, total: platformStats.totalOrders },
     riders: { online: totalDeliveries },
+    logistics: { onlineRiders: totalDeliveries },
+    finance: {
+      totalRevenue: platformStats.totalRevenue,
+      totalDeliveryFees: platformStats.totalDeliveryFees,
+    },
     financials: {
       grossMerchandiseValue: platformStats.totalRevenue,
       totalDeliveryFees: platformStats.totalDeliveryFees,
@@ -149,6 +164,177 @@ async function getAuditLogs(query) {
   return { logs, meta: buildPaginationMeta(total, page, limit) };
 }
 
+const FeeConfig = require('./feeConfig.model');
+
+async function getFeeConfig() {
+  let config = await FeeConfig.findOne({ key: 'GLOBAL_FEES' });
+  if (!config) {
+    config = await FeeConfig.create({ key: 'GLOBAL_FEES' });
+  }
+  return config;
+}
+
+async function updateFeeConfig(adminId, payload, meta = {}) {
+  let config = await FeeConfig.findOne({ key: 'GLOBAL_FEES' });
+  if (!config) {
+    config = new FeeConfig({ key: 'GLOBAL_FEES' });
+  }
+
+  const before = config.toObject ? config.toObject() : config;
+
+  if (payload.platformFee !== undefined) config.platformFee = Math.max(0, Number(payload.platformFee));
+  if (payload.platformFeeEnabled !== undefined) config.platformFeeEnabled = Boolean(payload.platformFeeEnabled);
+
+  if (payload.taxPercent !== undefined) config.taxPercent = Math.min(100, Math.max(0, Number(payload.taxPercent)));
+  if (payload.taxEnabled !== undefined) config.taxEnabled = Boolean(payload.taxEnabled);
+
+  if (payload.baseDeliveryFee !== undefined) config.baseDeliveryFee = Math.max(0, Number(payload.baseDeliveryFee));
+  if (payload.deliveryFeeEnabled !== undefined) config.deliveryFeeEnabled = Boolean(payload.deliveryFeeEnabled);
+
+  if (payload.packagingFee !== undefined) config.packagingFee = Math.max(0, Number(payload.packagingFee));
+  if (payload.packagingFeeEnabled !== undefined) config.packagingFeeEnabled = Boolean(payload.packagingFeeEnabled);
+
+  if (payload.surgeFee !== undefined) config.surgeFee = Math.max(0, Number(payload.surgeFee));
+  if (payload.surgeFeeEnabled !== undefined) config.surgeFeeEnabled = Boolean(payload.surgeFeeEnabled);
+
+  if (Array.isArray(payload.customFees)) {
+    config.customFees = payload.customFees.map((f) => ({
+      name: f.name || 'Custom Fee',
+      amount: Math.max(0, Number(f.amount || 0)),
+      isEnabled: f.isEnabled !== false,
+      description: f.description || '',
+    }));
+  }
+
+  config.updatedBy = adminId;
+  await config.save();
+
+  await logAudit({
+    adminId,
+    action: 'FEE_CONFIG_UPDATE',
+    resource: 'FeeConfig',
+    resourceId: String(config._id),
+    changes: { before, after: config.toObject ? config.toObject() : config },
+    ipAddress: meta.ip,
+    userAgent: meta.userAgent,
+  });
+
+  return config;
+}
+
+const Category = require('./category.model');
+
+const DEFAULT_CATEGORIES = [
+  { name: 'Pizza', image: 'https://images.pexels.com/photos/1146760/pexels-photo-1146760.jpeg', order: 1, isActive: true },
+  { name: 'Burger', image: 'https://images.pexels.com/photos/1639557/pexels-photo-1639557.jpeg', order: 2, isActive: true },
+  { name: 'Paratha', image: 'https://images.pexels.com/photos/12737656/pexels-photo-12737656.jpeg', order: 3, isActive: true },
+  { name: 'Biryani', image: 'https://images.pexels.com/photos/1624487/pexels-photo-1624487.jpeg', order: 4, isActive: true },
+  { name: 'Noodles', image: 'https://images.pexels.com/photos/2347311/pexels-photo-2347311.jpeg', order: 5, isActive: true },
+  { name: 'Desserts', image: 'https://images.pexels.com/photos/2144112/pexels-photo-2144112.jpeg', order: 6, isActive: true },
+];
+
+async function getCategories(onlyActive = false) {
+  const count = await Category.countDocuments();
+  if (count === 0) {
+    await Category.insertMany(DEFAULT_CATEGORIES);
+  }
+
+  const filter = onlyActive ? { isActive: true } : {};
+  return Category.find(filter).sort({ order: 1, createdAt: 1 }).lean();
+}
+
+async function createCategory(adminId, payload, meta = {}) {
+  const count = await Category.countDocuments();
+  const category = await Category.create({
+    name: payload.name,
+    image: payload.image,
+    order: payload.order !== undefined ? Number(payload.order) : count + 1,
+    isActive: payload.isActive !== false,
+    description: payload.description || '',
+  });
+
+  await logAudit({
+    adminId,
+    action: 'CATEGORY_CREATE',
+    resource: 'Category',
+    resourceId: String(category._id),
+    changes: { after: category.toObject() },
+    ipAddress: meta.ip,
+    userAgent: meta.userAgent,
+  });
+
+  return category;
+}
+
+async function updateCategory(adminId, categoryId, payload, meta = {}) {
+  const category = await Category.findById(categoryId);
+  if (!category) throw new NotFoundError('Category not found');
+
+  const before = category.toObject();
+
+  if (payload.name !== undefined) category.name = payload.name;
+  if (payload.image !== undefined) category.image = payload.image;
+  if (payload.order !== undefined) category.order = Number(payload.order);
+  if (payload.isActive !== undefined) category.isActive = Boolean(payload.isActive);
+  if (payload.description !== undefined) category.description = payload.description;
+
+  await category.save();
+
+  await logAudit({
+    adminId,
+    action: 'CATEGORY_UPDATE',
+    resource: 'Category',
+    resourceId: String(categoryId),
+    changes: { before, after: category.toObject() },
+    ipAddress: meta.ip,
+    userAgent: meta.userAgent,
+  });
+
+  return category;
+}
+
+async function deleteCategory(adminId, categoryId, meta = {}) {
+  const category = await Category.findByIdAndDelete(categoryId);
+  if (!category) throw new NotFoundError('Category not found');
+
+  await logAudit({
+    adminId,
+    action: 'CATEGORY_DELETE',
+    resource: 'Category',
+    resourceId: String(categoryId),
+    changes: { before: category.toObject() },
+    ipAddress: meta.ip,
+    userAgent: meta.userAgent,
+  });
+
+  return category;
+}
+
+async function reorderCategories(adminId, items = [], meta = {}) {
+  const operations = items.map((item, index) => ({
+    updateOne: {
+      filter: { _id: item.id || item._id },
+      update: { $set: { order: item.order !== undefined ? Number(item.order) : index + 1 } },
+    },
+  }));
+
+  if (operations.length > 0) {
+    await Category.bulkWrite(operations);
+  }
+
+  await logAudit({
+    adminId,
+    action: 'CATEGORIES_REORDER',
+    resource: 'Category',
+    resourceId: 'BULK',
+    changes: { items },
+    ipAddress: meta.ip,
+    userAgent: meta.userAgent,
+  });
+
+  return Category.find().sort({ order: 1, createdAt: 1 }).lean();
+}
+
 module.exports = {
   getDashboardOverview,
   logAudit,
@@ -156,4 +342,11 @@ module.exports = {
   updateUserStatus,
   updateRestaurantStatus,
   getAuditLogs,
+  getFeeConfig,
+  updateFeeConfig,
+  getCategories,
+  createCategory,
+  updateCategory,
+  deleteCategory,
+  reorderCategories,
 };

@@ -12,17 +12,17 @@ async function getMenu(req, res) {
 
 async function addCategory(req, res) {
   const category = await menuService.addCategory(req.params.restaurantId, req.body);
-  success(res, { category }, 'Category added', StatusCodes.CREATED);
+  success(res, category, 'Category added', StatusCodes.CREATED);
 }
 
 async function updateCategory(req, res) {
   const category = await menuService.updateCategory(req.params.categoryId, req.params.restaurantId, req.body);
-  success(res, { category }, 'Category updated');
+  success(res, category, 'Category updated');
 }
 
 async function addItem(req, res) {
   const item = await menuService.addMenuItem(req.params.restaurantId, req.body);
-  success(res, { item }, 'Menu item added', StatusCodes.CREATED);
+  success(res, item, 'Menu item added', StatusCodes.CREATED);
 }
 
 async function updateItem(req, res) {

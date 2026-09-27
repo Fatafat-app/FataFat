@@ -186,8 +186,13 @@ export default function RestaurantScreen() {
               <Ionicons name="arrow-back" size={22} color="#111827" />
             </TouchableOpacity>
             <View style={styles.navActions}>
-              <TouchableOpacity style={styles.navCircle}>
-                <Ionicons name="heart-outline" size={22} color="#111827" />
+              <TouchableOpacity onPress={() => router.push('/(tabs)/cart')} style={styles.navCircle}>
+                <Ionicons name="cart-outline" size={22} color="#111827" />
+                {cartCount > 0 && (
+                  <View style={styles.headerCartBadge}>
+                    <Text style={styles.headerCartBadgeText}>{cartCount > 9 ? '9+' : cartCount}</Text>
+                  </View>
+                )}
               </TouchableOpacity>
             </View>
           </SafeAreaView>
@@ -357,7 +362,7 @@ export default function RestaurantScreen() {
       {/* Floating Bottom Cart Bar */}
       {cartCount > 0 && (
         <SafeAreaView edges={['bottom']} style={styles.bottomCartContainer}>
-          <TouchableOpacity onPress={() => router.push('/order')} style={styles.floatingCartBar}>
+          <TouchableOpacity onPress={() => router.push('/(tabs)/cart')} style={styles.floatingCartBar}>
             <View>
               <Text style={styles.cartCountLabel}>{cartCount} {cartCount === 1 ? 'item' : 'items'} added</Text>
               <Text style={styles.cartTotalAmount}>{formatPaise(cartTotal)}</Text>
@@ -382,7 +387,26 @@ const styles = StyleSheet.create({
   bannerWrapper: { height: 240, backgroundColor: '#111827', position: 'relative' },
   bannerImage: { width: '100%', height: '100%', opacity: 0.85 },
   bannerNav: { position: 'absolute', top: 0, left: 0, right: 0, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: 16, paddingTop: 8 },
-  navCircle: { width: 38, height: 38, borderRadius: 19, backgroundColor: 'rgba(255,255,255,0.92)', alignItems: 'center', justifyContent: 'center' },
+  navCircle: { width: 38, height: 38, borderRadius: 19, backgroundColor: 'rgba(255,255,255,0.92)', alignItems: 'center', justifyContent: 'center', position: 'relative' },
+  headerCartBadge: {
+    position: 'absolute',
+    top: -3,
+    right: -3,
+    backgroundColor: Colors.error,
+    borderRadius: 9,
+    minWidth: 18,
+    height: 18,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: 4,
+    borderWidth: 1.5,
+    borderColor: '#FFFFFF',
+  },
+  headerCartBadgeText: {
+    color: '#FFFFFF',
+    fontSize: 9,
+    fontWeight: '800',
+  },
   navActions: { flexDirection: 'row', gap: 8 },
   infoCard: { backgroundColor: Colors.surface, borderTopLeftRadius: 28, borderTopRightRadius: 28, marginTop: -28, padding: 20, borderBottomWidth: 1, borderBottomColor: Colors.border },
   titleRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start' },

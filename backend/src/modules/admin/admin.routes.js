@@ -13,7 +13,16 @@ router.use(authenticate, requireRole([ROLES.ADMIN]));
 router.get('/dashboard', controller.getDashboard);
 router.get('/users', controller.listUsers);
 router.patch('/users/:userId', controller.updateUser);
-router.patch('/restaurants/:restaurantId/status', controller.updateRestaurant);
+router.get('/restaurants', controller.listRestaurants);
 router.get('/audit-logs', controller.getAuditLogs);
+router.get('/fees', controller.getFees);
+router.put('/fees', controller.updateFees);
+router.patch('/fees', controller.updateFees);
+
+router.get('/categories', controller.listCategories);
+router.post('/categories', controller.createCategory);
+router.put('/categories/reorder', controller.reorderCategories);
+router.put('/categories/:id', controller.updateCategory);
+router.delete('/categories/:id', controller.deleteCategory);
 
 module.exports = router;

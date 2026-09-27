@@ -1,11 +1,9 @@
-import React, { useState, useEffect } from 'react';
+import React, { useEffect } from 'react';
 import {
   View,
   Text,
   ScrollView,
   TouchableOpacity,
-  Switch,
-  TextInput,
   ActivityIndicator,
   RefreshControl,
   StyleSheet,
@@ -15,7 +13,6 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
 import { useAdminStore } from '../../store/admin.store';
-import { useFlashDealStore } from '../../store/flashDeal.store';
 import { useAuthStore } from '../../store/auth.store';
 import { formatPaise } from '../../utils/formatters';
 import { Typography, Colors } from '../../constants/Theme';
@@ -23,14 +20,6 @@ import { Typography, Colors } from '../../constants/Theme';
 export default function AdminDashboardScreen() {
   const { overview, isLoading, fetchAdminOverview } = useAdminStore();
   const user = useAuthStore((state) => state.user);
-  const { config: flashConfig, updateConfig, toggleFlashDeal } = useFlashDealStore();
-
-  const [dealTitle, setDealTitle] = useState(flashConfig.title);
-  const [dealDiscount, setDealDiscount] = useState(flashConfig.discountText);
-  const [dealDurationHours, setDealDurationHours] = useState(
-    Math.round(flashConfig.durationSeconds / 3600).toString()
-  );
-  const [dealCategory, setDealCategory] = useState(flashConfig.targetCategory || 'Pizza');
 
   useEffect(() => {
     fetchAdminOverview();
@@ -38,17 +27,6 @@ export default function AdminDashboardScreen() {
 
   const onRefresh = async () => {
     await fetchAdminOverview();
-  };
-
-  const handleSaveFlashDeal = () => {
-    const hours = parseFloat(dealDurationHours) || 2;
-    updateConfig({
-      title: dealTitle.trim() || 'Midnight Hunger?',
-      discountText: dealDiscount.trim() || 'Flat 50% Off',
-      durationSeconds: Math.round(hours * 3600),
-      targetCategory: dealCategory.trim() || 'Pizza',
-    });
-    Alert.alert('Flash Deal Updated! ⚡', 'Live Flash Deal configuration updated successfully across the app.');
   };
 
   if (isLoading && !overview) {
@@ -60,13 +38,22 @@ export default function AdminDashboardScreen() {
     );
   }
 
-  const revenue = overview?.finance?.totalRevenue || 0;
-  const deliveryFees = overview?.finance?.totalDeliveryFees || 0;
+  const revenue =
+    overview?.finance?.totalRevenue ??
+    (overview as any)?.financials?.grossMerchandiseValue ??
+    0;
+  const deliveryFees =
+    overview?.finance?.totalDeliveryFees ??
+    (overview as any)?.financials?.totalDeliveryFees ??
+    0;
   const totalUsers = overview?.users?.total || 0;
   const totalRestaurants = overview?.restaurants?.total || 0;
   const activeOrders = overview?.orders?.active || 0;
   const totalOrders = overview?.orders?.total || 0;
-  const onlineRiders = overview?.logistics?.onlineRiders || 0;
+  const onlineRiders =
+    overview?.logistics?.onlineRiders ??
+    (overview as any)?.riders?.online ??
+    0;
 
   return (
     <SafeAreaView style={styles.safeArea}>
@@ -96,69 +83,6 @@ export default function AdminDashboardScreen() {
         showsVerticalScrollIndicator={false}
         refreshControl={<RefreshControl refreshing={isLoading} onRefresh={onRefresh} colors={['#4F46E5']} />}
       >
-        <View style={styles.flashDealCard}>
-          <View style={styles.flashHeaderRow}>
-            <View style={styles.flashTitleLeft}>
-              <View style={styles.flashIconCircle}>
-                <Ionicons name="flash" size={18} color={Colors.white} />
-              </View>
-              <View>
-                <Text style={styles.flashCardTitle}>LIVE FLASH DEAL CONTROLLER</Text>
-                <Text style={styles.flashCardSubtitle}>
-                  {flashConfig.isEnabled ? '🟢 Currently Active on Home Screen' : '🔴 Flash Deal is Paused / Off'}
-                </Text>
-              </View>
-            </View>
-
-            <Switch
-              value={flashConfig.isEnabled}
-              onValueChange={toggleFlashDeal}
-              trackColor={{ false: '#FECACA', true: '#BBF7D0' }}
-              thumbColor={flashConfig.isEnabled ? Colors.success : Colors.error}
-            />
-          </View>
-
-          <View style={styles.flashForm}>
-            <Text style={styles.inputLabel}>Deal Title</Text>
-            <TextInput
-              value={dealTitle}
-              onChangeText={setDealTitle}
-              placeholder="e.g. Midnight Hunger? / Sunday Feast"
-              style={styles.inputField}
-              placeholderTextColor={Colors.textSecondary}
-            />
-
-            <View style={styles.inputRow}>
-              <View style={{ flex: 1, marginRight: 8 }}>
-                <Text style={styles.inputLabel}>Discount Text</Text>
-                <TextInput
-                  value={dealDiscount}
-                  onChangeText={setDealDiscount}
-                  placeholder="e.g. Flat 50% Off"
-                  style={styles.inputField}
-                  placeholderTextColor={Colors.textSecondary}
-                />
-              </View>
-              <View style={{ width: 100 }}>
-                <Text style={styles.inputLabel}>Timer (Hours)</Text>
-                <TextInput
-                  value={dealDurationHours}
-                  onChangeText={setDealDurationHours}
-                  placeholder="2.5"
-                  keyboardType="numeric"
-                  style={styles.inputField}
-                  placeholderTextColor={Colors.textSecondary}
-                />
-              </View>
-            </View>
-
-            <TouchableOpacity onPress={handleSaveFlashDeal} style={styles.saveFlashBtn}>
-              <Ionicons name="checkmark-circle" size={16} color={Colors.white} style={{ marginRight: 6 }} />
-              <Text style={styles.saveFlashText}>Apply Flash Deal Live</Text>
-            </TouchableOpacity>
-          </View>
-        </View>
-
         <View style={styles.heroCard}>
           <Text style={styles.heroSub}>PLATFORM GROSS REVENUE (GMV)</Text>
           <Text style={styles.heroRevenue}>{formatPaise(revenue)}</Text>
@@ -212,6 +136,28 @@ export default function AdminDashboardScreen() {
 
         <Text style={[styles.sectionHeading, { marginTop: 12 }]}>SUPER ADMIN MODULES</Text>
 
+        <TouchableOpacity onPress={() => router.push('/(admin)/categories')} style={styles.actionRowCard}>
+          <View style={[styles.actionIconCircle, { backgroundColor: '#FDF2F8' }]}>
+            <Ionicons name="fast-food" size={22} color="#DB2777" />
+          </View>
+          <View style={styles.actionTextContainer}>
+            <Text style={styles.actionTitle}>"What's on your mind?" Categories</Text>
+            <Text style={styles.actionSubtitle}>Add, edit, remove & arrange (1, 2, 3...) home food categories</Text>
+          </View>
+          <Ionicons name="chevron-forward" size={18} color={Colors.textSecondary} />
+        </TouchableOpacity>
+
+        <TouchableOpacity onPress={() => router.push('/(admin)/fees')} style={styles.actionRowCard}>
+          <View style={[styles.actionIconCircle, { backgroundColor: '#EEF2FF' }]}>
+            <Ionicons name="card" size={22} color="#4F46E5" />
+          </View>
+          <View style={styles.actionTextContainer}>
+            <Text style={styles.actionTitle}>Platform Fees & Tax Settings</Text>
+            <Text style={styles.actionSubtitle}>Configure GST rate, platform fee, delivery, packaging & custom charges</Text>
+          </View>
+          <Ionicons name="chevron-forward" size={18} color={Colors.textSecondary} />
+        </TouchableOpacity>
+
         <TouchableOpacity onPress={() => Alert.alert('Coming Soon', 'Coupons module is under construction.')} style={styles.actionRowCard}>
           <View style={[styles.actionIconCircle, { backgroundColor: '#FEF3C7' }]}>
             <Ionicons name="pricetag" size={22} color="#D97706" />
@@ -262,18 +208,6 @@ const styles = StyleSheet.create({
   switchModeText: { ...Typography.button, fontSize: 11, color: '#4F46E5' },
   scrollContainer: { flex: 1 },
   scrollContent: { paddingHorizontal: 16, paddingVertical: 14, paddingBottom: 40 },
-  flashDealCard: { backgroundColor: Colors.surface, borderRadius: 22, padding: 16, marginBottom: 16, borderWidth: 2, borderColor: '#FDE68A', shadowColor: '#F59E0B', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.08, shadowRadius: 6, elevation: 2 },
-  flashHeaderRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingBottom: 12, borderBottomWidth: 1, borderBottomColor: '#FEF3C7' },
-  flashTitleLeft: { flexDirection: 'row', alignItems: 'center', flex: 1, marginRight: 8 },
-  flashIconCircle: { width: 36, height: 36, borderRadius: 18, backgroundColor: '#D97706', alignItems: 'center', justifyContent: 'center', marginRight: 10 },
-  flashCardTitle: { ...Typography.button, fontSize: 11, color: '#92400E', letterSpacing: 0.5 },
-  flashCardSubtitle: { ...Typography.caption, fontSize: 11, color: '#B45309', marginTop: 1 },
-  flashForm: { marginTop: 12 },
-  inputLabel: { ...Typography.button, fontSize: 11, color: Colors.textSecondary, marginBottom: 4, marginTop: 6 },
-  inputField: { ...Typography.bodySmall, backgroundColor: Colors.background, borderWidth: 1, borderColor: Colors.border, borderRadius: 12, paddingHorizontal: 12, paddingVertical: 8, fontSize: 13 },
-  inputRow: { flexDirection: 'row' },
-  saveFlashBtn: { backgroundColor: '#D97706', borderRadius: 14, paddingVertical: 12, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', marginTop: 14 },
-  saveFlashText: { ...Typography.heading, color: Colors.white, fontSize: 13 },
   heroCard: { backgroundColor: '#1E1B4B', borderRadius: 24, padding: 20, marginBottom: 16, shadowColor: '#1E1B4B', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.25, shadowRadius: 10, elevation: 4 },
   heroSub: { ...Typography.label, fontSize: 10, color: '#A5B4FC', letterSpacing: 0.5 },
   heroRevenue: { ...Typography.heading, fontSize: 32, color: Colors.white, marginTop: 4, marginBottom: 12 },

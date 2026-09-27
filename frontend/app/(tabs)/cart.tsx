@@ -18,13 +18,12 @@ import { useLocationStore } from '../../store/location.store';
 import { useOrderTrackingStore } from '../../store/orderTracking.store';
 import { orderService } from '../../services/order.service';
 import { addressService } from '../../services/address.service';
-import { paymentService } from '../../services/payment.service';
 import { formatPaise } from '../../utils/formatters';
 import { Address, PaymentMethod } from '../../types';
 import { Typography, Colors } from '../../constants/Theme';
 import { EmptyState } from '../../components/ui/EmptyState';
 
-export default function OrderCheckoutScreen() {
+export default function CartScreen() {
   const {
     restaurant,
     items,
@@ -41,6 +40,7 @@ export default function OrderCheckoutScreen() {
     feeConfig,
     fetchFeeConfig,
   } = useCartStore();
+
   const user = useAuthStore((state) => state.user);
   const selectedAddress = useLocationStore((state) => state.selectedAddress);
   const setSelectedAddress = useLocationStore((state) => state.setSelectedAddress);
@@ -140,10 +140,10 @@ export default function OrderCheckoutScreen() {
   if (items.length === 0) {
     return (
       <SafeAreaView style={styles.emptyContainer}>
-        <EmptyState 
-          icon="cart-outline" 
-          title="Your Cart is Empty" 
-          message="Explore delicious cuisines and add something yummy!" 
+        <EmptyState
+          icon="cart-outline"
+          title="Your Cart is Empty"
+          message="Explore delicious cuisines and add something yummy to your plate!"
           actionText="Browse Restaurants"
           onAction={() => router.replace('/(tabs)')}
         />
@@ -153,39 +153,55 @@ export default function OrderCheckoutScreen() {
 
   return (
     <SafeAreaView style={styles.safeArea}>
+      {/* Header */}
       <View style={styles.navbar}>
         <View style={styles.navLeft}>
-          <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
-            <Ionicons name="arrow-back" size={22} color="#111827" />
-          </TouchableOpacity>
+          <Ionicons name="cart" size={24} color={Colors.primary} style={{ marginRight: 8 }} />
           <View>
-            <Text style={styles.navTitle}>{restaurant?.name || 'Checkout'}</Text>
-            <Text style={styles.navSubtitle}>Review & Place Order</Text>
+            <Text style={styles.navTitle}>{restaurant?.name || 'My Cart'}</Text>
+            <Text style={styles.navSubtitle}>{items.reduce((s, i) => s + i.quantity, 0)} Items Added</Text>
           </View>
         </View>
-        <TouchableOpacity onPress={clearCart}>
-          <Text style={styles.clearText}>Clear</Text>
+        <TouchableOpacity onPress={clearCart} style={styles.clearBtn}>
+          <Text style={styles.clearText}>Clear Cart</Text>
         </TouchableOpacity>
       </View>
 
-      <ScrollView style={styles.scrollContainer} contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
+      <ScrollView
+        style={styles.scrollContainer}
+        contentContainerStyle={styles.scrollContent}
+        showsVerticalScrollIndicator={false}
+      >
+        {/* Ordered Items List */}
         <View style={styles.card}>
-          <Text style={styles.cardHeading}>ORDER ITEMS ({items.length})</Text>
+          <Text style={styles.cardHeading}>ITEMS IN YOUR CART ({items.length})</Text>
           {items.map((item, idx) => (
-            <View key={item.menuItem._id} style={[styles.itemRow, idx !== items.length - 1 && styles.itemRowBorder]}>
+            <View
+              key={item.menuItem._id}
+              style={[styles.itemRow, idx !== items.length - 1 && styles.itemRowBorder]}
+            >
               <View style={styles.itemInfo}>
                 <Text style={styles.itemName}>{item.menuItem.name}</Text>
                 {item.selectedModifiers && item.selectedModifiers.length > 0 && (
-                  <Text style={styles.itemModifiers}>{item.selectedModifiers.map(m => m.name).join(', ')}</Text>
+                  <Text style={styles.itemModifiers}>
+                    {item.selectedModifiers.map((m) => m.name).join(', ')}
+                  </Text>
                 )}
                 <Text style={styles.itemPrice}>{formatPaise(item.totalItemPrice)}</Text>
               </View>
+
               <View style={styles.counterBox}>
-                <TouchableOpacity onPress={() => updateQuantity(item.menuItem._id, -1)} style={styles.counterBtn}>
+                <TouchableOpacity
+                  onPress={() => updateQuantity(item.menuItem._id, -1)}
+                  style={styles.counterBtn}
+                >
                   <Ionicons name="remove" size={14} color={Colors.primary} />
                 </TouchableOpacity>
                 <Text style={styles.counterValue}>{item.quantity}</Text>
-                <TouchableOpacity onPress={() => updateQuantity(item.menuItem._id, 1)} style={styles.counterBtn}>
+                <TouchableOpacity
+                  onPress={() => updateQuantity(item.menuItem._id, 1)}
+                  style={styles.counterBtn}
+                >
                   <Ionicons name="add" size={14} color={Colors.primary} />
                 </TouchableOpacity>
               </View>
@@ -193,20 +209,28 @@ export default function OrderCheckoutScreen() {
           ))}
         </View>
 
+        {/* Delivery Location */}
         <View style={styles.card}>
           <View style={styles.locationHeaderRow}>
             <View style={{ flexDirection: 'row', alignItems: 'center' }}>
               <Ionicons name="location" size={18} color={Colors.primary} style={{ marginRight: 6 }} />
-              <Text style={styles.cardHeading}>DELIVERY LOCATION</Text>
+              <Text style={styles.cardHeading}>DELIVERY ADDRESS</Text>
             </View>
             <TouchableOpacity onPress={() => router.push('/address')}>
               <Text style={{ ...Typography.button, color: Colors.primary, fontSize: 12 }}>Change</Text>
             </TouchableOpacity>
           </View>
+
           {selectedAddress ? (
             <View style={styles.addressBox}>
-              <Text style={styles.addressType}>{(selectedAddress.label || (selectedAddress as any).type || 'Delivery Address')} • {user?.name || 'Customer'}</Text>
-              <Text style={styles.addressStreet}>{selectedAddress.line1 || (selectedAddress as any).street}{selectedAddress.line2 ? `, ${selectedAddress.line2}` : ''}, {selectedAddress.city} - {selectedAddress.pincode}</Text>
+              <Text style={styles.addressType}>
+                {(selectedAddress.label || (selectedAddress as any).type || 'Delivery Address')} • {user?.name || 'Customer'}
+              </Text>
+              <Text style={styles.addressStreet}>
+                {selectedAddress.line1 || (selectedAddress as any)?.street}
+                {selectedAddress.line2 ? `, ${selectedAddress.line2}` : ''}, {selectedAddress.city} -{' '}
+                {selectedAddress.pincode}
+              </Text>
             </View>
           ) : (
             <View style={styles.addressBox}>
@@ -214,6 +238,7 @@ export default function OrderCheckoutScreen() {
               <Text style={styles.addressStreet}>Flat 402, Sunshine Heights, Connaught Place, New Delhi - 110001</Text>
             </View>
           )}
+
           <TextInput
             value={deliveryInstructions}
             onChangeText={setDeliveryInstructions}
@@ -223,24 +248,41 @@ export default function OrderCheckoutScreen() {
           />
         </View>
 
+        {/* Payment Option */}
         <View style={styles.card}>
-          <Text style={styles.cardHeading}>PAYMENT OPTION</Text>
-          <TouchableOpacity onPress={() => setPaymentMethod('COD')} style={[styles.paymentOption, paymentMethod === 'COD' && styles.paymentOptionActive]}>
+          <Text style={styles.cardHeading}>PAYMENT METHOD</Text>
+          <TouchableOpacity
+            onPress={() => setPaymentMethod('COD')}
+            style={[styles.paymentOption, paymentMethod === 'COD' && styles.paymentOptionActive]}
+          >
             <View style={styles.paymentLeft}>
               <Ionicons name="cash-outline" size={20} color={Colors.primary} style={{ marginRight: 8 }} />
               <Text style={styles.paymentText}>Cash on Delivery (COD)</Text>
             </View>
-            <Ionicons name={paymentMethod === 'COD' ? 'radio-button-on' : 'radio-button-off'} size={18} color={paymentMethod === 'COD' ? Colors.primary : '#9CA3AF'} />
+            <Ionicons
+              name={paymentMethod === 'COD' ? 'radio-button-on' : 'radio-button-off'}
+              size={18}
+              color={paymentMethod === 'COD' ? Colors.primary : '#9CA3AF'}
+            />
           </TouchableOpacity>
-          <TouchableOpacity onPress={() => setPaymentMethod('ONLINE')} style={[styles.paymentOption, paymentMethod === 'ONLINE' && styles.paymentOptionActive]}>
+
+          <TouchableOpacity
+            onPress={() => setPaymentMethod('ONLINE')}
+            style={[styles.paymentOption, paymentMethod === 'ONLINE' && styles.paymentOptionActive]}
+          >
             <View style={styles.paymentLeft}>
               <Ionicons name="card-outline" size={20} color={Colors.primary} style={{ marginRight: 8 }} />
-              <Text style={styles.paymentText}>Online Payment (Razorpay / UPI)</Text>
+              <Text style={styles.paymentText}>Online Payment (UPI / Cards)</Text>
             </View>
-            <Ionicons name={paymentMethod === 'ONLINE' ? 'radio-button-on' : 'radio-button-off'} size={18} color={paymentMethod === 'ONLINE' ? Colors.primary : '#9CA3AF'} />
+            <Ionicons
+              name={paymentMethod === 'ONLINE' ? 'radio-button-on' : 'radio-button-off'}
+              size={18}
+              color={paymentMethod === 'ONLINE' ? Colors.primary : '#9CA3AF'}
+            />
           </TouchableOpacity>
         </View>
 
+        {/* Bill Breakdown */}
         <View style={[styles.card, { marginBottom: 90 }]}>
           <Text style={styles.cardHeading}>BILL DETAILS</Text>
           <View style={styles.billRow}>
@@ -293,68 +335,141 @@ export default function OrderCheckoutScreen() {
         </View>
       </ScrollView>
 
-      <SafeAreaView edges={['bottom']} style={styles.bottomBarContainer}>
-        <TouchableOpacity onPress={handlePlaceOrder} disabled={placingOrder} style={styles.placeOrderButton}>
-          <View>
-            <Text style={styles.totalLabel}>Total Amount</Text>
-            <Text style={styles.totalAmount}>{formatPaise(grandTotal)}</Text>
-          </View>
+      {/* Floating Bottom Bar */}
+      <View style={styles.bottomBar}>
+        <View>
+          <Text style={styles.bottomTotalLabel}>Total to Pay</Text>
+          <Text style={styles.bottomTotalPrice}>{formatPaise(grandTotal)}</Text>
+        </View>
+
+        <TouchableOpacity
+          onPress={handlePlaceOrder}
+          disabled={placingOrder}
+          style={[styles.placeOrderBtn, placingOrder && { opacity: 0.8 }]}
+        >
           {placingOrder ? (
-            <ActivityIndicator color="#FFF" />
+            <ActivityIndicator color={Colors.white} />
           ) : (
-            <View style={styles.buttonActionRow}>
+            <View style={styles.placeOrderBtnInner}>
               <Text style={styles.placeOrderText}>Place Order</Text>
-              <Ionicons name="checkmark-circle" size={20} color="#FFF" />
+              <Ionicons name="arrow-forward" size={18} color={Colors.white} style={{ marginLeft: 6 }} />
             </View>
           )}
         </TouchableOpacity>
-      </SafeAreaView>
+      </View>
     </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
   safeArea: { flex: 1, backgroundColor: Colors.background },
-  emptyContainer: { flex: 1, backgroundColor: Colors.surface, alignItems: 'center', justifyContent: 'center', padding: 24 },
-  navbar: { backgroundColor: Colors.surface, paddingHorizontal: 16, paddingVertical: 12, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', borderBottomWidth: 1, borderBottomColor: Colors.border },
+  emptyContainer: { flex: 1, backgroundColor: Colors.surface, justifyContent: 'center' },
+  navbar: {
+    backgroundColor: Colors.surface,
+    paddingHorizontal: 20,
+    paddingVertical: 14,
+    borderBottomWidth: 1,
+    borderBottomColor: Colors.border,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
   navLeft: { flexDirection: 'row', alignItems: 'center' },
-  backButton: { marginRight: 12, padding: 4 },
-  navTitle: { ...Typography.title, fontSize: 17 },
-  navSubtitle: { ...Typography.bodySmall, fontSize: 11 },
-  clearText: { ...Typography.label, color: Colors.error },
+  navTitle: { ...Typography.heading, fontSize: 18 },
+  navSubtitle: { ...Typography.caption, fontSize: 12, color: Colors.primary },
+  clearBtn: { backgroundColor: '#FEF2F2', paddingHorizontal: 10, paddingVertical: 6, borderRadius: 8 },
+  clearText: { ...Typography.button, color: Colors.error, fontSize: 11 },
   scrollContainer: { flex: 1 },
-  scrollContent: { paddingHorizontal: 16, paddingVertical: 12 },
-  card: { backgroundColor: Colors.surface, borderRadius: 18, padding: 16, marginBottom: 12, borderWidth: 1, borderColor: Colors.border, shadowColor: '#000', shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.03, shadowRadius: 4, elevation: 1 },
-  cardHeading: { ...Typography.label, letterSpacing: 0.5, marginBottom: 12 },
+  scrollContent: { padding: 16, paddingBottom: 180 },
+  card: {
+    backgroundColor: Colors.surface,
+    borderRadius: 18,
+    padding: 16,
+    marginBottom: 14,
+    borderWidth: 1,
+    borderColor: Colors.border,
+  },
+  cardHeading: { ...Typography.label, letterSpacing: 0.5, marginBottom: 12, color: Colors.textSecondary },
   itemRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingVertical: 10 },
   itemRowBorder: { borderBottomWidth: 1, borderBottomColor: Colors.background },
   itemInfo: { flex: 1, marginRight: 12 },
-  itemName: { ...Typography.subtitle, fontSize: 14 },
-  itemModifiers: { ...Typography.caption, color: Colors.primary, marginTop: 2 },
-  itemPrice: { ...Typography.bodySmall, fontSize: 12, marginTop: 2 },
-  counterBox: { backgroundColor: Colors.primaryLight, borderWidth: 1, borderColor: '#FED7AA', borderRadius: 12, flexDirection: 'row', alignItems: 'center', paddingHorizontal: 8, paddingVertical: 4 },
-  counterBtn: { paddingHorizontal: 6 },
-  counterValue: { ...Typography.button, color: Colors.primary, fontSize: 13, paddingHorizontal: 6 },
-  locationHeaderRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 },
-  addressBox: { backgroundColor: Colors.background, padding: 12, borderRadius: 14, borderWidth: 1, borderColor: Colors.border },
-  addressType: { ...Typography.title, fontSize: 12, marginBottom: 2 },
-  addressStreet: { ...Typography.bodySmall, fontSize: 12 },
-  instructionInput: { ...Typography.bodySmall, marginTop: 10, backgroundColor: Colors.background, borderWidth: 1, borderColor: Colors.borderDark, borderRadius: 12, paddingHorizontal: 12, paddingVertical: 10, color: Colors.text },
-  paymentOption: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', padding: 12, borderRadius: 14, borderWidth: 1, borderColor: Colors.border, backgroundColor: Colors.background, marginBottom: 8 },
-  paymentOptionActive: { backgroundColor: Colors.primaryLight, borderColor: Colors.primary },
+  itemName: { ...Typography.title, fontSize: 15 },
+  itemModifiers: { ...Typography.caption, color: Colors.textSecondary, marginTop: 2 },
+  itemPrice: { ...Typography.bodySmall, color: Colors.primary, marginTop: 4, fontWeight: '700' },
+  counterBox: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: Colors.primaryLight,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#FED7AA',
+    paddingHorizontal: 4,
+    paddingVertical: 2,
+  },
+  counterBtn: { padding: 6 },
+  counterValue: { ...Typography.button, color: Colors.primary, marginHorizontal: 8, fontSize: 14 },
+  locationHeaderRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 },
+  addressBox: { backgroundColor: Colors.background, padding: 12, borderRadius: 12, marginBottom: 10 },
+  addressType: { ...Typography.title, fontSize: 14, marginBottom: 2 },
+  addressStreet: { ...Typography.bodySmall, color: Colors.textSecondary, fontSize: 12 },
+  instructionInput: {
+    backgroundColor: Colors.background,
+    borderRadius: 12,
+    padding: 12,
+    ...Typography.bodySmall,
+    color: Colors.text,
+    borderWidth: 1,
+    borderColor: Colors.border,
+  },
+  paymentOption: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    padding: 14,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: Colors.border,
+    marginBottom: 10,
+    backgroundColor: Colors.background,
+  },
+  paymentOptionActive: { borderColor: Colors.primary, backgroundColor: Colors.primaryLight },
   paymentLeft: { flexDirection: 'row', alignItems: 'center' },
-  paymentText: { ...Typography.subtitle, fontSize: 13 },
-  billRow: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 6 },
-  billLabel: { ...Typography.bodySmall },
-  billValue: { ...Typography.subtitle, fontSize: 12 },
-  divider: { height: 1, backgroundColor: Colors.border, marginVertical: 8 },
+  paymentText: { ...Typography.body, fontSize: 14 },
+  billRow: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 8 },
+  billLabel: { ...Typography.bodySmall, color: Colors.textSecondary },
+  billValue: { ...Typography.bodySmall, color: Colors.text, fontWeight: '600' },
+  divider: { height: 1, backgroundColor: Colors.border, marginVertical: 10 },
   grandTotalRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
-  grandTotalLabel: { ...Typography.title, fontSize: 14 },
-  grandTotalValue: { ...Typography.heading, fontSize: 16, color: Colors.primary },
-  bottomBarContainer: { position: 'absolute', bottom: 16, left: 16, right: 16 },
-  placeOrderButton: { backgroundColor: Colors.primary, borderRadius: 18, padding: 16, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', shadowColor: Colors.primary, shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.25, shadowRadius: 8, elevation: 4 },
-  totalLabel: { ...Typography.bodySmall, color: Colors.white, opacity: 0.9 },
-  totalAmount: { ...Typography.heading, color: Colors.white, fontSize: 17 },
-  buttonActionRow: { flexDirection: 'row', alignItems: 'center' },
-  placeOrderText: { ...Typography.button, marginRight: 6 },
+  grandTotalLabel: { ...Typography.title, fontSize: 16 },
+  grandTotalValue: { ...Typography.heading, fontSize: 18, color: Colors.primary },
+  bottomBar: {
+    position: 'absolute',
+    bottom: Platform.OS === 'ios' ? 98 : 90,
+    left: 16,
+    right: 16,
+    backgroundColor: Colors.surface,
+    paddingHorizontal: 18,
+    paddingVertical: 12,
+    borderRadius: 22,
+    borderWidth: 1,
+    borderColor: Colors.border,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.1,
+    shadowRadius: 10,
+    elevation: 8,
+  },
+  bottomTotalLabel: { ...Typography.caption, fontSize: 11 },
+  bottomTotalPrice: { ...Typography.heading, fontSize: 18, color: Colors.primary },
+  placeOrderBtn: {
+    backgroundColor: Colors.primary,
+    paddingHorizontal: 22,
+    paddingVertical: 12,
+    borderRadius: 14,
+  },
+  placeOrderBtnInner: { flexDirection: 'row', alignItems: 'center' },
+  placeOrderText: { ...Typography.button, color: Colors.white, fontSize: 14 },
 });

@@ -56,14 +56,17 @@ export default function OrderDetailsScreen() {
 
   useEffect(() => {
     // Only connect socket if the order is active and we are viewing it
-    if (order && !['DELIVERED', 'CANCELLED'].includes(order.status)) {
+    const isFinished = !order || ['DELIVERED', 'CANCELLED', 'REFUNDED'].includes(
+      (order.status || (order as any).orderStatus || '').toString().toUpperCase()
+    );
+    if (!isFinished && order) {
       socketService.connect().then(() => {
         socketService.joinOrderRoom(order._id);
       });
     }
 
     return () => {
-      if (order && !['DELIVERED', 'CANCELLED'].includes(order.status)) {
+      if (!isFinished && order) {
         socketService.leaveOrderRoom(order._id);
       }
     };
@@ -132,7 +135,11 @@ export default function OrderDetailsScreen() {
 
   const currentStep = getStepIndex(displayStatus);
   const isCancelled = displayStatus === 'CANCELLED';
-  const restName = typeof order.restaurantId === 'object' && order.restaurantId !== null ? order.restaurantId.name : 'Ftafat Restaurant';
+  const restName =
+    (typeof order.restaurant === 'object' && order.restaurant !== null && (order.restaurant as any).name)
+    || (typeof order.restaurantId === 'object' && order.restaurantId !== null && (order.restaurantId as any).name)
+    || (typeof (order as any).restaurantName === 'string' ? (order as any).restaurantName : null)
+    || 'Partner Restaurant';
 
   return (
     <SafeAreaView style={styles.safeArea}>
@@ -213,19 +220,27 @@ export default function OrderDetailsScreen() {
         {/* Bill Summary */}
         <View style={styles.card}>
           <Text style={styles.cardHeading}>BILL DETAILS</Text>
-          {order.pricing && (
-            <>
-              <View style={styles.billRow}><Text style={styles.billLabel}>Item Total</Text><Text style={styles.billValue}>{formatPaise(order.pricing.itemsTotal || 0)}</Text></View>
-              <View style={styles.billRow}><Text style={styles.billLabel}>Delivery Fee</Text><Text style={styles.billValue}>{formatPaise(order.pricing.deliveryFee || 0)}</Text></View>
-              <View style={styles.billRow}><Text style={styles.billLabel}>Taxes & GST</Text><Text style={styles.billValue}>{formatPaise(order.pricing.gstAndTaxes || 0)}</Text></View>
-              <View style={styles.billRow}><Text style={styles.billLabel}>Platform Fee</Text><Text style={styles.billValue}>{formatPaise(order.pricing.platformFee || 0)}</Text></View>
-              <View style={styles.divider} />
-              <View style={styles.grandTotalRow}>
-                <Text style={styles.grandTotalLabel}>Total Paid</Text>
-                <Text style={styles.grandTotalValue}>{formatPaise(order.pricing.totalAmount || 0)}</Text>
-              </View>
-            </>
-          )}
+          <View style={styles.billRow}>
+            <Text style={styles.billLabel}>Item Total</Text>
+            <Text style={styles.billValue}>{formatPaise(order.pricing?.itemsTotal ?? (order as any).subtotal ?? 0)}</Text>
+          </View>
+          <View style={styles.billRow}>
+            <Text style={styles.billLabel}>Delivery Fee</Text>
+            <Text style={styles.billValue}>{formatPaise(order.pricing?.deliveryFee ?? (order as any).deliveryFee ?? 0)}</Text>
+          </View>
+          <View style={styles.billRow}>
+            <Text style={styles.billLabel}>Taxes & GST</Text>
+            <Text style={styles.billValue}>{formatPaise(order.pricing?.gstAndTaxes ?? (order as any).taxAmount ?? 0)}</Text>
+          </View>
+          <View style={styles.billRow}>
+            <Text style={styles.billLabel}>Platform Fee</Text>
+            <Text style={styles.billValue}>{formatPaise(order.pricing?.platformFee ?? 500)}</Text>
+          </View>
+          <View style={styles.divider} />
+          <View style={styles.grandTotalRow}>
+            <Text style={styles.grandTotalLabel}>Total Paid</Text>
+            <Text style={styles.grandTotalValue}>{formatPaise(order.pricing?.totalAmount ?? (order as any).totalAmount ?? 0)}</Text>
+          </View>
         </View>
 
         {/* Delivery Details */}

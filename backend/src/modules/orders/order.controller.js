@@ -29,4 +29,20 @@ async function updateStatus(req, res) {
   success(res, { order }, 'Order status updated');
 }
 
-module.exports = { placeOrder, getOrder, getMyOrders, getRestaurantOrders, updateStatus };
+async function getCurrentFees(req, res) {
+  const FeeConfig = require('../admin/feeConfig.model');
+  let config = await FeeConfig.findOne({ key: 'GLOBAL_FEES' });
+  if (!config) {
+    config = await FeeConfig.create({ key: 'GLOBAL_FEES' });
+  }
+  success(res, { config }, 'Current fee configuration retrieved');
+}
+
+module.exports = {
+  placeOrder,
+  getOrder,
+  getMyOrders,
+  getRestaurantOrders,
+  updateStatus,
+  getCurrentFees,
+};

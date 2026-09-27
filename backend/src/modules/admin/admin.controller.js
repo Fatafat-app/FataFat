@@ -30,15 +30,70 @@ async function updateRestaurant(req, res) {
   return success(res, { restaurant }, 'Restaurant status updated');
 }
 
+async function listRestaurants(req, res) {
+  const restaurantService = require('../restaurants/restaurant.service');
+  const result = await restaurantService.listRestaurants(req.query);
+  return success(res, result);
+}
+
 async function getAuditLogs(req, res) {
   const result = await adminService.getAuditLogs(req.query);
   return success(res, result);
+}
+
+async function getFees(req, res) {
+  const config = await adminService.getFeeConfig();
+  return success(res, { config });
+}
+
+async function updateFees(req, res) {
+  const meta = { ip: req.ip, userAgent: req.headers['user-agent'] };
+  const config = await adminService.updateFeeConfig(req.user.id, req.body, meta);
+  return success(res, { config }, 'Fee configuration updated successfully');
+}
+
+async function listCategories(req, res) {
+  const onlyActive = req.query.onlyActive === 'true';
+  const categories = await adminService.getCategories(onlyActive);
+  return success(res, { categories }, 'Categories retrieved successfully');
+}
+
+async function createCategory(req, res) {
+  const meta = { ip: req.ip, userAgent: req.headers['user-agent'] };
+  const category = await adminService.createCategory(req.user.id, req.body, meta);
+  return success(res, { category }, 'Category created successfully');
+}
+
+async function updateCategory(req, res) {
+  const meta = { ip: req.ip, userAgent: req.headers['user-agent'] };
+  const category = await adminService.updateCategory(req.user.id, req.params.id, req.body, meta);
+  return success(res, { category }, 'Category updated successfully');
+}
+
+async function deleteCategory(req, res) {
+  const meta = { ip: req.ip, userAgent: req.headers['user-agent'] };
+  await adminService.deleteCategory(req.user.id, req.params.id, meta);
+  return success(res, null, 'Category deleted successfully');
+}
+
+async function reorderCategories(req, res) {
+  const meta = { ip: req.ip, userAgent: req.headers['user-agent'] };
+  const categories = await adminService.reorderCategories(req.user.id, req.body.items, meta);
+  return success(res, { categories }, 'Categories reordered successfully');
 }
 
 module.exports = {
   getDashboard,
   listUsers,
   updateUser,
+  listRestaurants,
   updateRestaurant,
   getAuditLogs,
+  getFees,
+  updateFees,
+  listCategories,
+  createCategory,
+  updateCategory,
+  deleteCategory,
+  reorderCategories,
 };

@@ -9,12 +9,13 @@ const ROLES = require('../../common/constants/roles');
 
 const router = Router();
 
+router.get('/', controller.listRestaurants);
 router.get('/nearby', optionalAuthenticate, controller.getNearby);
+router.get('/owner/mine', authenticate, requireRole(ROLES.RESTAURANT_OWNER, ROLES.ADMIN), controller.getMyRestaurants);
 router.get('/:id', controller.getRestaurant);
 
 router.post('/', authenticate, requireRole(ROLES.RESTAURANT_OWNER, ROLES.ADMIN), controller.createRestaurant);
 router.patch('/:id', authenticate, requireRole(ROLES.RESTAURANT_OWNER, ROLES.ADMIN), controller.updateRestaurant);
 router.patch('/:id/toggle-open', authenticate, requireRole(ROLES.RESTAURANT_OWNER), controller.toggleOpen);
-router.get('/owner/mine', authenticate, requireRole(ROLES.RESTAURANT_OWNER), controller.getMyRestaurants);
 
 module.exports = router;

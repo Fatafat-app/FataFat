@@ -186,9 +186,29 @@ export default function OwnerDashboardScreen() {
           <Ionicons name="chevron-forward" size={18} color={Colors.textSecondary} />
         </TouchableOpacity>
 
+        <TouchableOpacity
+          onPress={() => router.push('/(owner)/profile')}
+          style={styles.actionCard}
+        >
+          <View style={[styles.actionIconBox, { backgroundColor: '#FEF2F2' }]}>
+            <Ionicons name="storefront" size={22} color="#DC2626" />
+          </View>
+          <View style={styles.actionTextBox}>
+            <Text style={styles.actionTitle}>Store Profile & Banners</Text>
+            <Text style={styles.actionSubtitle}>Edit photos, cuisines, timings, delivery radius & GPS</Text>
+          </View>
+          <Ionicons name="chevron-forward" size={18} color={Colors.textSecondary} />
+        </TouchableOpacity>
+
         {/* Store Timings & Settings */}
         <View style={styles.settingsCard}>
-          <Text style={styles.cardHeader}>STORE INFORMATION</Text>
+          <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
+            <Text style={styles.cardHeader}>STORE INFORMATION</Text>
+            <TouchableOpacity onPress={() => router.push('/(owner)/profile')} style={styles.editProfileBtn}>
+              <Ionicons name="pencil" size={14} color={Colors.primary} style={{ marginRight: 4 }} />
+              <Text style={styles.editProfileText}>Edit</Text>
+            </TouchableOpacity>
+          </View>
           <View style={styles.settingRow}>
             <Text style={styles.settingLabel}>Cuisines</Text>
             <Text style={styles.settingValue}>
@@ -198,13 +218,19 @@ export default function OwnerDashboardScreen() {
           <View style={styles.settingRow}>
             <Text style={styles.settingLabel}>Delivery Charge</Text>
             <Text style={styles.settingValue}>
-              {formatPaise(restaurant?.pricing?.deliveryCharge || 3000)}
+              {formatPaise((restaurant as any)?.deliveryInfo?.deliveryFee || restaurant?.pricing?.deliveryCharge || 3000)}
             </Text>
           </View>
           <View style={styles.settingRow}>
             <Text style={styles.settingLabel}>Avg Prep Time</Text>
             <Text style={styles.settingValue}>
-              {restaurant?.estimatedDeliveryTime || 25} mins
+              {restaurant?.preparationTime || restaurant?.estimatedDeliveryTime || 20} mins
+            </Text>
+          </View>
+          <View style={styles.settingRow}>
+            <Text style={styles.settingLabel}>Store Timings</Text>
+            <Text style={styles.settingValue}>
+              {restaurant?.timings?.open || '09:00'} - {restaurant?.timings?.close || '22:00'}
             </Text>
           </View>
         </View>
@@ -248,7 +274,9 @@ const styles = StyleSheet.create({
   actionTitle: { ...Typography.title, fontSize: 14 },
   actionSubtitle: { ...Typography.caption, marginTop: 2 },
   settingsCard: { backgroundColor: Colors.surface, borderRadius: 18, padding: 16, marginTop: 6, borderWidth: 1, borderColor: Colors.border },
-  cardHeader: { ...Typography.label, fontSize: 11, letterSpacing: 0.5, marginBottom: 12 },
+  cardHeader: { ...Typography.label, fontSize: 11, letterSpacing: 0.5 },
+  editProfileBtn: { flexDirection: 'row', alignItems: 'center', backgroundColor: Colors.primaryLight, paddingHorizontal: 10, paddingVertical: 4, borderRadius: 8 },
+  editProfileText: { ...Typography.button, fontSize: 11, color: Colors.primary },
   settingRow: { flexDirection: 'row', justifyContent: 'space-between', paddingVertical: 8, borderBottomWidth: 1, borderBottomColor: Colors.background },
   settingLabel: { ...Typography.bodySmall, fontSize: 12 },
   settingValue: { ...Typography.button, fontSize: 12 },

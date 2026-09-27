@@ -34,11 +34,6 @@ const globalLimiter = createLimiter({
   keyPrefix: 'global',
   message: 'Too many requests from this IP. Please try again in 15 minutes.',
 });
-
-<<<<<<< HEAD
-// 100 auth attempts per 15 minutes per IP
-=======
->>>>>>> 8086dc5b428c7112ded9ff5f2007d14bed108613
 const authLimiter = createLimiter({
   windowMs: 15 * 60 * 1000,
   max: 100,
@@ -46,10 +41,6 @@ const authLimiter = createLimiter({
   message: 'Too many authentication attempts. Please try again in 15 minutes.',
 });
 
-<<<<<<< HEAD
-// 100 OTP requests per 10 minutes per phone number
-=======
->>>>>>> 8086dc5b428c7112ded9ff5f2007d14bed108613
 const otpLimiter = createLimiter({
   windowMs: 10 * 60 * 1000,
   max: 100,

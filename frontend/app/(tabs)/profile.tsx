@@ -92,7 +92,7 @@ export default function ProfileScreen() {
               </View>
             </View>
             <Text style={styles.premiumName}>{user?.name || 'Ftafat User'}</Text>
-            <Text style={styles.premiumPhone}>{user?.phone || '+91 98222 33344'}</Text>
+            <Text style={styles.premiumPhone}>{user?.phone || '—'}</Text>
             {user?.email ? <Text style={styles.premiumEmail}>{user.email}</Text> : null}
             
             <View style={styles.roleBadgePremium}>
@@ -382,7 +382,7 @@ const styles = StyleSheet.create({
   bodyContainer: {
     paddingHorizontal: 16,
     paddingTop: 16,
-    paddingBottom: 40,
+    paddingBottom: 110,
     marginTop: -30,
   },
   statsRow: {

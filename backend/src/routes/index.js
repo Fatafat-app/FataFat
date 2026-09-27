@@ -43,6 +43,12 @@ router.use('/support', supportRoutes);
 
 router.use('/admin', adminRoutes);
 
+router.get('/categories', async (_req, res) => {
+  const adminService = require('../modules/admin/admin.service');
+  const categories = await adminService.getCategories(true);
+  res.json({ success: true, data: { categories } });
+});
+
 router.get('/health', (_req, res) => {
   res.json({ status: 'ok', timestamp: new Date().toISOString() });
 });

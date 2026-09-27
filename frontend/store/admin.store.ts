@@ -55,10 +55,14 @@ export const useAdminStore = create<AdminState>((set, get) => ({
 
   fetchUsers: async (role, search) => {
     try {
+      set({ isLoading: true });
       const data = await adminService.listUsers({ role, search, limit: 100 });
-      set({ users: data.items || [] });
+      const userList = (data as any)?.users || data?.items || (Array.isArray(data) ? data : []);
+      set({ users: userList });
     } catch (err) {
       console.warn('Failed to load users:', err);
+    } finally {
+      set({ isLoading: false });
     }
   },
 

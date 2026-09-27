@@ -53,6 +53,15 @@ export default function OwnerLayout() {
           ),
         }}
       />
+      <Tabs.Screen
+        name="profile"
+        options={{
+          title: 'Store Profile',
+          tabBarIcon: ({ color, focused }) => (
+            <Ionicons name={focused ? 'storefront' : 'storefront-outline'} size={22} color={color} />
+          ),
+        }}
+      />
     </Tabs>
   );
 }

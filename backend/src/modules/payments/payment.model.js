@@ -8,8 +8,9 @@ const paymentSchema = new mongoose.Schema(
     order: { type: mongoose.Schema.Types.ObjectId, ref: 'Order', required: true, unique: true },
     user: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
 
-    razorpayOrderId: { type: String, required: true, unique: true },
-    razorpayPaymentId: { type: String, unique: true, sparse: true },
+    method: { type: String, default: 'COD' },
+    razorpayOrderId: { type: String, sparse: true },
+    razorpayPaymentId: { type: String, sparse: true },
 
     amount: { type: Number, required: true },
     currency: { type: String, default: 'INR' },
@@ -20,7 +21,7 @@ const paymentSchema = new mongoose.Schema(
       default: PAYMENT_STATUS.PENDING,
     },
 
-    idempotencyKey: { type: String, unique: true },
+    idempotencyKey: { type: String, sparse: true },
 
     razorpayRefundId: { type: String },
     refundAmount: { type: Number },

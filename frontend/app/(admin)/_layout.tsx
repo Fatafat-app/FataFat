@@ -54,6 +54,24 @@ export default function AdminLayout() {
         }}
       />
       <Tabs.Screen
+        name="categories"
+        options={{
+          title: 'Categories',
+          tabBarIcon: ({ color, focused }) => (
+            <Ionicons name={focused ? 'fast-food' : 'fast-food-outline'} size={22} color={color} />
+          ),
+        }}
+      />
+      <Tabs.Screen
+        name="fees"
+        options={{
+          title: 'Fees & Tax',
+          tabBarIcon: ({ color, focused }) => (
+            <Ionicons name={focused ? 'card' : 'card-outline'} size={22} color={color} />
+          ),
+        }}
+      />
+      <Tabs.Screen
         name="audit"
         options={{
           title: 'Audit',

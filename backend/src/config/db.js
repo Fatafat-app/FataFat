@@ -7,6 +7,8 @@ const logger = require('./logger');
 const MONGOOSE_OPTIONS = {
   serverSelectionTimeoutMS: 5000,
   socketTimeoutMS: 45000,
+  retryWrites: false,
+  autoIndex: true,
 };
 
 async function connect() {

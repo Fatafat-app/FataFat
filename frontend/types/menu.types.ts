@@ -29,6 +29,8 @@ export interface MenuItem {
 }
 
 export interface MenuCategory {
+  _id: string;
+  name: string;
   category: string;
   items: MenuItem[];
 }
