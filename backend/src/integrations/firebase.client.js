@@ -1,12 +1,5 @@
 'use strict';
 
-/**
- * firebase.client.js — Firebase Admin SDK wrapper for FCM push notifications.
- *
- * Initialised once on first import (singleton pattern).
- * All FCM operations go through this module.
- */
-
 const admin = require('firebase-admin');
 const env = require('../config/env');
 const logger = require('../config/logger');
@@ -27,13 +20,6 @@ function getFirebaseApp() {
   return firebaseApp;
 }
 
-/**
- * Send a push notification to a single device.
- *
- * @param {string} fcmToken - Device FCM token
- * @param {{ title: string, body: string, data?: object }} notification
- * @returns {Promise<string>} Message ID
- */
 async function sendPushNotification(fcmToken, { title, body, data = {} }) {
   const app = getFirebaseApp();
 
@@ -41,7 +27,6 @@ async function sendPushNotification(fcmToken, { title, body, data = {} }) {
     token: fcmToken,
     notification: { title, body },
     data: Object.fromEntries(
-      // FCM data values must be strings
       Object.entries(data).map(([k, v]) => [k, String(v)])
     ),
     android: { priority: 'high' },
@@ -58,13 +43,6 @@ async function sendPushNotification(fcmToken, { title, body, data = {} }) {
   }
 }
 
-/**
- * Send a push notification to multiple devices (multicast).
- * Max 500 tokens per call (FCM limit).
- *
- * @param {string[]} fcmTokens
- * @param {{ title: string, body: string, data?: object }} notification
- */
 async function sendMulticastNotification(fcmTokens, { title, body, data = {} }) {
   if (!fcmTokens.length) return;
 

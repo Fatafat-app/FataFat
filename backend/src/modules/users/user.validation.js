@@ -1,9 +1,5 @@
 'use strict';
 
-/**
- * user.validation.js — Zod schemas for user profile & address routes.
- */
-
 const { z } = require('zod');
 
 const updateProfileSchema = z.object({

@@ -1,12 +1,5 @@
 'use strict';
 
-/**
- * auth.validation.js — Zod schemas for auth routes.
- *
- * All schemas are flat (validate req.body directly).
- * The validate middleware runs these before controllers.
- */
-
 const { z } = require('zod');
 const ROLES = require('../../common/constants/roles');
 

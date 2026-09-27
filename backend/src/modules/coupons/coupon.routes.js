@@ -10,7 +10,6 @@ const ROLES = require('../../common/constants/roles');
 
 const router = Router();
 
-// POST /api/v1/coupons/validate
 router.post('/validate', authenticate, async (req, res) => {
   const { code, cartTotal, restaurantId } = req.body;
   const { coupon, discountAmount } = await couponService.validateCoupon(
@@ -19,19 +18,16 @@ router.post('/validate', authenticate, async (req, res) => {
   success(res, { coupon: { code: coupon.code, discountAmount }, discountAmount }, 'Coupon valid');
 });
 
-// Admin: list all coupons
 router.get('/', authenticate, requireRole(ROLES.ADMIN), async (_req, res) => {
   const coupons = await Coupon.find().sort({ createdAt: -1 });
   success(res, { items: coupons });
 });
 
-// Admin: create coupon
 router.post('/', authenticate, requireRole(ROLES.ADMIN), async (req, res) => {
   const coupon = await couponService.createCoupon(req.body);
   success(res, { coupon }, 'Coupon created', 201);
 });
 
-// Admin: toggle coupon active status
 router.patch('/:id/toggle', authenticate, requireRole(ROLES.ADMIN), async (req, res) => {
   const coupon = await Coupon.findById(req.params.id);
   if (!coupon) {

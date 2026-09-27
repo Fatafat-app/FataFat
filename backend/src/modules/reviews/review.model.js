@@ -1,10 +1,5 @@
 'use strict';
 
-/**
- * review.model.js — Restaurant review schema.
- * One review per order — enforced by unique index.
- */
-
 const mongoose = require('mongoose');
 
 const reviewSchema = new mongoose.Schema(
@@ -15,7 +10,7 @@ const reviewSchema = new mongoose.Schema(
     rating: { type: Number, required: true, min: 1, max: 5 },
     text: { type: String, trim: true, maxlength: 1000 },
     images: [{ type: String }],
-    isVisible: { type: Boolean, default: true }, // Admin can hide inappropriate reviews
+    isVisible: { type: Boolean, default: true },
   },
   {
     timestamps: true,

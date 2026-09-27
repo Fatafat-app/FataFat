@@ -1,9 +1,5 @@
 'use strict';
 
-/**
- * delivery.validation.js — Zod schemas for delivery partner routes.
- */
-
 const { z } = require('zod');
 
 const registerPartnerSchema = z.object({

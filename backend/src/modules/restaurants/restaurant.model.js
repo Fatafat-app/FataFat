@@ -1,9 +1,5 @@
 'use strict';
 
-/**
- * restaurant.model.js — Mongoose schema for restaurants.
- */
-
 const mongoose = require('mongoose');
 
 const restaurantSchema = new mongoose.Schema(
@@ -33,11 +29,10 @@ const restaurantSchema = new mongoose.Schema(
       state: { type: String, required: true, trim: true },
       pincode: { type: String, required: true, trim: true },
     },
-    // GeoJSON Point for geospatial queries
     location: {
       type: { type: String, enum: ['Point'], default: 'Point' },
       coordinates: {
-        type: [Number], // [longitude, latitude]
+        type: [Number],
         required: true,
         validate: {
           validator: (v) => v.length === 2,
@@ -46,27 +41,27 @@ const restaurantSchema = new mongoose.Schema(
       },
     },
     cuisines: [{ type: String, trim: true }],
-    images: [{ type: String }], // Cloudinary URLs
+    images: [{ type: String }],
     coverImage: { type: String },
     rating: {
       average: { type: Number, default: 0, min: 0, max: 5 },
       count: { type: Number, default: 0 },
     },
     deliveryInfo: {
-      minOrderAmount: { type: Number, default: 0 },  // In paise
-      deliveryFee: { type: Number, default: 0 },      // In paise
+      minOrderAmount: { type: Number, default: 0 },
+      deliveryFee: { type: Number, default: 0 },
       estimatedMinutes: { type: Number, default: 30 },
       radiusKm: { type: Number, default: 5 },
     },
     timings: {
-      open: { type: String, default: '09:00' },  // HH:MM 24h
+      open: { type: String, default: '09:00' },
       close: { type: String, default: '22:00' },
     },
-    isOpen: { type: Boolean, default: false },     // Owner toggles manually
-    isActive: { type: Boolean, default: false },   // Admin approval toggle
+    isOpen: { type: Boolean, default: false },
+    isActive: { type: Boolean, default: false },
     isApproved: { type: Boolean, default: false },
-    preparationTime: { type: Number, default: 20 }, // minutes
-    taxPercent: { type: Number, default: 5 },       // GST %
+    preparationTime: { type: Number, default: 20 },
+    taxPercent: { type: Number, default: 5 },
     fssaiLicense: { type: String, trim: true },
   },
   {
@@ -81,7 +76,6 @@ const restaurantSchema = new mongoose.Schema(
   }
 );
 
-// 2dsphere index enables $near and $geoWithin queries
 restaurantSchema.index({ location: '2dsphere' });
 restaurantSchema.index({ owner: 1 });
 restaurantSchema.index({ isActive: 1, isOpen: 1 });

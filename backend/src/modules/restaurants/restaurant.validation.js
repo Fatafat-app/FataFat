@@ -1,9 +1,5 @@
 'use strict';
 
-/**
- * restaurant.validation.js — Zod schemas for restaurant management.
- */
-
 const { z } = require('zod');
 
 const createRestaurantSchema = z.object({
@@ -31,7 +27,7 @@ const createRestaurantSchema = z.object({
     })
     .optional(),
   deliveryRadiusKm: z.number().positive().default(10),
-  minOrderAmount: z.number().nonnegative().default(0), // in paise
+  minOrderAmount: z.number().nonnegative().default(0),
 });
 
 const updateRestaurantSchema = createRestaurantSchema.partial();

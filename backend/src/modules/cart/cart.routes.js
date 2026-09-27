@@ -5,7 +5,7 @@ const controller = require('./cart.controller');
 const { authenticate } = require('../../middlewares/auth.middleware');
 
 const router = Router();
-router.use(authenticate); // All cart routes require auth
+router.use(authenticate);
 
 router.get('/', controller.getCart);
 router.post('/items', controller.addItem);

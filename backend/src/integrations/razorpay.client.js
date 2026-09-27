@@ -1,12 +1,5 @@
 'use strict';
 
-/**
- * razorpay.client.js — Razorpay SDK wrapper.
- *
- * All Razorpay operations go through this module.
- * No other file imports the Razorpay SDK directly.
- */
-
 const Razorpay = require('razorpay');
 const crypto = require('crypto');
 const env = require('../config/env');
@@ -18,13 +11,6 @@ const razorpay = new Razorpay({
   key_secret: env.razorpay.keySecret,
 });
 
-/**
- * Create a Razorpay order.
- * Amount must be in smallest currency unit (paise for INR).
- *
- * @param {{ amount: number, currency: string, receipt: string, notes?: object }} options
- * @returns {Promise<object>} Razorpay order object
- */
 async function createOrder({ amount, currency = 'INR', receipt, notes = {} }) {
   try {
     const order = await razorpay.orders.create({ amount, currency, receipt, notes });
@@ -34,12 +20,6 @@ async function createOrder({ amount, currency = 'INR', receipt, notes = {} }) {
   }
 }
 
-/**
- * Verify Razorpay payment signature.
- * Returns true if valid, throws PaymentError if tampered.
- *
- * @param {{ razorpayOrderId: string, razorpayPaymentId: string, signature: string }}
- */
 function verifyPaymentSignature({ razorpayOrderId, razorpayPaymentId, signature }) {
   const expectedSignature = crypto
     .createHmac('sha256', env.razorpay.keySecret)
@@ -58,13 +38,6 @@ function verifyPaymentSignature({ razorpayOrderId, razorpayPaymentId, signature 
   return true;
 }
 
-/**
- * Verify Razorpay webhook signature.
- * Uses the webhook secret (different from payment secret).
- *
- * @param {string} rawBody      - Raw request body string (unparsed)
- * @param {string} receivedSig  - X-Razorpay-Signature header value
- */
 function verifyWebhookSignature(rawBody, receivedSig) {
   const expectedSig = crypto
     .createHmac('sha256', env.razorpay.webhookSecret)
@@ -83,13 +56,6 @@ function verifyWebhookSignature(rawBody, receivedSig) {
   return true;
 }
 
-/**
- * Initiate a refund for a payment.
- *
- * @param {string} paymentId  - Razorpay payment ID
- * @param {number} [amount]   - Amount to refund in paise (null = full refund)
- * @returns {Promise<object>} Razorpay refund object
- */
 async function createRefund(paymentId, amount = null) {
   try {
     const options = amount ? { amount } : {};

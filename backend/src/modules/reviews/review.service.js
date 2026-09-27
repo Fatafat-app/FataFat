@@ -7,10 +7,6 @@ const { NotFoundError, ForbiddenError, ConflictError, BusinessError } = require(
 const { getPagination, buildPaginationMeta } = require('../../common/utils/pagination');
 const { ORDER_STATUS } = require('../../common/constants/orderStatuses');
 
-/**
- * Create a review for a delivered order.
- * Only the order's owner can review, and only after delivery.
- */
 async function createReview(userId, { orderId, rating, text, images }) {
   const order = await Order.findById(orderId);
   if (!order) throw new NotFoundError('Order not found');
@@ -23,7 +19,6 @@ async function createReview(userId, { orderId, rating, text, images }) {
     throw new BusinessError('You can only review an order after it has been delivered', 'ORDER_NOT_DELIVERED');
   }
 
-  // Check for duplicate review
   const existing = await Review.findOne({ order: orderId });
   if (existing) throw new ConflictError('You have already reviewed this order');
 
@@ -36,16 +31,11 @@ async function createReview(userId, { orderId, rating, text, images }) {
     images,
   });
 
-  // Update restaurant's aggregate rating
   await updateRestaurantRating(order.restaurant.toString());
 
   return review;
 }
 
-/**
- * Recompute and update a restaurant's average rating.
- * Called after every review creation/update.
- */
 async function updateRestaurantRating(restaurantId) {
   const stats = await Review.aggregate([
     { $match: { restaurant: require('mongoose').Types.ObjectId.createFromHexString(restaurantId), isVisible: true } },
@@ -55,14 +45,11 @@ async function updateRestaurantRating(restaurantId) {
   const { average = 0, count = 0 } = stats[0] || {};
 
   await Restaurant.findByIdAndUpdate(restaurantId, {
-    'rating.average': Math.round(average * 10) / 10, // Round to 1 decimal
+    'rating.average': Math.round(average * 10) / 10,
     'rating.count': count,
   });
 }
 
-/**
- * Get paginated reviews for a restaurant.
- */
 async function getRestaurantReviews(restaurantId, queryParams) {
   const { page, limit, skip } = getPagination(queryParams);
 

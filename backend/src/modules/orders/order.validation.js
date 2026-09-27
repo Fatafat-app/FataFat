@@ -1,9 +1,5 @@
 'use strict';
 
-/**
- * order.validation.js — Zod schemas for order placement and status updates.
- */
-
 const { z } = require('zod');
 const { ORDER_STATUS } = require('../../common/constants/orderStatuses');
 

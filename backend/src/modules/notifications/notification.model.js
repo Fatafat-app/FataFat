@@ -1,9 +1,5 @@
 'use strict';
 
-/**
- * notification.model.js — In-app notifications schema.
- */
-
 const mongoose = require('mongoose');
 
 const notificationSchema = new mongoose.Schema(

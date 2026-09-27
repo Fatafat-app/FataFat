@@ -1,18 +1,11 @@
 'use strict';
 
-/**
- * user.model.js — Mongoose schema for all users.
- *
- * All roles (customer, restaurant_owner, delivery_partner, admin) share this model.
- * Sensitive fields (passwordHash, refreshTokenHash, fcmToken) use select: false.
- */
-
 const mongoose = require('mongoose');
 const ROLES = require('../../common/constants/roles');
 
 const addressSchema = new mongoose.Schema(
   {
-    label: { type: String, trim: true, default: 'Home' }, // e.g. Home, Work, Other
+    label: { type: String, trim: true, default: 'Home' },
     line1: { type: String, required: true, trim: true },
     line2: { type: String, trim: true },
     city: { type: String, required: true, trim: true },
@@ -20,7 +13,7 @@ const addressSchema = new mongoose.Schema(
     pincode: { type: String, required: true, trim: true },
     location: {
       type: { type: String, enum: ['Point'], default: 'Point' },
-      coordinates: { type: [Number], default: [0, 0] }, // [lng, lat]
+      coordinates: { type: [Number], default: [0, 0] },
     },
     isDefault: { type: Boolean, default: false },
   },
@@ -45,7 +38,7 @@ const userSchema = new mongoose.Schema(
     email: {
       type: String,
       unique: true,
-      sparse: true, // Allow multiple null values (email is optional)
+      sparse: true,
       lowercase: true,
       trim: true,
       match: [/^\S+@\S+\.\S+$/, 'Invalid email format'],
@@ -55,19 +48,17 @@ const userSchema = new mongoose.Schema(
       enum: Object.values(ROLES),
       default: ROLES.CUSTOMER,
     },
-    // Sensitive: never returned in queries unless explicitly selected
     passwordHash: { type: String, select: false },
     refreshTokenHash: { type: String, select: false },
 
     isVerified: { type: Boolean, default: false },
     isActive: { type: Boolean, default: true },
 
-    avatar: { type: String }, // Cloudinary URL
-    fcmToken: { type: String, select: false }, // FCM device token
+    avatar: { type: String },
+    fcmToken: { type: String, select: false },
 
     addresses: [addressSchema],
 
-    // Restaurant owner / delivery partner link
     restaurantId: { type: mongoose.Schema.Types.ObjectId, ref: 'Restaurant' },
   },
   {
@@ -82,7 +73,6 @@ const userSchema = new mongoose.Schema(
   }
 );
 
-// Index for geospatial queries on default address
 userSchema.index({ 'addresses.location': '2dsphere' });
 
 const User = mongoose.model('User', userSchema);

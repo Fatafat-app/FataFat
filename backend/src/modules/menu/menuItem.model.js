@@ -1,10 +1,5 @@
 'use strict';
 
-/**
- * menuItem.model.js — Individual menu item schema.
- * Price is stored in paise (smallest INR unit) — never rupees with decimals.
- */
-
 const mongoose = require('mongoose');
 
 const menuItemSchema = new mongoose.Schema(
@@ -26,7 +21,6 @@ const menuItemSchema = new mongoose.Schema(
       maxlength: 150,
     },
     description: { type: String, trim: true, maxlength: 500 },
-    // Price in paise (100 paise = ₹1). Never store as float.
     price: {
       type: Number,
       required: [true, 'Price is required'],
@@ -36,12 +30,11 @@ const menuItemSchema = new mongoose.Schema(
         message: 'Price must be an integer (in paise)',
       },
     },
-    images: [{ type: String }], // Cloudinary URLs
+    images: [{ type: String }],
     isVeg: { type: Boolean, default: false },
     isAvailable: { type: Boolean, default: true },
     sortOrder: { type: Number, default: 0 },
     tags: [{ type: String, trim: true }],
-    // Nutritional info (optional)
     nutrition: {
       calories: Number,
       protein: Number,

@@ -9,13 +9,10 @@ const express = require('express');
 
 const router = Router();
 
-// Webhook MUST receive raw body — registered before JSON parser in app.js
-// POST /api/v1/payments/webhook  (no auth — Razorpay calls this)
 router.post(
   '/webhook',
-  express.raw({ type: 'application/json' }), // Override global JSON parser for this route
+  express.raw({ type: 'application/json' }),
   (req, _res, next) => {
-    // Store raw body string for signature verification
     req.rawBody = req.body.toString('utf8');
     req.body = JSON.parse(req.rawBody);
     next();
@@ -23,7 +20,6 @@ router.post(
   webhookController.handleWebhook
 );
 
-// Authenticated payment routes
 router.use(authenticate);
 router.post('/confirm', paymentLimiter, controller.confirmPayment);
 router.get('/order/:orderId', controller.getPaymentForOrder);

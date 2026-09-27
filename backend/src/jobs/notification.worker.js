@@ -1,12 +1,5 @@
 'use strict';
 
-/**
- * notification.worker.js — BullMQ worker for push notifications.
- *
- * Processes jobs from the 'notifications' queue.
- * Each job type maps to a specific notification template.
- */
-
 const { Worker } = require('bullmq');
 const redis = require('../config/redis');
 const { sendPushNotification } = require('../integrations/firebase.client');
@@ -49,7 +42,6 @@ const worker = new Worker(
       return;
     }
 
-    // Fetch user FCM token
     const user = await User.findById(userId).select('+fcmToken');
     if (!user?.fcmToken) {
       logger.debug('[NotificationWorker] User has no FCM token', { userId });
@@ -63,7 +55,7 @@ const worker = new Worker(
       logger.info('[NotificationWorker] Push sent', { userId, jobName: job.name });
     } catch (err) {
       logger.error('[NotificationWorker] Push failed', { userId, error: err.message });
-      throw err; // BullMQ will retry based on queue config
+      throw err;
     }
   },
   { connection: redis, concurrency: 10 }

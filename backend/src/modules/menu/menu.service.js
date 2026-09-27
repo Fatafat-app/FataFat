@@ -1,16 +1,12 @@
 'use strict';
 
-/**
- * menu.service.js — Menu management business logic.
- */
-
 const MenuCategory = require('./menuCategory.model');
 const MenuItem = require('./menuItem.model');
 const { NotFoundError, ForbiddenError } = require('../../common/errors');
 const redis = require('../../config/redis');
 const logger = require('../../config/logger');
 
-const MENU_CACHE_TTL = 120; // 2 minutes
+const MENU_CACHE_TTL = 120;
 
 function menuCacheKey(restaurantId) {
   return `menu:${restaurantId}`;
@@ -24,13 +20,6 @@ async function invalidateMenuCache(restaurantId) {
   }
 }
 
-/**
- * Get full menu for a restaurant — categories with their items.
- * Result is cached in Redis.
- *
- * @param {string} restaurantId
- * @param {boolean} [includeUnavailable] - Admin/owner view
- */
 async function getMenuByRestaurant(restaurantId, includeUnavailable = false) {
   const cacheKey = menuCacheKey(restaurantId);
 
@@ -51,7 +40,6 @@ async function getMenuByRestaurant(restaurantId, includeUnavailable = false) {
     }).sort('sortOrder'),
   ]);
 
-  // Group items by category
   const itemsByCategory = items.reduce((acc, item) => {
     const catId = item.category.toString();
     if (!acc[catId]) acc[catId] = [];
@@ -75,18 +63,12 @@ async function getMenuByRestaurant(restaurantId, includeUnavailable = false) {
   return menu;
 }
 
-/**
- * Add a category to a restaurant's menu.
- */
 async function addCategory(restaurantId, data) {
   const category = await MenuCategory.create({ restaurant: restaurantId, ...data });
   await invalidateMenuCache(restaurantId);
   return category;
 }
 
-/**
- * Update a menu category.
- */
 async function updateCategory(categoryId, restaurantId, updates) {
   const category = await MenuCategory.findOneAndUpdate(
     { _id: categoryId, restaurant: restaurantId },
@@ -99,11 +81,7 @@ async function updateCategory(categoryId, restaurantId, updates) {
   return category;
 }
 
-/**
- * Add a menu item to a category.
- */
 async function addMenuItem(restaurantId, data) {
-  // Verify the category belongs to this restaurant
   const category = await MenuCategory.findOne({
     _id: data.category,
     restaurant: restaurantId,
@@ -116,9 +94,6 @@ async function addMenuItem(restaurantId, data) {
   return item;
 }
 
-/**
- * Update a menu item.
- */
 async function updateMenuItem(itemId, restaurantId, updates) {
   const item = await MenuItem.findOneAndUpdate(
     { _id: itemId, restaurant: restaurantId },
@@ -131,9 +106,6 @@ async function updateMenuItem(itemId, restaurantId, updates) {
   return item;
 }
 
-/**
- * Toggle a menu item's availability.
- */
 async function toggleItemAvailability(itemId, restaurantId) {
   const item = await MenuItem.findOne({ _id: itemId, restaurant: restaurantId });
   if (!item) throw new NotFoundError('Menu item not found');
@@ -144,9 +116,6 @@ async function toggleItemAvailability(itemId, restaurantId) {
   return item;
 }
 
-/**
- * Get a single menu item by ID.
- */
 async function getMenuItem(itemId) {
   const item = await MenuItem.findById(itemId).populate('category', 'name');
   if (!item) throw new NotFoundError('Menu item not found');

@@ -1,9 +1,5 @@
 'use strict';
 
-/**
- * delivery.model.js — Delivery Partner / Rider profile and live state.
- */
-
 const mongoose = require('mongoose');
 
 const deliveryPartnerSchema = new mongoose.Schema(
@@ -37,7 +33,7 @@ const deliveryPartnerSchema = new mongoose.Schema(
         default: 'Point',
       },
       coordinates: {
-        type: [Number], // [longitude, latitude]
+        type: [Number],
         default: [0, 0],
       },
       updatedAt: { type: Date, default: Date.now },
@@ -62,7 +58,7 @@ const deliveryPartnerSchema = new mongoose.Schema(
       count: { type: Number, default: 0 },
     },
     earnings: {
-      total: { type: Number, default: 0 }, // in paise
+      total: { type: Number, default: 0 },
       pendingPayout: { type: Number, default: 0 },
       today: { type: Number, default: 0 },
     },
@@ -76,7 +72,6 @@ const deliveryPartnerSchema = new mongoose.Schema(
   }
 );
 
-// 2dsphere index for finding nearby riders
 deliveryPartnerSchema.index({ currentLocation: '2dsphere' });
 deliveryPartnerSchema.index({ isOnline: 1, isAvailable: 1 });
 
