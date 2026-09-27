@@ -180,7 +180,7 @@ export default function OrderDetailsScreen() {
                 <Text style={styles.riderAlertText}>Delivery partner is arriving soon!</Text>
               </View>
             )}
-            
+
             {['PENDING', 'CONFIRMED'].includes(displayStatus) && (
               <TouchableOpacity onPress={handleCancelOrder} style={styles.cancelButton}>
                 <Text style={styles.cancelButtonText}>Cancel Order</Text>
@@ -210,7 +210,7 @@ export default function OrderDetailsScreen() {
           {order.items?.map((item, idx) => {
             const imageUrl = (item as any).menuItem?.images?.[0] || 'https://images.pexels.com/photos/1639557/pexels-photo-1639557.jpeg';
             const isVeg = (item as any).menuItem?.isVeg;
-            
+
             return (
               <View key={idx} style={[styles.itemRow, idx !== order.items.length - 1 && styles.itemBorder]}>
                 <Image source={{ uri: imageUrl }} style={styles.itemImage} />
