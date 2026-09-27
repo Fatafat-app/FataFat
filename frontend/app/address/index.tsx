@@ -97,7 +97,7 @@ export default function AddressSelectionScreen() {
         </View>
       ) : (
         <ScrollView style={styles.scrollContainer} contentContainerStyle={styles.scrollContent}>
-          {addresses.map((address) => {
+          {(addresses ?? []).map((address) => {
             const isSelected = selectedAddress?._id === address._id;
             return (
               <TouchableOpacity 
