@@ -5,7 +5,6 @@ import {
   ScrollView,
   TouchableOpacity,
   ActivityIndicator,
-  ActivityIndicator,
   Alert,
   StyleSheet,
   Image,
@@ -138,7 +137,7 @@ export default function OrderDetailsScreen() {
   const currentStep = getStepIndex(displayStatus);
   const isCancelled = displayStatus === 'CANCELLED';
   const restName =
-    (typeof order.restaurant === 'object' && order.restaurant !== null && (order.restaurant as any).name)
+    (typeof (order as any).restaurant === 'object' && (order as any).restaurant !== null && (order as any).restaurant.name)
     || (typeof order.restaurantId === 'object' && order.restaurantId !== null && (order.restaurantId as any).name)
     || (typeof (order as any).restaurantName === 'string' ? (order as any).restaurantName : null)
     || 'Partner Restaurant';
@@ -304,7 +303,7 @@ const styles = StyleSheet.create({
   restaurantName: { ...Typography.title, fontSize: 18, marginBottom: 4 },
   dateText: { ...Typography.caption, color: Colors.textSecondary },
   itemRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingVertical: 12 },
-  itemBorder: { borderBottomWidth: 1, borderBottomColor: Colors.borderLight || '#F3F4F6' },
+  itemBorder: { borderBottomWidth: 1, borderBottomColor: '#F3F4F6' },
   itemImage: { width: 48, height: 48, borderRadius: 10, backgroundColor: Colors.border },
   itemMiddle: { flex: 1, marginLeft: 12, marginRight: 8 },
   itemNameRow: { flexDirection: 'row', alignItems: 'center', marginBottom: 2 },

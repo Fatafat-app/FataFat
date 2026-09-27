@@ -355,7 +355,7 @@ const styles = StyleSheet.create({
   itemName: { ...Typography.subtitle, fontSize: 14, flex: 1 },
   itemQuantity: { ...Typography.caption, color: Colors.textSecondary },
   itemPrice: { ...Typography.title, fontSize: 14, color: Colors.text },
-  orderCardFooter: { marginTop: 4, paddingTop: 12, borderTopWidth: 1, borderTopColor: Colors.borderLight || '#F3F4F6', flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
+  orderCardFooter: { marginTop: 4, paddingTop: 12, borderTopWidth: 1, borderTopColor: '#F3F4F6', flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
   orderDate: { ...Typography.caption },
   orderTotal: { ...Typography.title, fontSize: 16 },
 });

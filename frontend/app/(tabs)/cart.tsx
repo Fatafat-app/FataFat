@@ -9,6 +9,8 @@ import {
   Alert,
   StyleSheet,
   Platform,
+  Image,
+  Modal,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
@@ -52,6 +54,20 @@ export default function CartScreen() {
   const [deliveryInstructions, setDeliveryInstructions] = useState('');
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>('COD');
   const [placingOrder, setPlacingOrder] = useState(false);
+  const [selectedItemForDetails, setSelectedItemForDetails] = useState<any>(null);
+
+  // Calculate generic delivery estimate (45 mins from now)
+  const getDeliveryEstimate = () => {
+    const d = new Date(Date.now() + 45 * 60000);
+    const days = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+    const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+    let hours = d.getHours();
+    const ampm = hours >= 12 ? 'PM' : 'AM';
+    hours = hours % 12;
+    hours = hours ? hours : 12;
+    const mins = d.getMinutes().toString().padStart(2, '0');
+    return `Delivery by ${days[d.getDay()]}, ${d.getDate()} ${months[d.getMonth()]} • ${hours}:${mins} ${ampm}`;
+  };
 
   useEffect(() => {
     fetchFeeConfig();
@@ -176,38 +192,56 @@ export default function CartScreen() {
         {/* Ordered Items List */}
         <View style={styles.card}>
           <Text style={styles.cardHeading}>ITEMS IN YOUR CART ({items.length})</Text>
-          {items.map((item, idx) => (
-            <View
-              key={item.menuItem._id}
-              style={[styles.itemRow, idx !== items.length - 1 && styles.itemRowBorder]}
-            >
-              <View style={styles.itemInfo}>
-                <Text style={styles.itemName}>{item.menuItem.name}</Text>
-                {item.selectedModifiers && item.selectedModifiers.length > 0 && (
-                  <Text style={styles.itemModifiers}>
-                    {item.selectedModifiers.map((m) => m.name).join(', ')}
-                  </Text>
-                )}
-                <Text style={styles.itemPrice}>{formatPaise(item.totalItemPrice)}</Text>
-              </View>
+          {items.map((item, idx) => {
+            const imageUrl = item.menuItem.images?.[0] || 'https://images.pexels.com/photos/1639557/pexels-photo-1639557.jpeg';
+            const isVeg = item.menuItem.isVeg;
+            
+            return (
+              <View
+                key={item.menuItem._id}
+                style={[styles.itemRow, idx !== items.length - 1 && styles.itemRowBorder]}
+              >
+                <TouchableOpacity onPress={() => setSelectedItemForDetails(item.menuItem)} activeOpacity={0.8}>
+                  <Image source={{ uri: imageUrl }} style={styles.itemImage} />
+                </TouchableOpacity>
+                
+                <View style={styles.itemInfo}>
+                  <View style={styles.itemNameRow}>
+                    {isVeg !== undefined && (
+                      <View style={[styles.vegSquare, { borderColor: isVeg ? '#16A34A' : '#DC2626' }]}>
+                        <View style={[styles.vegDot, { backgroundColor: isVeg ? '#16A34A' : '#DC2626' }]} />
+                      </View>
+                    )}
+                    <Text style={styles.itemName} numberOfLines={2}>{item.menuItem.name}</Text>
+                  </View>
+                  
+                  {item.selectedModifiers && item.selectedModifiers.length > 0 && (
+                    <Text style={styles.itemModifiers}>
+                      {item.selectedModifiers.map((m) => m.name).join(', ')}
+                    </Text>
+                  )}
+                  <Text style={styles.itemPrice}>{formatPaise(item.totalItemPrice)}</Text>
+                  <Text style={styles.deliveryEstText}>{getDeliveryEstimate()}</Text>
+                </View>
 
-              <View style={styles.counterBox}>
-                <TouchableOpacity
-                  onPress={() => updateQuantity(item.menuItem._id, -1)}
-                  style={styles.counterBtn}
-                >
-                  <Ionicons name="remove" size={14} color={Colors.primary} />
-                </TouchableOpacity>
-                <Text style={styles.counterValue}>{item.quantity}</Text>
-                <TouchableOpacity
-                  onPress={() => updateQuantity(item.menuItem._id, 1)}
-                  style={styles.counterBtn}
-                >
-                  <Ionicons name="add" size={14} color={Colors.primary} />
-                </TouchableOpacity>
+                <View style={styles.counterBox}>
+                  <TouchableOpacity
+                    onPress={() => updateQuantity(item.menuItem._id, -1)}
+                    style={styles.counterBtn}
+                  >
+                    <Ionicons name="remove" size={16} color={Colors.primary} />
+                  </TouchableOpacity>
+                  <Text style={styles.counterValue}>{item.quantity}</Text>
+                  <TouchableOpacity
+                    onPress={() => updateQuantity(item.menuItem._id, 1)}
+                    style={styles.counterBtn}
+                  >
+                    <Ionicons name="add" size={16} color={Colors.primary} />
+                  </TouchableOpacity>
+                </View>
               </View>
-            </View>
-          ))}
+            );
+          })}
         </View>
 
         {/* Delivery Location */}
@@ -358,6 +392,61 @@ export default function CartScreen() {
           )}
         </TouchableOpacity>
       </View>
+
+      {/* Item Details Modal */}
+      <Modal
+        visible={!!selectedItemForDetails}
+        transparent={true}
+        animationType="slide"
+        onRequestClose={() => setSelectedItemForDetails(null)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <TouchableOpacity 
+              style={styles.closeModalBtn} 
+              onPress={() => setSelectedItemForDetails(null)}
+            >
+              <Ionicons name="close-circle" size={28} color={Colors.textSecondary} />
+            </TouchableOpacity>
+            
+            {selectedItemForDetails && (
+              <>
+                <Image 
+                  source={{ uri: selectedItemForDetails.images?.[0] || 'https://images.pexels.com/photos/1639557/pexels-photo-1639557.jpeg' }} 
+                  style={styles.modalImage} 
+                />
+                <View style={styles.modalInfo}>
+                  <View style={styles.itemNameRow}>
+                    {selectedItemForDetails.isVeg !== undefined && (
+                      <View style={[styles.vegSquare, { borderColor: selectedItemForDetails.isVeg ? '#16A34A' : '#DC2626' }]}>
+                        <View style={[styles.vegDot, { backgroundColor: selectedItemForDetails.isVeg ? '#16A34A' : '#DC2626' }]} />
+                      </View>
+                    )}
+                    <Text style={styles.modalTitle}>{selectedItemForDetails.name}</Text>
+                  </View>
+                  <Text style={styles.modalPrice}>{formatPaise(selectedItemForDetails.price)}</Text>
+                  {selectedItemForDetails.description ? (
+                    <Text style={styles.modalDesc}>{selectedItemForDetails.description}</Text>
+                  ) : null}
+
+                  <TouchableOpacity 
+                    style={styles.showAllDetailsBtn}
+                    onPress={() => {
+                      setSelectedItemForDetails(null);
+                      if (restaurant?._id) {
+                        router.push(`/restaurant/${restaurant._id}`);
+                      }
+                    }}
+                  >
+                    <Text style={styles.showAllDetailsText}>Show Full Menu & Details</Text>
+                    <Ionicons name="chevron-forward" size={16} color={Colors.primary} />
+                  </TouchableOpacity>
+                </View>
+              </>
+            )}
+          </View>
+        </View>
+      </Modal>
     </SafeAreaView>
   );
 }
@@ -391,24 +480,28 @@ const styles = StyleSheet.create({
     borderColor: Colors.border,
   },
   cardHeading: { ...Typography.label, letterSpacing: 0.5, marginBottom: 12, color: Colors.textSecondary },
-  itemRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingVertical: 10 },
-  itemRowBorder: { borderBottomWidth: 1, borderBottomColor: Colors.background },
-  itemInfo: { flex: 1, marginRight: 12 },
-  itemName: { ...Typography.title, fontSize: 15 },
-  itemModifiers: { ...Typography.caption, color: Colors.textSecondary, marginTop: 2 },
-  itemPrice: { ...Typography.bodySmall, color: Colors.primary, marginTop: 4, fontWeight: '700' },
+  itemRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingVertical: 14 },
+  itemRowBorder: { borderBottomWidth: 1, borderBottomColor: '#F3F4F6' },
+  itemImage: { width: 56, height: 56, borderRadius: 12, backgroundColor: Colors.border },
+  itemInfo: { flex: 1, marginLeft: 12, marginRight: 10 },
+  itemNameRow: { flexDirection: 'row', alignItems: 'flex-start', marginBottom: 2 },
+  vegSquare: { width: 12, height: 12, borderWidth: 1, borderRadius: 2, alignItems: 'center', justifyContent: 'center', marginRight: 6, marginTop: 3 },
+  vegDot: { width: 6, height: 6, borderRadius: 3 },
+  itemName: { ...Typography.subtitle, fontSize: 14, flex: 1, color: Colors.text, lineHeight: 18 },
+  itemModifiers: { ...Typography.caption, color: Colors.textSecondary, marginTop: 4, fontSize: 11 },
+  itemPrice: { ...Typography.title, color: Colors.text, marginTop: 4, fontSize: 14 },
   counterBox: {
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: Colors.primaryLight,
-    borderRadius: 8,
+    borderRadius: 10,
     borderWidth: 1,
     borderColor: '#FED7AA',
     paddingHorizontal: 4,
-    paddingVertical: 2,
+    paddingVertical: 4,
   },
-  counterBtn: { padding: 6 },
-  counterValue: { ...Typography.button, color: Colors.primary, marginHorizontal: 8, fontSize: 14 },
+  counterBtn: { padding: 4 },
+  counterValue: { ...Typography.title, color: Colors.primary, marginHorizontal: 10, fontSize: 14 },
   locationHeaderRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 },
   addressBox: { backgroundColor: Colors.background, padding: 12, borderRadius: 12, marginBottom: 10 },
   addressType: { ...Typography.title, fontSize: 14, marginBottom: 2 },
@@ -473,4 +566,25 @@ const styles = StyleSheet.create({
   },
   placeOrderBtnInner: { flexDirection: 'row', alignItems: 'center' },
   placeOrderText: { ...Typography.button, color: Colors.white, fontSize: 14 },
+  deliveryEstText: { ...Typography.caption, color: '#16A34A', fontSize: 10, marginTop: 4, fontWeight: '600' },
+  modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'flex-end' },
+  modalContent: { backgroundColor: Colors.surface, borderTopLeftRadius: 24, borderTopRightRadius: 24, paddingBottom: 40, maxHeight: '80%' },
+  closeModalBtn: { position: 'absolute', top: 12, right: 16, zIndex: 10, backgroundColor: 'rgba(255,255,255,0.7)', borderRadius: 16 },
+  modalImage: { width: '100%', height: 220, borderTopLeftRadius: 24, borderTopRightRadius: 24 },
+  modalInfo: { padding: 20 },
+  modalTitle: { ...Typography.heading, fontSize: 20, flex: 1 },
+  modalPrice: { ...Typography.title, color: Colors.primary, marginTop: 6, fontSize: 18 },
+  modalDesc: { ...Typography.body, color: Colors.textSecondary, marginTop: 12, lineHeight: 22 },
+  showAllDetailsBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginTop: 20,
+    paddingVertical: 12,
+    backgroundColor: Colors.primaryLight,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#FED7AA',
+  },
+  showAllDetailsText: { ...Typography.button, color: Colors.primary, fontSize: 14, marginRight: 6 },
 });
