@@ -4,48 +4,79 @@ const Restaurant = require('../restaurants/restaurant.model');
 const MenuItem = require('../menu/menuItem.model');
 const { getPagination, buildPaginationMeta } = require('../../common/utils/pagination');
 
-async function searchRestaurants(q, { lat, lng, radiusKm = 10 }, queryParams) {
+async function searchRestaurants(q, { lat, lng, radiusKm = 50 } = {}, queryParams = {}) {
   const { page, limit, skip } = getPagination(queryParams);
-  const filter = { isActive: true, isApproved: true };
+  const filter = { isActive: { $ne: false } };
 
-  if (q) {
-    filter.$text = { $search: q };
+  if (q && q.trim()) {
+    const escapedQ = q.trim().replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    const regex = new RegExp(escapedQ, 'i');
+    filter.$or = [
+      { name: regex },
+      { description: regex },
+      { cuisines: regex },
+      { 'address.city': regex },
+      { 'address.line1': regex },
+    ];
   }
 
-  if (lat && lng) {
-    filter.location = {
-      $near: {
-        $geometry: { type: 'Point', coordinates: [parseFloat(lng), parseFloat(lat)] },
-        $maxDistance: radiusKm * 1000,
-      },
-    };
+  const hasCoords = !isNaN(parseFloat(lat)) && !isNaN(parseFloat(lng)) && (parseFloat(lat) !== 0 || parseFloat(lng) !== 0);
+
+  let restaurants = [];
+  let total = 0;
+
+  if (hasCoords) {
+    try {
+      const geoFilter = {
+        ...filter,
+        location: {
+          $near: {
+            $geometry: { type: 'Point', coordinates: [parseFloat(lng), parseFloat(lat)] },
+            $maxDistance: Math.max((radiusKm || 50) * 1000, 50000),
+          },
+        },
+      };
+
+      [restaurants, total] = await Promise.all([
+        Restaurant.find(geoFilter).skip(skip).limit(limit),
+        Restaurant.countDocuments(geoFilter),
+      ]);
+    } catch (err) {
+      // Fallback if geo index fails
+    }
   }
 
-  const sortOptions = q ? { score: { $meta: 'textScore' } } : { 'rating.average': -1 };
-
-  const [restaurants, total] = await Promise.all([
-    Restaurant.find(filter, q ? { score: { $meta: 'textScore' } } : {})
-      .sort(sortOptions)
-      .skip(skip)
-      .limit(limit),
-    Restaurant.countDocuments(filter),
-  ]);
+  if (restaurants.length === 0) {
+    [restaurants, total] = await Promise.all([
+      Restaurant.find(filter)
+        .sort({ 'rating.average': -1, createdAt: -1 })
+        .skip(skip)
+        .limit(limit),
+      Restaurant.countDocuments(filter),
+    ]);
+  }
 
   return { restaurants, meta: buildPaginationMeta(total, page, limit) };
 }
 
-async function searchMenuItems(q, queryParams) {
+async function searchMenuItems(q, queryParams = {}) {
   const { page, limit, skip } = getPagination(queryParams);
 
-  const filter = { isAvailable: true };
-  if (q) filter.$text = { $search: q };
-
-  const sortOptions = q ? { score: { $meta: 'textScore' } } : { name: 1 };
+  const filter = { isAvailable: { $ne: false } };
+  if (q && q.trim()) {
+    const escapedQ = q.trim().replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    const regex = new RegExp(escapedQ, 'i');
+    filter.$or = [
+      { name: regex },
+      { description: regex },
+      { tags: regex },
+    ];
+  }
 
   const [items, total] = await Promise.all([
-    MenuItem.find(filter, q ? { score: { $meta: 'textScore' } } : {})
-      .populate('restaurant', 'name isOpen coverImage')
-      .sort(sortOptions)
+    MenuItem.find(filter)
+      .populate('restaurant', 'name isOpen coverImage images address rating deliveryInfo')
+      .sort({ sortOrder: 1, createdAt: -1 })
       .skip(skip)
       .limit(limit),
     MenuItem.countDocuments(filter),

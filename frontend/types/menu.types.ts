@@ -12,7 +12,8 @@ export interface MenuItemModifierGroup {
 
 export interface MenuItem {
   _id: string;
-  restaurantId: string;
+  restaurantId?: string;
+  restaurant?: any;
   name: string;
   description?: string;
   category: string;

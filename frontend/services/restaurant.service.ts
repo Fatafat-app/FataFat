@@ -88,27 +88,39 @@ export const restaurantService = {
    * Search for restaurants by query and location
    */
   async searchRestaurants(q: string, lat?: number, lng?: number): Promise<Restaurant[]> {
-    const response = await api.get<ApiResponse<Restaurant[] | PaginatedData<Restaurant>>>('/search/restaurants', {
+    const response = await api.get<ApiResponse<any>>('/search/restaurants', {
       params: { q, lat, lng },
     });
     const data = response.data.data;
     if (Array.isArray(data)) {
       return data;
     }
-    return (data as PaginatedData<Restaurant>).items || [];
+    if (data && Array.isArray(data.restaurants)) {
+      return data.restaurants;
+    }
+    if (data && Array.isArray(data.items)) {
+      return data.items;
+    }
+    return [];
   },
 
   /**
    * Search menu items by query
    */
   async searchMenuItems(q: string): Promise<MenuItem[]> {
-    const response = await api.get<ApiResponse<MenuItem[] | PaginatedData<MenuItem>>>('/search/items', {
+    const response = await api.get<ApiResponse<any>>('/search/items', {
       params: { q },
     });
     const data = response.data.data;
     if (Array.isArray(data)) {
       return data;
     }
-    return (data as PaginatedData<MenuItem>).items || [];
+    if (data && Array.isArray(data.items)) {
+      return data.items;
+    }
+    if (data && Array.isArray(data.menuItems)) {
+      return data.menuItems;
+    }
+    return [];
   }
 };
