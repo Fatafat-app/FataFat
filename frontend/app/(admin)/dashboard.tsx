@@ -147,6 +147,17 @@ export default function AdminDashboardScreen() {
           <Ionicons name="chevron-forward" size={18} color={Colors.textSecondary} />
         </TouchableOpacity>
 
+        <TouchableOpacity onPress={() => router.push('/(admin)/notifications')} style={styles.actionRowCard}>
+          <View style={[styles.actionIconCircle, { backgroundColor: '#EEF2FF' }]}>
+            <Ionicons name="paper-plane" size={22} color="#4F46E5" />
+          </View>
+          <View style={styles.actionTextContainer}>
+            <Text style={styles.actionTitle}>Push & In-App Notification Broadcast</Text>
+            <Text style={styles.actionSubtitle}>Send instant alerts, offers & announcements to customers, riders or owners</Text>
+          </View>
+          <Ionicons name="chevron-forward" size={18} color={Colors.textSecondary} />
+        </TouchableOpacity>
+
         <TouchableOpacity onPress={() => router.push('/(admin)/fees')} style={styles.actionRowCard}>
           <View style={[styles.actionIconCircle, { backgroundColor: '#EEF2FF' }]}>
             <Ionicons name="card" size={22} color="#4F46E5" />

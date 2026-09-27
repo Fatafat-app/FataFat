@@ -335,6 +335,156 @@ async function reorderCategories(adminId, items = [], meta = {}) {
   return Category.find().sort({ order: 1, createdAt: 1 }).lean();
 }
 
+const Notification = require('../notifications/notification.model');
+const { sendPushNotification, sendMulticastNotification } = require('../../integrations/firebase.client');
+
+async function sendNotificationBroadcast(adminId, payload = {}, meta = {}) {
+  const {
+    title,
+    body,
+    targetAudience = 'all',
+    type = 'announcement',
+    imageUrl = '',
+    userId = null,
+  } = payload;
+
+  if (!title || !title.trim()) {
+    throw new BusinessError('Notification title is required', 'VALIDATION_ERROR');
+  }
+  if (!body || !body.trim()) {
+    throw new BusinessError('Notification message is required', 'VALIDATION_ERROR');
+  }
+
+  const userFilter = { isActive: { $ne: false } };
+
+  if (userId) {
+    userFilter._id = userId;
+  } else if (targetAudience === 'customers' || targetAudience === 'users') {
+    userFilter.role = { $in: ['customer', 'user'] };
+  } else if (targetAudience === 'riders') {
+    userFilter.role = 'rider';
+  } else if (targetAudience === 'owners') {
+    userFilter.role = 'restaurant_owner';
+  }
+
+  const targetUsers = await User.find(userFilter).select('_id fcmToken role name phone email').lean();
+
+  if (targetUsers.length === 0) {
+    throw new BusinessError('No active recipients found for selected audience', 'NO_RECIPIENTS');
+  }
+
+  // Create In-App Notification records in MongoDB
+  const notificationDocs = targetUsers.map((u) => ({
+    user: u._id,
+    title: title.trim(),
+    body: body.trim(),
+    type: ['order_status', 'payment', 'promotion', 'system', 'delivery', 'announcement', 'alert', 'offer'].includes(type)
+      ? type
+      : 'announcement',
+    data: {
+      targetAudience,
+      imageUrl: imageUrl || '',
+      broadcast: 'true',
+      sentAt: new Date().toISOString(),
+    },
+    isRead: false,
+  }));
+
+  try {
+    await Notification.insertMany(notificationDocs, { ordered: false });
+  } catch (err) {
+    logger.warn('[NotificationBroadcast] Bulk insert warning', { error: err.message });
+  }
+
+  // Collect FCM tokens for Push Notification
+  const validTokens = targetUsers.map((u) => u.fcmToken).filter((token) => typeof token === 'string' && token.length > 10);
+
+  let fcmResult = { successCount: 0, failureCount: 0 };
+
+  if (validTokens.length === 1) {
+    try {
+      await sendPushNotification(validTokens[0], {
+        title: title.trim(),
+        body: body.trim(),
+        data: { type, imageUrl: imageUrl || '', broadcast: 'true' },
+      });
+      fcmResult.successCount = 1;
+    } catch (err) {
+      fcmResult.failureCount = 1;
+      logger.warn('[NotificationBroadcast] Single push notification failed', { error: err.message });
+    }
+  } else if (validTokens.length > 1) {
+    try {
+      // Chunk tokens in groups of 500 for Firebase Multicast
+      for (let i = 0; i < validTokens.length; i += 500) {
+        const chunk = validTokens.slice(i, i + 500);
+        const res = await sendMulticastNotification(chunk, {
+          title: title.trim(),
+          body: body.trim(),
+          data: { type, imageUrl: imageUrl || '', broadcast: 'true' },
+        });
+        if (res) {
+          fcmResult.successCount += res.successCount || 0;
+          fcmResult.failureCount += res.failureCount || 0;
+        }
+      }
+    } catch (err) {
+      logger.warn('[NotificationBroadcast] Multicast push notification failed', { error: err.message });
+    }
+  }
+
+  // Audit log the broadcast
+  await logAudit({
+    adminId,
+    action: 'NOTIFICATION_BROADCAST',
+    resource: 'Notification',
+    resourceId: 'BROADCAST',
+    changes: {
+      title,
+      body,
+      targetAudience,
+      type,
+      recipientCount: targetUsers.length,
+      fcmTokensCount: validTokens.length,
+      fcmSuccessCount: fcmResult.successCount,
+    },
+    ipAddress: meta.ip,
+    userAgent: meta.userAgent,
+  });
+
+  return {
+    title,
+    body,
+    targetAudience,
+    type,
+    recipientCount: targetUsers.length,
+    fcmTokensCount: validTokens.length,
+    fcmSuccessCount: fcmResult.successCount,
+    sentAt: new Date().toISOString(),
+  };
+}
+
+async function getNotificationHistory(query = {}) {
+  const { page, limit, skip } = getPagination(query);
+
+  const filter = { 'data.broadcast': 'true' };
+
+  const [notifications, total] = await Promise.all([
+    Notification.find(filter)
+      .populate('user', 'name phone role email')
+      .sort({ createdAt: -1 })
+      .skip(skip)
+      .limit(limit)
+      .lean(),
+    Notification.countDocuments(filter),
+  ]);
+
+  return {
+    notifications,
+    meta: buildPaginationMeta(total, page, limit),
+  };
+}
+
 module.exports = {
   getDashboardOverview,
   logAudit,
@@ -349,4 +499,6 @@ module.exports = {
   updateCategory,
   deleteCategory,
   reorderCategories,
+  sendNotificationBroadcast,
+  getNotificationHistory,
 };

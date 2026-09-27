@@ -82,6 +82,17 @@ async function reorderCategories(req, res) {
   return success(res, { categories }, 'Categories reordered successfully');
 }
 
+async function sendNotification(req, res) {
+  const meta = { ip: req.ip, userAgent: req.headers['user-agent'] };
+  const result = await adminService.sendNotificationBroadcast(req.user.id, req.body, meta);
+  return success(res, result, 'Notification sent successfully');
+}
+
+async function getNotificationHistory(req, res) {
+  const result = await adminService.getNotificationHistory(req.query);
+  return success(res, result, 'Notification history retrieved');
+}
+
 module.exports = {
   getDashboard,
   listUsers,
@@ -96,4 +107,6 @@ module.exports = {
   updateCategory,
   deleteCategory,
   reorderCategories,
+  sendNotification,
+  getNotificationHistory,
 };

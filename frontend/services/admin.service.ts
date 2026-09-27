@@ -200,7 +200,43 @@ export const adminService = {
     });
     return response.data.data.categories;
   },
+
+  /**
+   * Send Push / In-app Broadcast Notification to users, riders, or owners
+   */
+  async sendNotification(payload: BroadcastNotificationPayload): Promise<BroadcastNotificationResult> {
+    const response = await api.post<ApiResponse<BroadcastNotificationResult>>('/admin/notifications', payload);
+    return response.data.data;
+  },
+
+  /**
+   * Get past broadcast notification history
+   */
+  async getNotificationHistory(params?: { page?: number; limit?: number }): Promise<any> {
+    const response = await api.get<ApiResponse<any>>('/admin/notifications', { params });
+    return response.data.data;
+  },
 };
+
+export interface BroadcastNotificationPayload {
+  title: string;
+  body: string;
+  targetAudience: 'all' | 'customers' | 'riders' | 'owners' | 'user';
+  type?: 'announcement' | 'promotion' | 'alert' | 'offer' | 'system';
+  imageUrl?: string;
+  userId?: string;
+}
+
+export interface BroadcastNotificationResult {
+  title: string;
+  body: string;
+  targetAudience: string;
+  type: string;
+  recipientCount: number;
+  fcmTokensCount: number;
+  fcmSuccessCount: number;
+  sentAt: string;
+}
 
 export interface CategoryItem {
   _id: string;

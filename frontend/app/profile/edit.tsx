@@ -1,17 +1,27 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, TextInput, TouchableOpacity, ScrollView, Alert, StyleSheet, KeyboardAvoidingView, Platform, Image } from 'react-native';
+import {
+  View,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  ScrollView,
+  Alert,
+  StyleSheet,
+  KeyboardAvoidingView,
+  Platform,
+  Image,
+} from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { useAuthStore } from '../../store/auth.store';
 import { userService } from '../../services/user.service';
-import { Typography, Colors, BOLD_FONT, STYLISH_FONT } from '../../constants/Theme';
-import { Button } from '../../components/ui/Button';
+import { BOLD_FONT, STYLISH_FONT } from '../../constants/Theme';
 
 export default function EditProfileScreen() {
   const user = useAuthStore((state) => state.user);
   const initAuth = useAuthStore((state) => state.initAuth);
-  
+
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [loading, setLoading] = useState(false);
@@ -32,10 +42,10 @@ export default function EditProfileScreen() {
 
     try {
       setLoading(true);
-      await userService.updateProfile({ name, email });
-      await initAuth(); // Refresh user profile using initAuth instead of non-existent fetchProfile
+      await userService.updateProfile({ name: name.trim(), email: email.trim() });
+      await initAuth();
       Alert.alert('Awesome!', 'Your profile has been updated.', [
-        { text: 'OK', onPress: () => router.back() }
+        { text: 'OK', onPress: () => router.back() },
       ]);
     } catch (err: any) {
       const msg = err.response?.data?.message || 'Failed to update profile';
@@ -45,51 +55,63 @@ export default function EditProfileScreen() {
     }
   };
 
+  const initialLetter = name && name.trim().length > 0 ? name.trim()[0].toUpperCase() : 'U';
+
   return (
     <SafeAreaView style={styles.safeArea}>
-      {/* Premium Header */}
       <View style={styles.navbar}>
         <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
           <Ionicons name="arrow-back" size={24} color="#3E2723" />
         </TouchableOpacity>
         <Text style={styles.navTitle}>Edit Profile</Text>
-        <View style={{ width: 40 }} /> {/* For centering */}
+        <View style={styles.navPlaceholder} />
       </View>
 
-      <KeyboardAvoidingView 
-        style={{ flex: 1 }} 
+      <KeyboardAvoidingView
+        style={{ flex: 1 }}
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}
       >
-        <ScrollView style={styles.scrollContainer} contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
-          
-          {/* Avatar Section */}
+        <ScrollView
+          style={styles.scrollContainer}
+          contentContainerStyle={styles.scrollContent}
+          showsVerticalScrollIndicator={false}
+        >
           <View style={styles.avatarSection}>
             <View style={styles.avatarCircle}>
               {user?.avatar ? (
                 <Image source={{ uri: user.avatar }} style={styles.avatarImage} />
               ) : (
-                <Text style={styles.avatarText}>{name ? name[0].toUpperCase() : 'U'}</Text>
+                <Text style={styles.avatarText}>{initialLetter}</Text>
               )}
-              {/* Fake camera button for premium look */}
-              <TouchableOpacity style={styles.cameraBtn} onPress={() => Alert.alert('Avatar', 'Avatar upload coming in next update!')}>
+              <TouchableOpacity
+                style={styles.cameraBtn}
+                onPress={() => Alert.alert('Avatar', 'Avatar upload coming in next update!')}
+              >
                 <Ionicons name="camera" size={16} color="#FFF" />
               </TouchableOpacity>
             </View>
-            <View style={styles.phoneBadge}>
-              <Ionicons name="call" size={14} color="#D94E1B" style={{ marginRight: 6 }} />
-              <Text style={styles.phoneText}>{user?.phone}</Text>
-            </View>
+
+            {user?.phone ? (
+              <View style={styles.phoneBadge}>
+                <Ionicons name="call" size={14} color="#D94E1B" style={{ marginRight: 6 }} />
+                <Text style={styles.phoneText}>{user.phone}</Text>
+              </View>
+            ) : null}
           </View>
 
-          {/* Form Section */}
           <View style={styles.formContainer}>
             <Text style={styles.sectionHeader}>Personal Details</Text>
 
             <View style={[styles.inputGroup, focusedInput === 'name' && styles.inputGroupFocused]}>
-              <Ionicons name="person-outline" size={20} color={focusedInput === 'name' ? '#D94E1B' : '#9CA3AF'} style={styles.inputIcon} />
+              <Ionicons
+                name="person-outline"
+                size={20}
+                color={focusedInput === 'name' ? '#D94E1B' : '#9CA3AF'}
+                style={styles.inputIcon}
+              />
               <View style={styles.inputWrapper}>
                 <Text style={styles.inputLabel}>Full Name</Text>
-                <TextInput 
+                <TextInput
                   value={name}
                   onChangeText={setName}
                   onFocus={() => setFocusedInput('name')}
@@ -102,10 +124,15 @@ export default function EditProfileScreen() {
             </View>
 
             <View style={[styles.inputGroup, focusedInput === 'email' && styles.inputGroupFocused]}>
-              <Ionicons name="mail-outline" size={20} color={focusedInput === 'email' ? '#D94E1B' : '#9CA3AF'} style={styles.inputIcon} />
+              <Ionicons
+                name="mail-outline"
+                size={20}
+                color={focusedInput === 'email' ? '#D94E1B' : '#9CA3AF'}
+                style={styles.inputIcon}
+              />
               <View style={styles.inputWrapper}>
                 <Text style={styles.inputLabel}>Email Address (Optional)</Text>
-                <TextInput 
+                <TextInput
                   value={email}
                   onChangeText={setEmail}
                   onFocus={() => setFocusedInput('email')}
@@ -119,12 +146,10 @@ export default function EditProfileScreen() {
               </View>
             </View>
           </View>
-
         </ScrollView>
-        
-        {/* Sticky Bottom Action */}
+
         <View style={styles.bottomFooter}>
-          <TouchableOpacity 
+          <TouchableOpacity
             style={[styles.saveBtn, loading && styles.saveBtnDisabled]}
             onPress={handleSave}
             disabled={loading}
@@ -138,19 +163,19 @@ export default function EditProfileScreen() {
 }
 
 const styles = StyleSheet.create({
-  safeArea: { 
-    flex: 1, 
-    backgroundColor: '#FDF2E3' // Premium Ftafat Warm Cream
+  safeArea: {
+    flex: 1,
+    backgroundColor: '#FDF2E3',
   },
-  navbar: { 
-    paddingHorizontal: 20, 
-    paddingVertical: 16, 
-    flexDirection: 'row', 
-    alignItems: 'center', 
+  navbar: {
+    paddingHorizontal: 20,
+    paddingVertical: 16,
+    flexDirection: 'row',
+    alignItems: 'center',
     justifyContent: 'space-between',
     backgroundColor: '#FDF2E3',
   },
-  backButton: { 
+  backButton: {
     width: 40,
     height: 40,
     borderRadius: 20,
@@ -163,38 +188,41 @@ const styles = StyleSheet.create({
     shadowRadius: 5,
     elevation: 2,
   },
-  navTitle: { 
-    fontFamily: BOLD_FONT, 
+  navTitle: {
+    fontFamily: BOLD_FONT,
     fontSize: 18,
     color: '#3E2723',
     letterSpacing: 0.2,
   },
-  scrollContainer: { 
+  navPlaceholder: {
+    width: 40,
+  },
+  scrollContainer: {
     flex: 1,
-    backgroundColor: '#F3F4F6', // Off-white for body
+    backgroundColor: '#F3F4F6',
     borderTopLeftRadius: 36,
     borderTopRightRadius: 36,
     marginTop: 10,
   },
-  scrollContent: { 
+  scrollContent: {
     padding: 24,
     paddingBottom: 40,
   },
-  avatarSection: { 
-    alignItems: 'center', 
-    marginBottom: 32, 
-    marginTop: 10 
+  avatarSection: {
+    alignItems: 'center',
+    marginBottom: 32,
+    marginTop: 10,
   },
-  avatarCircle: { 
-    width: 100, 
-    height: 100, 
-    borderRadius: 50, 
-    backgroundColor: '#FFEDD5', 
-    alignItems: 'center', 
-    justifyContent: 'center', 
-    marginBottom: 16, 
-    borderWidth: 4, 
-    borderColor: '#FFF', 
+  avatarCircle: {
+    width: 100,
+    height: 100,
+    borderRadius: 50,
+    backgroundColor: '#FFEDD5',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 16,
+    borderWidth: 4,
+    borderColor: '#FFF',
     shadowColor: '#D94E1B',
     shadowOffset: { width: 0, height: 8 },
     shadowOpacity: 0.15,
@@ -202,15 +230,15 @@ const styles = StyleSheet.create({
     elevation: 8,
     position: 'relative',
   },
-  avatarImage: { 
-    width: '100%', 
+  avatarImage: {
+    width: '100%',
     height: '100%',
     borderRadius: 50,
   },
-  avatarText: { 
-    fontFamily: BOLD_FONT, 
-    color: '#D94E1B', 
-    fontSize: 36 
+  avatarText: {
+    fontFamily: BOLD_FONT,
+    color: '#D94E1B',
+    fontSize: 36,
   },
   cameraBtn: {
     position: 'absolute',
@@ -225,7 +253,7 @@ const styles = StyleSheet.create({
     borderWidth: 3,
     borderColor: '#FFF',
   },
-  phoneBadge: { 
+  phoneBadge: {
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: '#FFF',
@@ -238,13 +266,13 @@ const styles = StyleSheet.create({
     shadowRadius: 4,
     elevation: 1,
   },
-  phoneText: { 
-    fontFamily: BOLD_FONT, 
-    color: '#4B5563', 
+  phoneText: {
+    fontFamily: BOLD_FONT,
+    color: '#4B5563',
     fontSize: 14,
     letterSpacing: 1,
   },
-  formContainer: { 
+  formContainer: {
     backgroundColor: '#FFF',
     borderRadius: 24,
     padding: 20,
@@ -260,7 +288,7 @@ const styles = StyleSheet.create({
     color: '#3E2723',
     marginBottom: 20,
   },
-  inputGroup: { 
+  inputGroup: {
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: '#F9FAFB',
@@ -281,18 +309,18 @@ const styles = StyleSheet.create({
   inputWrapper: {
     flex: 1,
   },
-  inputLabel: { 
-    fontFamily: BOLD_FONT, 
-    color: '#9CA3AF', 
+  inputLabel: {
+    fontFamily: BOLD_FONT,
+    color: '#9CA3AF',
     fontSize: 11,
     textTransform: 'uppercase',
     letterSpacing: 0.5,
     marginBottom: 2,
   },
-  input: { 
-    fontFamily: STYLISH_FONT, 
+  input: {
+    fontFamily: STYLISH_FONT,
     fontSize: 15,
-    color: '#1F2937', 
+    color: '#1F2937',
     padding: 0,
     height: 24,
   },
@@ -324,5 +352,5 @@ const styles = StyleSheet.create({
     color: '#FFF',
     fontSize: 16,
     letterSpacing: 0.5,
-  }
+  },
 });

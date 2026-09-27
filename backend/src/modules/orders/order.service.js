@@ -69,6 +69,12 @@ async function placeOrder(userId, payload = {}) {
     throw new BusinessError('Restaurant not found for this order', 'RESTAURANT_REQUIRED');
   }
 
+  const Restaurant = require('../restaurants/restaurant.model');
+  const restaurant = await Restaurant.findById(orderRestaurantId);
+  if (!restaurant) {
+    throw new NotFoundError('Restaurant not found');
+  }
+
   let feeConfig = null;
   try {
     const FeeConfig = require('../admin/feeConfig.model');

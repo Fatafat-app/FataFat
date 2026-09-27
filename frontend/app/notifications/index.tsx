@@ -64,6 +64,9 @@ export default function NotificationsScreen() {
       case 'order_status': return 'fast-food-outline';
       case 'payment': return 'card-outline';
       case 'offer': return 'pricetag-outline';
+      case 'promotion': return 'gift-outline';
+      case 'announcement': return 'megaphone-outline';
+      case 'alert': return 'warning-outline';
       default: return 'notifications-outline';
     }
   };
@@ -86,7 +89,7 @@ export default function NotificationsScreen() {
 
       {loading && !refreshing ? (
         <View style={styles.centerContainer}>
-          <Loading size="large" color={Colors.primary} />
+          <Loading message="Loading notifications..." />
         </View>
       ) : notifications.length === 0 ? (
         <View style={styles.centerContainer}>

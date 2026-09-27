@@ -25,4 +25,7 @@ router.put('/categories/reorder', controller.reorderCategories);
 router.put('/categories/:id', controller.updateCategory);
 router.delete('/categories/:id', controller.deleteCategory);
 
+router.post('/notifications', controller.sendNotification);
+router.get('/notifications', controller.getNotificationHistory);
+
 module.exports = router;
