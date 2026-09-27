@@ -53,14 +53,11 @@ export default function Index() {
 
         {/* Logo with bounce */}
         <Animated.View style={{ transform: [{ scale: logoScale }], opacity: logoOpacity, alignItems: 'center' }}>
-          {/* Wrapper zooms image to crop white JPEG border */}
-          <View style={styles.logoWrapper}>
-            <Image
-              source={require('../assets/images/app_icon.jpeg')}
-              style={styles.logoImage}
-              resizeMode="cover"
-            />
-          </View>
+          <Image
+            source={require('../assets/images/logo_transparent.png')}
+            style={styles.logoImage}
+            resizeMode="contain"
+          />
         </Animated.View>
 
         {/* Funny tagline fades in */}
@@ -86,7 +83,7 @@ export default function Index() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#FF6000',
+    backgroundColor: '#FDF2E3', // Same as login screen — logo is perfectly visible here
     alignItems: 'center',
     justifyContent: 'center',
     overflow: 'hidden',
@@ -96,8 +93,8 @@ const styles = StyleSheet.create({
     width: width * 1.5,
     height: width * 1.5,
     borderRadius: width * 0.75,
-    backgroundColor: 'rgba(255,255,255,0.07)',
-    top: -width * 0.6,
+    backgroundColor: 'rgba(255,96,0,0.07)',
+    top: -width * 0.7,
     right: -width * 0.5,
   },
   circle2: {
@@ -105,34 +102,25 @@ const styles = StyleSheet.create({
     width: width * 1.2,
     height: width * 1.2,
     borderRadius: width * 0.6,
-    backgroundColor: 'rgba(0,0,0,0.07)',
-    bottom: -width * 0.5,
+    backgroundColor: 'rgba(255,96,0,0.05)',
+    bottom: -width * 0.6,
     left: -width * 0.4,
   },
   circle3: {
     position: 'absolute',
-    width: width * 0.5,
-    height: width * 0.5,
-    borderRadius: width * 0.25,
-    backgroundColor: 'rgba(255,200,0,0.12)',
-    bottom: width * 0.1,
-    right: -width * 0.1,
+    width: width * 0.4,
+    height: width * 0.4,
+    borderRadius: width * 0.2,
+    backgroundColor: 'rgba(255,160,0,0.1)',
+    bottom: width * 0.15,
+    right: width * 0.05,
   },
 
-  // Logo — wrapper clips the white JPEG border by zooming image 120%
-  logoWrapper: {
-    width: width * 0.56,
-    height: width * 0.56,
-    borderRadius: 36,
-    overflow: 'hidden',
-    backgroundColor: '#FF6000', // fallback same as bg
-    marginBottom: 36,
-  },
+  // Logo — transparent PNG, wide landscape format
   logoImage: {
-    width: '120%',   // 120% zooms in → white border gets cropped
-    height: '120%',
-    left: '-10%',    // re-center after zoom
-    top: '-10%',
+    width: width * 0.78,
+    height: width * 0.28,
+    marginBottom: 40,
   },
 
   // Text block
@@ -143,13 +131,10 @@ const styles = StyleSheet.create({
   tagline: {
     fontFamily: BOLD_FONT,
     fontSize: 17,
-    color: '#FFF',
+    color: '#7C3500',   // Dark warm brown — perfect on cream bg
     textAlign: 'center',
     lineHeight: 26,
     letterSpacing: 0.2,
-    textShadowColor: 'rgba(0,0,0,0.2)',
-    textShadowOffset: { width: 0, height: 1 },
-    textShadowRadius: 3,
     marginBottom: 20,
   },
   dotsRow: {
@@ -160,6 +145,6 @@ const styles = StyleSheet.create({
     width: 8,
     height: 8,
     borderRadius: 4,
-    backgroundColor: '#FFF',
+    backgroundColor: '#FF6000',
   },
 });
