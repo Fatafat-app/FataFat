@@ -53,7 +53,7 @@ export default function EditProfileScreen() {
           <Ionicons name="arrow-back" size={24} color="#3E2723" />
         </TouchableOpacity>
         <Text style={styles.navTitle}>Edit Profile</Text>
-        <View style={{ width: 40 }} /> {/* For centering */}
+        <View style={{ width: 40 }} />
       </View>
 
       <KeyboardAvoidingView 

@@ -69,6 +69,12 @@ async function placeOrder(userId, payload = {}) {
     throw new BusinessError('Restaurant not found for this order', 'RESTAURANT_REQUIRED');
   }
 
+  // Fetch restaurant to access its tax and fee information
+  const restaurant = await restaurantService.getRestaurantById(orderRestaurantId);
+  if (!restaurant) {
+    throw new BusinessError('Restaurant not found', 'RESTAURANT_NOT_FOUND');
+  }
+
   let feeConfig = null;
   try {
     const FeeConfig = require('../admin/feeConfig.model');
