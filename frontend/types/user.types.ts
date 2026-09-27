@@ -4,14 +4,16 @@ export type UserRole = 'customer' | 'restaurant_owner' | 'delivery_partner' | 'a
 
 export interface Address {
   _id: string;
-  type: 'Home' | 'Work' | 'Other';
-  label?: string;
-  street: string;
-  landmark?: string;
+  label: string;
+  line1: string;
+  line2?: string;
   city: string;
   state: string;
   pincode: string;
-  location: Coordinates;
+  location?: {
+    type: string;
+    coordinates: number[];
+  };
   isDefault: boolean;
 }
 
@@ -37,13 +39,15 @@ export interface UpdateProfilePayload {
 }
 
 export interface CreateAddressPayload {
-  type: 'Home' | 'Work' | 'Other';
-  label?: string;
-  street: string;
-  landmark?: string;
+  label: string;
+  line1: string;
+  line2?: string;
   city: string;
   state: string;
   pincode: string;
-  location: Coordinates;
+  location?: {
+    type: string;
+    coordinates: number[];
+  };
   isDefault?: boolean;
 }

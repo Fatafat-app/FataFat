@@ -1,16 +1,28 @@
 import React from 'react';
-import { Tabs, router } from 'expo-router';
+import { Tabs, Redirect, router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
-import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
+import { StyleSheet } from 'react-native';
+import { useAuthStore } from '../../store/auth.store';
+import { Typography, Colors } from '../../constants/Theme';
 
 export default function OwnerLayout() {
+  const { user, isAuthenticated, isLoading } = useAuthStore();
+
+  if (!isLoading && !isAuthenticated) {
+    return <Redirect href="/(auth)/login" />;
+  }
+  
+  if (!isLoading && user?.role !== 'restaurant_owner') {
+    return <Redirect href="/(tabs)" />;
+  }
+
   return (
     <Tabs
       screenOptions={{
         headerShown: false,
         tabBarStyle: styles.tabBar,
-        tabBarActiveTintColor: '#FF6000',
-        tabBarInactiveTintColor: '#9CA3AF',
+        tabBarActiveTintColor: Colors.primary,
+        tabBarInactiveTintColor: Colors.textSecondary,
         tabBarLabelStyle: styles.tabLabel,
       }}
     >
@@ -47,15 +59,16 @@ export default function OwnerLayout() {
 
 const styles = StyleSheet.create({
   tabBar: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: Colors.surface,
     borderTopWidth: 1,
-    borderTopColor: '#F3F4F6',
-    height: 60,
-    paddingBottom: 8,
+    borderTopColor: Colors.border,
+    minHeight: 60,
     paddingTop: 6,
+    paddingBottom: 6,
   },
   tabLabel: {
+    ...Typography.label,
     fontSize: 10,
-    fontWeight: '700',
+    paddingBottom: 4,
   },
 });

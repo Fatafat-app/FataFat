@@ -20,8 +20,8 @@ export const orderService = {
   /**
    * Place a new food order
    */
-  async createOrder(payload: CreateOrderPayload): Promise<Order> {
-    const response = await api.post<ApiResponse<Order>>('/orders', payload);
+  async createOrder(payload: CreateOrderPayload): Promise<{ order: Order; payment?: any }> {
+    const response = await api.post<ApiResponse<{ order: Order; payment?: any }>>('/orders', payload);
     return response.data.data;
   },
 
@@ -29,7 +29,8 @@ export const orderService = {
    * Fetch customer's order history with pagination
    */
   async getOrders(params?: { page?: number; limit?: number; status?: string }): Promise<PaginatedData<Order>> {
-    const response = await api.get<ApiResponse<PaginatedData<Order>>>('/orders', {
+    // The real backend uses /orders/mine
+    const response = await api.get<ApiResponse<PaginatedData<Order>>>('/orders/mine', {
       params,
     });
     return response.data.data;
@@ -44,12 +45,9 @@ export const orderService = {
   },
 
   /**
-   * Cancel an order if it hasn't reached preparing state yet
+   * Cancel an order - UNSUPPORTED BY BACKEND (Phase 11 Compliance)
    */
   async cancelOrder(orderId: string, reason?: string): Promise<Order> {
-    const response = await api.post<ApiResponse<Order>>(`/orders/${orderId}/cancel`, {
-      reason,
-    });
-    return response.data.data;
+    throw new Error('Cancel order feature is not supported by the backend yet.');
   },
 };

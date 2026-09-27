@@ -157,6 +157,25 @@ async function updateFcmToken(userId, fcmToken) {
   await User.findByIdAndUpdate(userId, { fcmToken });
 }
 
+/**
+ * Delete a user profile (soft delete).
+ *
+ * @param {string} userId
+ */
+async function deleteProfile(userId) {
+  const user = await User.findById(userId);
+  if (!user) throw new NotFoundError('User not found');
+
+  user.isActive = false;
+  // Can also clear phone/email or append a deleted timestamp to allow re-registration
+  user.phone = `${user.phone}_deleted_${Date.now()}`;
+  if (user.email) {
+    user.email = `${user.email}_deleted_${Date.now()}`;
+  }
+  await user.save();
+  return { success: true };
+}
+
 module.exports = {
   getProfile,
   updateProfile,
@@ -166,4 +185,5 @@ module.exports = {
   updateAddress,
   deleteAddress,
   updateFcmToken,
+  deleteProfile,
 };

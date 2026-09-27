@@ -17,6 +17,8 @@ import { socketService } from '../../services/socket.service';
 import { useOrderTrackingStore } from '../../store/orderTracking.store';
 import { Order, OrderStatus } from '../../types';
 import { formatPaise } from '../../utils/formatters';
+import { Typography, Colors } from '../../constants/Theme';
+import { EmptyState } from '../../components/ui/EmptyState';
 
 const STATUS_STEPS: { status: OrderStatus; label: string; icon: keyof typeof Ionicons.glyphMap }[] = [
   { status: 'CONFIRMED', label: 'Confirmed', icon: 'checkmark-circle' },
@@ -104,7 +106,7 @@ export default function OrdersScreen() {
   if (loading && !refreshing) {
     return (
       <SafeAreaView style={styles.centerContainer}>
-        <ActivityIndicator size="large" color="#FF6000" />
+        <ActivityIndicator size="large" color={Colors.primary} />
         <Text style={styles.loadingText}>Fetching your orders...</Text>
       </SafeAreaView>
     );
@@ -118,7 +120,7 @@ export default function OrdersScreen() {
       <View style={styles.header}>
         <Text style={styles.headerTitle}>Your Orders</Text>
         <TouchableOpacity onPress={onRefresh} style={styles.refreshButton}>
-          <Ionicons name="refresh" size={20} color="#6B7280" />
+          <Ionicons name="refresh" size={20} color={Colors.textSecondary} />
         </TouchableOpacity>
       </View>
 
@@ -126,11 +128,15 @@ export default function OrdersScreen() {
         style={styles.scrollContainer}
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
-        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={['#FF6000']} />}
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={[Colors.primary]} />}
       >
         {/* Active Live Tracking Card */}
         {activeOrder && activeOrder.status !== 'DELIVERED' && activeOrder.status !== 'CANCELLED' && (
-          <View style={styles.activeCard}>
+          <TouchableOpacity 
+            style={styles.activeCard} 
+            onPress={() => router.push(`/order/${activeOrder._id}`)}
+            activeOpacity={0.9}
+          >
             <View style={styles.activeHeaderRow}>
               <View>
                 <View style={styles.badgeRow}>
@@ -139,15 +145,6 @@ export default function OrdersScreen() {
                 </View>
                 <Text style={styles.activeOrderNumber}>Order #{activeOrder.orderNumber}</Text>
               </View>
-
-              {['PENDING', 'CONFIRMED'].includes(activeOrder.status) && (
-                <TouchableOpacity
-                  onPress={() => handleCancelOrder(activeOrder._id)}
-                  style={styles.cancelButton}
-                >
-                  <Text style={styles.cancelButtonText}>Cancel</Text>
-                </TouchableOpacity>
-              )}
             </View>
 
             {/* Live Timeline Status */}
@@ -188,7 +185,7 @@ export default function OrdersScreen() {
             {/* Rider GPS Location Alert */}
             {riderLocation && (
               <View style={styles.riderAlertBox}>
-                <Ionicons name="navigate" size={16} color="#FF6000" style={{ marginRight: 6 }} />
+                <Ionicons name="navigate" size={16} color={Colors.primary} style={{ marginRight: 6 }} />
                 <Text style={styles.riderAlertText}>Delivery partner is on the move!</Text>
               </View>
             )}
@@ -202,24 +199,20 @@ export default function OrdersScreen() {
                 {formatPaise(activeOrder.pricing?.totalAmount)}
               </Text>
             </View>
-          </View>
+          </TouchableOpacity>
         )}
 
         {/* Past Orders Header */}
         <Text style={styles.sectionHeading}>PAST ORDERS</Text>
 
         {orders.length === 0 ? (
-          <View style={styles.emptyCard}>
-            <Ionicons name="receipt-outline" size={48} color="#D1D5DB" />
-            <Text style={styles.emptyTitle}>No Orders Found</Text>
-            <Text style={styles.emptySubtitle}>You haven't placed any orders yet.</Text>
-            <TouchableOpacity
-              onPress={() => router.replace('/(tabs)')}
-              style={styles.orderNowButton}
-            >
-              <Text style={styles.orderNowText}>Order Now</Text>
-            </TouchableOpacity>
-          </View>
+          <EmptyState 
+            icon="receipt-outline" 
+            title="No Orders Found" 
+            message="You haven't placed any orders yet." 
+            actionText="Order Now"
+            onAction={() => router.replace('/(tabs)')}
+          />
         ) : (
           orders.map((order) => {
             const restName =
@@ -231,7 +224,12 @@ export default function OrdersScreen() {
             const isCancelled = order.status === 'CANCELLED';
 
             return (
-              <View key={order._id} style={styles.orderCard}>
+              <TouchableOpacity 
+                key={order._id} 
+                style={styles.orderCard}
+                onPress={() => router.push(`/order/${order._id}`)}
+                activeOpacity={0.8}
+              >
                 <View style={styles.orderCardHeader}>
                   <View style={{ flex: 1, marginRight: 8 }}>
                     <Text style={styles.restaurantName}>{restName}</Text>
@@ -275,7 +273,7 @@ export default function OrdersScreen() {
                     {formatPaise(order.pricing?.totalAmount)}
                   </Text>
                 </View>
-              </View>
+              </TouchableOpacity>
             );
           })
         )}
@@ -285,299 +283,49 @@ export default function OrdersScreen() {
 }
 
 const styles = StyleSheet.create({
-  safeArea: {
-    flex: 1,
-    backgroundColor: '#F9FAFB',
-  },
-  centerContainer: {
-    flex: 1,
-    backgroundColor: '#FFFFFF',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  loadingText: {
-    color: '#9CA3AF',
-    fontWeight: '600',
-    marginTop: 12,
-    fontSize: 13,
-  },
-  header: {
-    backgroundColor: '#FFFFFF',
-    paddingHorizontal: 20,
-    paddingVertical: 14,
-    borderBottomWidth: 1,
-    borderBottomColor: '#F3F4F6',
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-  },
-  headerTitle: {
-    fontSize: 22,
-    fontWeight: '900',
-    color: '#111827',
-  },
-  refreshButton: {
-    padding: 6,
-  },
-  scrollContainer: {
-    flex: 1,
-  },
-  scrollContent: {
-    paddingHorizontal: 16,
-    paddingVertical: 14,
-    paddingBottom: 40,
-  },
-  activeCard: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 20,
-    padding: 18,
-    marginBottom: 18,
-    borderWidth: 2,
-    borderColor: '#FED7AA',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.05,
-    shadowRadius: 6,
-    elevation: 3,
-  },
-  activeHeaderRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 12,
-  },
-  badgeRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  greenDot: {
-    width: 8,
-    height: 8,
-    borderRadius: 4,
-    backgroundColor: '#10B981',
-    marginRight: 6,
-  },
-  liveBadgeText: {
-    fontSize: 11,
-    fontWeight: '900',
-    color: '#059669',
-    letterSpacing: 0.5,
-  },
-  activeOrderNumber: {
-    fontSize: 16,
-    fontWeight: '900',
-    color: '#111827',
-    marginTop: 2,
-  },
-  cancelButton: {
-    backgroundColor: '#FEF2F2',
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: '#FECACA',
-  },
-  cancelButtonText: {
-    fontSize: 11,
-    fontWeight: '700',
-    color: '#DC2626',
-  },
-  timelineRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginVertical: 12,
-    paddingHorizontal: 4,
-  },
-  timelineStep: {
-    alignItems: 'center',
-    flex: 1,
-  },
-  stepCircle: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    backgroundColor: '#F3F4F6',
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: 6,
-  },
-  stepCirclePassed: {
-    backgroundColor: '#10B981',
-  },
-  stepCircleCurrent: {
-    backgroundColor: '#FF6000',
-  },
-  stepLabel: {
-    fontSize: 10,
-    fontWeight: '700',
-    color: '#9CA3AF',
-    textAlign: 'center',
-  },
-  stepLabelPassed: {
-    color: '#374151',
-  },
-  stepLabelCurrent: {
-    color: '#FF6000',
-    fontWeight: '900',
-  },
-  riderAlertBox: {
-    backgroundColor: '#FFF7ED',
-    padding: 10,
-    borderRadius: 12,
-    marginTop: 8,
-    flexDirection: 'row',
-    alignItems: 'center',
-    borderWidth: 1,
-    borderColor: '#FFEDD5',
-  },
-  riderAlertText: {
-    fontSize: 12,
-    color: '#C2410C',
-    fontWeight: '700',
-    flex: 1,
-  },
-  activeOrderFooter: {
-    marginTop: 12,
-    paddingTop: 12,
-    borderTopWidth: 1,
-    borderTopColor: '#F3F4F6',
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-  },
-  itemsPreviewText: {
-    fontSize: 12,
-    color: '#6B7280',
-    fontWeight: '500',
-    flex: 1,
-    marginRight: 8,
-  },
-  priceHighlight: {
-    fontSize: 15,
-    fontWeight: '900',
-    color: '#111827',
-  },
-  sectionHeading: {
-    fontSize: 12,
-    fontWeight: '900',
-    color: '#6B7280',
-    letterSpacing: 0.5,
-    marginBottom: 10,
-  },
-  emptyCard: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 20,
-    padding: 32,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginVertical: 8,
-    borderWidth: 1,
-    borderColor: '#F3F4F6',
-  },
-  emptyTitle: {
-    fontSize: 17,
-    fontWeight: '800',
-    color: '#374151',
-    marginTop: 10,
-  },
-  emptySubtitle: {
-    fontSize: 13,
-    color: '#9CA3AF',
-    textAlign: 'center',
-    marginTop: 4,
-  },
-  orderNowButton: {
-    marginTop: 16,
-    backgroundColor: '#FF6000',
-    paddingHorizontal: 20,
-    paddingVertical: 10,
-    borderRadius: 24,
-  },
-  orderNowText: {
-    color: '#FFFFFF',
-    fontSize: 13,
-    fontWeight: '800',
-  },
-  orderCard: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 18,
-    padding: 16,
-    marginBottom: 12,
-    borderWidth: 1,
-    borderColor: '#F3F4F6',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.03,
-    shadowRadius: 4,
-    elevation: 1,
-  },
-  orderCardHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'flex-start',
-    marginBottom: 8,
-  },
-  restaurantName: {
-    fontSize: 16,
-    fontWeight: '900',
-    color: '#111827',
-  },
-  orderNumberSub: {
-    fontSize: 11,
-    color: '#9CA3AF',
-    marginTop: 1,
-  },
-  statusPill: {
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    borderRadius: 12,
-    backgroundColor: '#FFEDD5',
-  },
-  statusDelivered: {
-    backgroundColor: '#DCFCE7',
-  },
-  statusCancelled: {
-    backgroundColor: '#FEE2E2',
-  },
-  statusPillText: {
-    fontSize: 10,
-    fontWeight: '900',
-    color: '#C2410C',
-    textTransform: 'uppercase',
-  },
-  statusDeliveredText: {
-    color: '#15803D',
-  },
-  statusCancelledText: {
-    color: '#B91C1C',
-  },
-  itemList: {
-    marginVertical: 6,
-  },
-  itemText: {
-    fontSize: 13,
-    color: '#4B5563',
-    fontWeight: '500',
-    lineHeight: 18,
-  },
-  orderCardFooter: {
-    marginTop: 10,
-    paddingTop: 10,
-    borderTopWidth: 1,
-    borderTopColor: '#F9FAFB',
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-  },
-  orderDate: {
-    fontSize: 12,
-    color: '#9CA3AF',
-    fontWeight: '600',
-  },
-  orderTotal: {
-    fontSize: 15,
-    fontWeight: '900',
-    color: '#111827',
-  },
+  safeArea: { flex: 1, backgroundColor: Colors.background },
+  centerContainer: { flex: 1, backgroundColor: Colors.surface, alignItems: 'center', justifyContent: 'center' },
+  loadingText: { ...Typography.bodySmall, color: Colors.textSecondary, marginTop: 12 },
+  header: { backgroundColor: Colors.surface, paddingHorizontal: 20, paddingVertical: 14, borderBottomWidth: 1, borderBottomColor: Colors.border, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
+  headerTitle: { ...Typography.heading, fontSize: 22 },
+  refreshButton: { padding: 6 },
+  scrollContainer: { flex: 1 },
+  scrollContent: { paddingHorizontal: 16, paddingVertical: 14, paddingBottom: 40 },
+  activeCard: { backgroundColor: Colors.surface, borderRadius: 20, padding: 18, marginBottom: 18, borderWidth: 2, borderColor: '#FED7AA', shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.05, shadowRadius: 6, elevation: 3 },
+  activeHeaderRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 },
+  badgeRow: { flexDirection: 'row', alignItems: 'center' },
+  greenDot: { width: 8, height: 8, borderRadius: 4, backgroundColor: Colors.success, marginRight: 6 },
+  liveBadgeText: { ...Typography.label, color: Colors.success, letterSpacing: 0.5 },
+  activeOrderNumber: { ...Typography.title, fontSize: 16, marginTop: 2 },
+  cancelButton: { backgroundColor: '#FEF2F2', paddingHorizontal: 10, paddingVertical: 4, borderRadius: 8, borderWidth: 1, borderColor: '#FECACA' },
+  cancelButtonText: { ...Typography.button, color: Colors.error, fontSize: 11 },
+  timelineRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginVertical: 12, paddingHorizontal: 4 },
+  timelineStep: { alignItems: 'center', flex: 1 },
+  stepCircle: { width: 36, height: 36, borderRadius: 18, backgroundColor: Colors.border, alignItems: 'center', justifyContent: 'center', marginBottom: 6 },
+  stepCirclePassed: { backgroundColor: Colors.success },
+  stepCircleCurrent: { backgroundColor: Colors.primary },
+  stepLabel: { ...Typography.caption, textAlign: 'center', fontSize: 10 },
+  stepLabelPassed: { color: Colors.text },
+  stepLabelCurrent: { color: Colors.primary, fontWeight: '900' },
+  riderAlertBox: { backgroundColor: Colors.primaryLight, padding: 10, borderRadius: 12, marginTop: 8, flexDirection: 'row', alignItems: 'center', borderWidth: 1, borderColor: '#FFEDD5' },
+  riderAlertText: { ...Typography.subtitle, color: '#C2410C', fontSize: 12, flex: 1 },
+  activeOrderFooter: { marginTop: 12, paddingTop: 12, borderTopWidth: 1, borderTopColor: Colors.border, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
+  itemsPreviewText: { ...Typography.bodySmall, flex: 1, marginRight: 8 },
+  priceHighlight: { ...Typography.title, fontSize: 15 },
+  sectionHeading: { ...Typography.label, letterSpacing: 0.5, marginBottom: 10 },
+  orderCard: { backgroundColor: Colors.surface, borderRadius: 18, padding: 16, marginBottom: 12, borderWidth: 1, borderColor: Colors.border, shadowColor: '#000', shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.03, shadowRadius: 4, elevation: 1 },
+  orderCardHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 8 },
+  restaurantName: { ...Typography.title, fontSize: 16 },
+  orderNumberSub: { ...Typography.caption, marginTop: 1 },
+  statusPill: { paddingHorizontal: 10, paddingVertical: 4, borderRadius: 12, backgroundColor: Colors.primaryLight },
+  statusDelivered: { backgroundColor: '#DCFCE7' },
+  statusCancelled: { backgroundColor: '#FEE2E2' },
+  statusPillText: { ...Typography.button, fontSize: 10, color: '#C2410C' },
+  statusDeliveredText: { color: Colors.success },
+  statusCancelledText: { color: Colors.error },
+  itemList: { marginVertical: 6 },
+  itemText: { ...Typography.bodySmall, fontSize: 13 },
+  orderCardFooter: { marginTop: 10, paddingTop: 10, borderTopWidth: 1, borderTopColor: Colors.background, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
+  orderDate: { ...Typography.caption },
+  orderTotal: { ...Typography.title, fontSize: 15 },
 });

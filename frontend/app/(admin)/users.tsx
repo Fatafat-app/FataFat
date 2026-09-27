@@ -15,6 +15,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useAdminStore } from '../../store/admin.store';
 import { User } from '../../types';
+import { Typography, Colors } from '../../constants/Theme';
 
 export default function AdminUsersScreen() {
   const { users, isLoading, fetchUsers, toggleUserStatus } = useAdminStore();
@@ -62,7 +63,6 @@ export default function AdminUsersScreen() {
 
   return (
     <SafeAreaView style={styles.safeArea}>
-      {/* Header */}
       <View style={styles.navbar}>
         <View>
           <Text style={styles.pageTitle}>User Control & Moderation</Text>
@@ -70,45 +70,35 @@ export default function AdminUsersScreen() {
         </View>
 
         <TouchableOpacity onPress={onRefresh} style={styles.refreshBtn}>
-          <Ionicons name="refresh" size={18} color="#4B5563" />
+          <Ionicons name="refresh" size={18} color={Colors.textSecondary} />
         </TouchableOpacity>
       </View>
 
-      {/* Search Input */}
       <View style={styles.searchBox}>
-        <Ionicons name="search" size={18} color="#9CA3AF" style={{ marginRight: 8 }} />
+        <Ionicons name="search" size={18} color={Colors.textSecondary} style={{ marginRight: 8 }} />
         <TextInput
           value={search}
           onChangeText={handleSearch}
           placeholder="Search by name, phone or email..."
           style={styles.searchInput}
-          placeholderTextColor="#9CA3AF"
+          placeholderTextColor={Colors.textSecondary}
         />
         {search ? (
           <TouchableOpacity onPress={() => handleSearch('')}>
-            <Ionicons name="close-circle" size={18} color="#9CA3AF" />
+            <Ionicons name="close-circle" size={18} color={Colors.textSecondary} />
           </TouchableOpacity>
         ) : null}
       </View>
 
-      {/* Role Filter Pills */}
       <View style={styles.roleFilterWrapper}>
         <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.roleScroll}>
           {roles.map((r) => (
             <TouchableOpacity
               key={r}
               onPress={() => handleRoleFilter(r)}
-              style={[
-                styles.rolePill,
-                selectedRole === r && styles.rolePillActive,
-              ]}
+              style={[styles.rolePill, selectedRole === r && styles.rolePillActive]}
             >
-              <Text
-                style={[
-                  styles.rolePillText,
-                  selectedRole === r && styles.rolePillTextActive,
-                ]}
-              >
+              <Text style={[styles.rolePillText, selectedRole === r && styles.rolePillTextActive]}>
                 {r.replace('_', ' ').toUpperCase()}
               </Text>
             </TouchableOpacity>
@@ -116,7 +106,6 @@ export default function AdminUsersScreen() {
         </ScrollView>
       </View>
 
-      {/* Users List */}
       <ScrollView
         style={styles.scrollContainer}
         contentContainerStyle={styles.scrollContent}
@@ -125,14 +114,13 @@ export default function AdminUsersScreen() {
       >
         {users.length === 0 ? (
           <View style={styles.emptyCard}>
-            <Ionicons name="people-outline" size={48} color="#D1D5DB" />
+            <Ionicons name="people-outline" size={48} color={Colors.borderDark} />
             <Text style={styles.emptyTitle}>No Users Found</Text>
             <Text style={styles.emptySubtitle}>Try changing filter or search terms.</Text>
           </View>
         ) : (
           users.map((item) => {
             const isActive = item.isActive ?? true;
-
             return (
               <View key={item._id} style={styles.userCard}>
                 <View style={styles.userCardLeft}>
@@ -141,36 +129,14 @@ export default function AdminUsersScreen() {
                       styles.avatarBox,
                       {
                         backgroundColor:
-                          item.role === 'admin'
-                            ? '#EEF2FF'
-                            : item.role === 'restaurant_owner'
-                            ? '#FEF3C7'
-                            : item.role === 'delivery_partner'
-                            ? '#DBEAFE'
-                            : '#F3F4F6',
+                          item.role === 'admin' ? '#EEF2FF' : item.role === 'restaurant_owner' ? '#FEF3C7' : item.role === 'delivery_partner' ? '#DBEAFE' : Colors.background,
                       },
                     ]}
                   >
                     <Ionicons
-                      name={
-                        item.role === 'admin'
-                          ? 'shield'
-                          : item.role === 'restaurant_owner'
-                          ? 'restaurant'
-                          : item.role === 'delivery_partner'
-                          ? 'bicycle'
-                          : 'person'
-                      }
+                      name={item.role === 'admin' ? 'shield' : item.role === 'restaurant_owner' ? 'restaurant' : item.role === 'delivery_partner' ? 'bicycle' : 'person'}
                       size={20}
-                      color={
-                        item.role === 'admin'
-                          ? '#4F46E5'
-                          : item.role === 'restaurant_owner'
-                          ? '#D97706'
-                          : item.role === 'delivery_partner'
-                          ? '#2563EB'
-                          : '#4B5563'
-                      }
+                      color={item.role === 'admin' ? '#4F46E5' : item.role === 'restaurant_owner' ? '#D97706' : item.role === 'delivery_partner' ? '#2563EB' : Colors.textSecondary}
                     />
                   </View>
 
@@ -185,21 +151,15 @@ export default function AdminUsersScreen() {
                   </View>
                 </View>
 
-                {/* Status Toggle */}
                 <View style={styles.statusToggleContainer}>
-                  <Text
-                    style={[
-                      styles.statusLabel,
-                      { color: isActive ? '#15803D' : '#DC2626' },
-                    ]}
-                  >
+                  <Text style={[styles.statusLabel, { color: isActive ? Colors.success : Colors.error }]}>
                     {isActive ? 'ACTIVE' : 'BLOCKED'}
                   </Text>
                   <Switch
                     value={isActive}
                     onValueChange={() => handleToggleActive(item)}
                     trackColor={{ false: '#FECACA', true: '#BBF7D0' }}
-                    thumbColor={isActive ? '#16A34A' : '#DC2626'}
+                    thumbColor={isActive ? Colors.success : Colors.error}
                   />
                 </View>
               </View>
@@ -212,177 +172,32 @@ export default function AdminUsersScreen() {
 }
 
 const styles = StyleSheet.create({
-  safeArea: {
-    flex: 1,
-    backgroundColor: '#F9FAFB',
-  },
-  navbar: {
-    backgroundColor: '#FFFFFF',
-    paddingHorizontal: 16,
-    paddingVertical: 14,
-    borderBottomWidth: 1,
-    borderBottomColor: '#F3F4F6',
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-  },
-  pageTitle: {
-    fontSize: 18,
-    fontWeight: '900',
-    color: '#111827',
-  },
-  pageSubtitle: {
-    fontSize: 11,
-    color: '#6B7280',
-    fontWeight: '500',
-  },
-  refreshBtn: {
-    backgroundColor: '#F3F4F6',
-    padding: 8,
-    borderRadius: 10,
-  },
-  searchBox: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#FFFFFF',
-    marginHorizontal: 16,
-    marginTop: 12,
-    paddingHorizontal: 12,
-    paddingVertical: 9,
-    borderRadius: 14,
-    borderWidth: 1,
-    borderColor: '#E5E7EB',
-  },
-  searchInput: {
-    flex: 1,
-    fontSize: 13,
-    color: '#111827',
-    fontWeight: '500',
-  },
-  roleFilterWrapper: {
-    marginTop: 10,
-    marginBottom: 6,
-  },
-  roleScroll: {
-    paddingHorizontal: 16,
-    gap: 8,
-  },
-  rolePill: {
-    paddingHorizontal: 14,
-    paddingVertical: 6,
-    borderRadius: 16,
-    backgroundColor: '#FFFFFF',
-    borderWidth: 1,
-    borderColor: '#E5E7EB',
-  },
-  rolePillActive: {
-    backgroundColor: '#4F46E5',
-    borderColor: '#4F46E5',
-  },
-  rolePillText: {
-    fontSize: 11,
-    fontWeight: '700',
-    color: '#4B5563',
-  },
-  rolePillTextActive: {
-    color: '#FFFFFF',
-  },
-  scrollContainer: {
-    flex: 1,
-  },
-  scrollContent: {
-    paddingHorizontal: 16,
-    paddingVertical: 10,
-    paddingBottom: 40,
-  },
-  emptyCard: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 20,
-    padding: 36,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginTop: 20,
-    borderWidth: 1,
-    borderColor: '#F3F4F6',
-  },
-  emptyTitle: {
-    fontSize: 16,
-    fontWeight: '800',
-    color: '#374151',
-    marginTop: 12,
-  },
-  emptySubtitle: {
-    fontSize: 12,
-    color: '#9CA3AF',
-    textAlign: 'center',
-    marginTop: 4,
-  },
-  userCard: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 18,
-    padding: 14,
-    marginBottom: 10,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    borderWidth: 1,
-    borderColor: '#F3F4F6',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.03,
-    shadowRadius: 4,
-    elevation: 1,
-  },
-  userCardLeft: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    flex: 1,
-    marginRight: 8,
-  },
-  avatarBox: {
-    width: 44,
-    height: 44,
-    borderRadius: 14,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginRight: 12,
-  },
-  userName: {
-    fontSize: 14,
-    fontWeight: '800',
-    color: '#111827',
-  },
-  userPhone: {
-    fontSize: 12,
-    color: '#6B7280',
-    fontWeight: '500',
-    marginTop: 1,
-  },
-  userEmail: {
-    fontSize: 11,
-    color: '#9CA3AF',
-  },
-  roleTag: {
-    marginTop: 4,
-    alignSelf: 'flex-start',
-    backgroundColor: '#F3F4F6',
-    paddingHorizontal: 6,
-    paddingVertical: 2,
-    borderRadius: 6,
-  },
-  roleTagText: {
-    fontSize: 9,
-    fontWeight: '800',
-    color: '#4B5563',
-    textTransform: 'uppercase',
-  },
-  statusToggleContainer: {
-    alignItems: 'center',
-  },
-  statusLabel: {
-    fontSize: 9,
-    fontWeight: '900',
-    marginBottom: 2,
-    letterSpacing: 0.5,
-  },
+  safeArea: { flex: 1, backgroundColor: Colors.background },
+  navbar: { backgroundColor: Colors.surface, paddingHorizontal: 16, paddingVertical: 14, borderBottomWidth: 1, borderBottomColor: Colors.border, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
+  pageTitle: { ...Typography.heading, fontSize: 18 },
+  pageSubtitle: { ...Typography.bodySmall, fontSize: 11 },
+  refreshBtn: { backgroundColor: Colors.background, padding: 8, borderRadius: 10 },
+  searchBox: { flexDirection: 'row', alignItems: 'center', backgroundColor: Colors.surface, marginHorizontal: 16, marginTop: 12, paddingHorizontal: 12, paddingVertical: 9, borderRadius: 14, borderWidth: 1, borderColor: Colors.border },
+  searchInput: { ...Typography.bodySmall, flex: 1, fontSize: 13, color: Colors.text },
+  roleFilterWrapper: { marginTop: 10, marginBottom: 6 },
+  roleScroll: { paddingHorizontal: 16, gap: 8 },
+  rolePill: { paddingHorizontal: 14, paddingVertical: 6, borderRadius: 16, backgroundColor: Colors.surface, borderWidth: 1, borderColor: Colors.border },
+  rolePillActive: { backgroundColor: '#4F46E5', borderColor: '#4F46E5' },
+  rolePillText: { ...Typography.button, fontSize: 11, color: Colors.textSecondary },
+  rolePillTextActive: { color: Colors.white },
+  scrollContainer: { flex: 1 },
+  scrollContent: { paddingHorizontal: 16, paddingVertical: 10, paddingBottom: 40 },
+  emptyCard: { backgroundColor: Colors.surface, borderRadius: 20, padding: 36, alignItems: 'center', justifyContent: 'center', marginTop: 20, borderWidth: 1, borderColor: Colors.border },
+  emptyTitle: { ...Typography.title, fontSize: 16, marginTop: 12 },
+  emptySubtitle: { ...Typography.caption, textAlign: 'center', marginTop: 4 },
+  userCard: { backgroundColor: Colors.surface, borderRadius: 18, padding: 14, marginBottom: 10, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', borderWidth: 1, borderColor: Colors.border, shadowColor: '#000', shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.03, shadowRadius: 4, elevation: 1 },
+  userCardLeft: { flexDirection: 'row', alignItems: 'center', flex: 1, marginRight: 8 },
+  avatarBox: { width: 44, height: 44, borderRadius: 14, alignItems: 'center', justifyContent: 'center', marginRight: 12 },
+  userName: { ...Typography.title, fontSize: 14 },
+  userPhone: { ...Typography.button, fontSize: 12, color: Colors.textSecondary, marginTop: 1 },
+  userEmail: { ...Typography.caption, fontSize: 11 },
+  roleTag: { marginTop: 4, alignSelf: 'flex-start', backgroundColor: Colors.background, paddingHorizontal: 6, paddingVertical: 2, borderRadius: 6 },
+  roleTagText: { ...Typography.button, fontSize: 9, textTransform: 'uppercase' },
+  statusToggleContainer: { alignItems: 'center' },
+  statusLabel: { ...Typography.label, fontSize: 9, marginBottom: 2, letterSpacing: 0.5 },
 });

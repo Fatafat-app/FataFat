@@ -47,4 +47,9 @@ async function updateFcmToken(req, res) {
   success(res, null, 'FCM token updated');
 }
 
-module.exports = { getMe, updateMe, uploadAvatar, getAddresses, addAddress, updateAddress, deleteAddress, updateFcmToken };
+async function deleteMe(req, res) {
+  await userService.deleteProfile(req.user.id);
+  success(res, null, 'Account deactivated successfully');
+}
+
+module.exports = { getMe, updateMe, uploadAvatar, getAddresses, addAddress, updateAddress, deleteAddress, updateFcmToken, deleteMe };

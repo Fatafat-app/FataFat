@@ -6,7 +6,7 @@ export const addressService = {
    * Get all saved addresses for user
    */
   async getAddresses(): Promise<Address[]> {
-    const response = await api.get<ApiResponse<Address[]>>('/users/addresses');
+    const response = await api.get<ApiResponse<Address[]>>('/users/me/addresses');
     return response.data.data;
   },
 
@@ -14,15 +14,15 @@ export const addressService = {
    * Add a new delivery address
    */
   async addAddress(payload: CreateAddressPayload): Promise<Address> {
-    const response = await api.post<ApiResponse<Address>>('/users/addresses', payload);
+    const response = await api.post<ApiResponse<Address>>('/users/me/addresses', payload);
     return response.data.data;
   },
 
   /**
-   * Update an existing delivery address
+   * Update an existing delivery address (including setting as default)
    */
   async updateAddress(addressId: string, payload: Partial<CreateAddressPayload>): Promise<Address> {
-    const response = await api.put<ApiResponse<Address>>(`/users/addresses/${addressId}`, payload);
+    const response = await api.patch<ApiResponse<Address>>(`/users/me/addresses/${addressId}`, payload);
     return response.data.data;
   },
 
@@ -30,14 +30,14 @@ export const addressService = {
    * Delete an address
    */
   async deleteAddress(addressId: string): Promise<void> {
-    await api.delete(`/users/addresses/${addressId}`);
+    await api.delete(`/users/me/addresses/${addressId}`);
   },
 
   /**
    * Set an address as default
    */
   async setDefaultAddress(addressId: string): Promise<Address> {
-    const response = await api.patch<ApiResponse<Address>>(`/users/addresses/${addressId}/default`);
+    const response = await api.patch<ApiResponse<Address>>(`/users/me/addresses/${addressId}`, { isDefault: true });
     return response.data.data;
   },
 };

@@ -11,7 +11,7 @@ const redis = require('../config/redis');
 const DeliveryPartner = require('../modules/delivery/delivery.model');
 const Restaurant = require('../modules/restaurants/restaurant.model');
 const Order = require('../modules/orders/order.model');
-const { PAYMENT_STATUS, ORDER_STATUS } = require('../../common/constants/orderStatuses');
+const { PAYMENT_STATUS, ORDER_STATUS } = require('../common/constants/orderStatuses');
 const logger = require('../config/logger');
 
 const payoutQueue = new Queue('payouts', { connection: redis });

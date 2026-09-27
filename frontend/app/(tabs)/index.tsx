@@ -1,144 +1,203 @@
-import React, { useState, useEffect, useRef } from 'react';
-import { View, Text, ScrollView, TextInput, TouchableOpacity, Image, StyleSheet, Dimensions, NativeSyntheticEvent, NativeScrollEvent, Animated, ActivityIndicator } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
-import { Ionicons, MaterialCommunityIcons, Feather, FontAwesome5 } from '@expo/vector-icons';
-import { useAuthStore, useLocationStore } from '../../store';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
+import { View, Text, ScrollView, TouchableOpacity, Image, StyleSheet, Dimensions, NativeSyntheticEvent, NativeScrollEvent, RefreshControl, Alert } from 'react-native';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
+import { Ionicons } from '@expo/vector-icons';
+import { useRouter } from 'expo-router';
+import { useAuthStore, useLocationStore, useCartStore } from '../../store';
+import { restaurantService } from '../../services/restaurant.service';
+import { Restaurant } from '../../types';
+import { RestaurantCard } from '../../components/ui/RestaurantCard';
+import { Loading } from '../../components/ui/Loading';
+import { Typography, BOLD_FONT, STYLISH_FONT, Colors } from '../../constants/Theme';
 
 const { width } = Dimensions.get('window');
-const ORANGE = '#FF6000';
-const BANNER_WIDTH = width - 32; // 16 padding on each side
+const BANNER_WIDTH = width - 32;
+
+const formatDistance = (meters?: number) => {
+  if (!meters) return '';
+  return `${(meters / 1000).toFixed(1)} km`;
+};
+
+// Premium Dummy Restaurants for fallback
+const DUMMY_RESTAURANTS: any[] = [
+  {
+    _id: 'd1',
+    name: 'Ftafat Signature Kitchen',
+    images: ['https://images.pexels.com/photos/1640777/pexels-photo-1640777.jpeg'],
+    cuisines: ['North Indian', 'Biryani'],
+    rating: { average: 4.8, count: 420 },
+    estimatedDeliveryTime: 25,
+    distance: 1200,
+  },
+  {
+    _id: 'd2',
+    name: 'The Burger Cartel',
+    images: ['https://images.pexels.com/photos/1639557/pexels-photo-1639557.jpeg'],
+    cuisines: ['American', 'Fast Food'],
+    rating: { average: 4.5, count: 185 },
+    estimatedDeliveryTime: 35,
+    distance: 2100,
+  },
+  {
+    _id: 'd3',
+    name: 'Napoli Pizzeria',
+    images: ['https://images.pexels.com/photos/1146760/pexels-photo-1146760.jpeg'],
+    cuisines: ['Italian', 'Pizzas'],
+    rating: { average: 4.9, count: 850 },
+    estimatedDeliveryTime: 40,
+    distance: 3500,
+  }
+];
+
+const DUMMY_PRODUCTS = [
+  { id: 'p1', name: 'Peri Peri Fries', price: 149, restaurant: 'The Burger Cartel', image: 'https://images.pexels.com/photos/1583884/pexels-photo-1583884.jpeg', rating: 4.5 },
+  { id: 'p2', name: 'Chicken Biryani', price: 299, restaurant: 'Ftafat Signature Kitchen', image: 'https://images.pexels.com/photos/1624487/pexels-photo-1624487.jpeg', rating: 4.8 },
+  { id: 'p3', name: 'Margherita Pizza', price: 349, restaurant: 'Napoli Pizzeria', image: 'https://images.pexels.com/photos/1146760/pexels-photo-1146760.jpeg', rating: 4.7 },
+  { id: 'p4', name: 'Cold Coffee', price: 129, restaurant: 'Cafe Ftafat', image: 'https://images.pexels.com/photos/1190298/pexels-photo-1190298.jpeg', rating: 4.2 },
+];
+
+const TOP_BRANDS = [
+  { id: 'b1', name: 'Domino\'s', offer: 'Flat 50% OFF', image: 'https://images.pexels.com/photos/825661/pexels-photo-825661.jpeg', time: '25 min' },
+  { id: 'b2', name: 'KFC', offer: 'Free Delivery', image: 'https://images.pexels.com/photos/27900698/pexels-photo-27900698.jpeg', time: '20 min' },
+  { id: 'b3', name: 'Burger King', offer: 'Buy 1 Get 1', image: 'https://images.pexels.com/photos/1639557/pexels-photo-1639557.jpeg', time: '30 min' },
+  { id: 'b4', name: 'Starbucks', offer: 'Up to ₹100 OFF', image: 'https://images.pexels.com/photos/2396220/pexels-photo-2396220.jpeg', time: '15 min' },
+];
+
+const HEALTHY_OPTIONS = [
+  { id: 'h1', name: 'Quinoa Salad Bowl', calories: '250 kcal', restaurant: 'Fit Food Kitchen', image: 'https://images.pexels.com/photos/1640777/pexels-photo-1640777.jpeg', rating: 4.9 },
+  { id: 'h2', name: 'Avocado Toast', calories: '320 kcal', restaurant: 'Fresh & Green', image: 'https://images.pexels.com/photos/1351238/pexels-photo-1351238.jpeg', rating: 4.7 },
+  { id: 'h3', name: 'Grilled Chicken Breast', calories: '280 kcal', restaurant: 'Protein Hub', image: 'https://images.pexels.com/photos/2313686/pexels-photo-2313686.jpeg', rating: 4.8 },
+];
+
+const POCKET_DEALS = [
+  { id: 'd1', title: 'Craving Combo', subtitle: 'Burger + Fries + Coke', price: '₹129', image: 'https://images.pexels.com/photos/1190298/pexels-photo-1190298.jpeg' },
+  { id: 'd2', title: 'Midnight Snack', subtitle: 'Large Pizza + Garlic Bread', price: '₹249', image: 'https://images.pexels.com/photos/1146760/pexels-photo-1146760.jpeg' },
+];
+
+const MOODS = [
+  { id: 'm1', emoji: '🎉', name: 'Party', query: 'Pizza' },
+  { id: 'm2', emoji: '😍', name: 'Sweet Tooth', query: 'Desserts' },
+  { id: 'm3', emoji: '😴', name: 'Late Night', query: 'Burger' },
+  { id: 'm4', emoji: '💪', name: 'Healthy', query: 'Salad' },
+  { id: 'm5', emoji: '🔥', name: 'Spicy', query: 'Biryani' },
+];
 
 export default function HomeScreen() {
+  const router = useRouter();
   const logout = useAuthStore((state) => state.logout);
   const user = useAuthStore((state) => state.user);
-  const { locationTitle, locationSubtitle, isDetectingLocation, detectCurrentLocation } = useLocationStore();
+  const { locationTitle, locationSubtitle, isDetectingLocation, detectCurrentLocation, currentLocation } = useLocationStore();
+  const { addItem, clearCart } = useCartStore();
+  const insets = useSafeAreaInsets();
+  
   const [activeBanner, setActiveBanner] = useState(0);
-  const [timeLeft, setTimeLeft] = useState(8640); // 2 hours, 24 mins
   const scrollRef = useRef<ScrollView>(null);
+  const [scrollY, setScrollY] = useState(0);
+  const isScrolled = scrollY > 80; // Header collapses after 80px scroll
+  
+  const [restaurants, setRestaurants] = useState<Restaurant[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
+  const [usingDummyData, setUsingDummyData] = useState(false);
 
-  // Auto-detect GPS Location on load
   useEffect(() => {
-    detectCurrentLocation();
+    if (!currentLocation && !isDetectingLocation) {
+      detectCurrentLocation();
+    }
   }, []);
 
-  // States for interactive Order Again buttons
-  const [reorderingId, setReorderingId] = useState<number | null>(null);
-  const [addedId, setAddedId] = useState<number | null>(null);
+  const fetchRestaurants = async () => {
+    if (!currentLocation) return;
+    try {
+      if (!refreshing) setLoading(true);
+      const data = await restaurantService.getNearbyRestaurants({
+        lat: currentLocation.latitude,
+        lng: currentLocation.longitude,
+        radius: 5000,
+      });
+      
+      if (data && data.length > 0) {
+        setRestaurants(data);
+        setUsingDummyData(false);
+      } else {
+        setRestaurants(DUMMY_RESTAURANTS);
+        setUsingDummyData(true);
+      }
+    } catch (err: any) {
+      setRestaurants(DUMMY_RESTAURANTS);
+      setUsingDummyData(true);
+    } finally {
+      setLoading(false);
+      setRefreshing(false);
+    }
+  };
 
-  // Auto-scroll Banners
+  const handleAddDummyProduct = (product: typeof DUMMY_PRODUCTS[0]) => {
+    const fakeRestaurant = {
+      _id: `res_${product.id}`,
+      name: product.restaurant,
+      pricing: { deliveryCharge: 3000 }, // 30 rs
+    } as any;
+
+    const fakeMenuItem = {
+      _id: product.id,
+      name: product.name,
+      price: product.price * 100, // paise
+      description: 'A delicious Ftafat choice.',
+      category: 'Recommended',
+      isVeg: true,
+      isAvailable: true,
+    } as any;
+
+    const success = addItem(fakeMenuItem, fakeRestaurant);
+    if (!success) {
+      Alert.alert('Different Restaurant', 'Your cart contains items from another restaurant. Do you want to clear the cart and add this item?', [
+        { text: 'Cancel', style: 'cancel' },
+        { 
+          text: 'Clear & Add', 
+          style: 'destructive', 
+          onPress: () => {
+            clearCart();
+            addItem(fakeMenuItem, fakeRestaurant);
+            Alert.alert('Added', `${product.name} has been added to your cart.`);
+          }
+        }
+      ]);
+    } else {
+      Alert.alert('Added', `${product.name} has been added to your cart.`);
+    }
+  };
+
+  useEffect(() => {
+    if (currentLocation) {
+      fetchRestaurants();
+    }
+  }, [currentLocation]);
+
+  const onRefresh = useCallback(() => {
+    setRefreshing(true);
+    fetchRestaurants();
+  }, [currentLocation]);
+
+  const banners = [
+    { id: 1, title: 'Cravings?', subtitle: 'Ftafat!', desc: 'Delicious food delivered\nto your doorstep.', image: 'https://images.pexels.com/photos/2983101/pexels-photo-2983101.jpeg', bgColor: '#FFF0E6', textColor: '#D94E1B' },
+    { id: 2, title: 'Midnight', subtitle: 'Hunger?', desc: 'Hot meals delivered\nin just 15 minutes!', image: 'https://images.pexels.com/photos/1146760/pexels-photo-1146760.jpeg', bgColor: '#EEF2FF', textColor: '#4F46E5' },
+    { id: 3, title: 'Party', subtitle: 'Time!', desc: 'Flat 50% Off on\nlarge group orders.', image: 'https://images.pexels.com/photos/1639557/pexels-photo-1639557.jpeg', bgColor: '#FDF7EC', textColor: '#D97706' },
+    { id: 4, title: 'Healthy', subtitle: 'Eats', desc: 'Fresh salads &\njuices for you.', image: 'https://images.pexels.com/photos/1640777/pexels-photo-1640777.jpeg', bgColor: '#ECFDF5', textColor: '#059669' },
+    { id: 5, title: 'Sweet', subtitle: 'Tooth?', desc: 'Desserts to make\nyour day brighter.', image: 'https://images.pexels.com/photos/2144112/pexels-photo-2144112.jpeg', bgColor: '#FCE7F3', textColor: '#DB2777' },
+    { id: 6, title: 'Spicy', subtitle: 'Delights', desc: 'Taste the fire\nwith our specials.', image: 'https://images.pexels.com/photos/2611477/pexels-photo-2611477.jpeg', bgColor: '#FEF2F2', textColor: '#DC2626' }
+  ];
+
   useEffect(() => {
     const scrollTimer = setInterval(() => {
       setActiveBanner((prev) => {
-        // Assume 3 banners length for now
-        const next = (prev + 1) % 3;
+        const next = (prev + 1) % banners.length;
         scrollRef.current?.scrollTo({ x: next * width, animated: true });
         return next;
       });
-    }, 3000); // Scroll every 3 seconds
-
+    }, 4000);
     return () => clearInterval(scrollTimer);
-  }, []);
-
-  // Flash Deal Timer
-  useEffect(() => {
-    const timer = setInterval(() => {
-      setTimeLeft(prev => (prev > 0 ? prev - 1 : 0));
-    }, 1000);
-    return () => clearInterval(timer);
-  }, []);
-
-  const formatTime = (seconds: number) => {
-    const h = Math.floor(seconds / 3600);
-    const m = Math.floor((seconds % 3600) / 60);
-    const s = seconds % 60;
-    return {
-      hours: h.toString().padStart(2, '0'),
-      minutes: m.toString().padStart(2, '0'),
-      seconds: s.toString().padStart(2, '0')
-    };
-  };
-
-  const timeDisplay = formatTime(timeLeft);
-
-  const handleReorder = (id: number) => {
-    setReorderingId(id);
-    // Simulate network request for 1.5 seconds
-    setTimeout(() => {
-      setReorderingId(null);
-      setAddedId(id);
-      // Reset back to original state after 2.5 seconds
-      setTimeout(() => {
-        setAddedId(null);
-      }, 2500);
-    }, 1500);
-  };
-
-  const banners = [
-    {
-      id: 1,
-      title: 'Cravings?',
-      subtitle: 'Ftafat!',
-      desc: 'Delicious food delivered\nto your doorstep.',
-      image: 'https://images.pexels.com/photos/2983101/pexels-photo-2983101.jpeg',
-      bgColor: '#FFF0E6'
-    },
-    {
-      id: 2,
-      title: 'Midnight',
-      subtitle: 'Hunger?',
-      desc: 'Hot meals delivered\nin just 15 minutes!',
-      image: 'https://images.pexels.com/photos/1146760/pexels-photo-1146760.jpeg',
-      bgColor: '#FDF7EC'
-    },
-    {
-      id: 3,
-      title: 'Party',
-      subtitle: 'Time!',
-      desc: 'Flat 50% Off on\nlarge group orders.',
-      image: 'https://images.pexels.com/photos/1639557/pexels-photo-1639557.jpeg',
-      bgColor: '#FEE2E2'
-    }
-  ];
-
-  const categories = [
-    { id: 1, name: 'Pizza', image: 'https://images.pexels.com/photos/1146760/pexels-photo-1146760.jpeg' },
-    { id: 2, name: 'Burger', image: 'https://images.pexels.com/photos/1639557/pexels-photo-1639557.jpeg' },
-    { id: 3, name: 'Paratha', image: 'https://images.pexels.com/photos/12737656/pexels-photo-12737656.jpeg' },
-    { id: 4, name: 'Maggi', image: 'https://images.pexels.com/photos/2347311/pexels-photo-2347311.jpeg' },
-    { id: 5, name: 'Noodles', image: 'https://images.pexels.com/photos/2347311/pexels-photo-2347311.jpeg' },
-  ];
-
-  const cuisines = [
-    { id: 1, name: 'North Indian', color: '#FEF3C7', icon: '🍲' },
-    { id: 2, name: 'Chinese', color: '#FEE2E2', icon: '🍜' },
-    { id: 3, name: 'South Indian', color: '#E0E7FF', icon: '🥞' },
-    { id: 4, name: 'Italian', color: '#D1FAE5', icon: '🍕' },
-  ];
-
-  const recentOrders = [
-    { id: 1, name: "Farmhouse Pizza", restaurant: "La Pino'z Pizza", time: "Delivered 2 days ago", image: "https://images.pexels.com/photos/825661/pexels-photo-825661.jpeg" },
-    { id: 2, name: "Masala Dosa", restaurant: "South Indian Express", time: "Delivered last week", image: "https://images.pexels.com/photos/5560763/pexels-photo-5560763.jpeg" },
-  ];
-
-  const topBrands = [
-    { id: 1, name: "Burger King", time: "25 mins", image: "https://images.pexels.com/photos/1639557/pexels-photo-1639557.jpeg", offer: "60% OFF" },
-    { id: 2, name: "Domino's", time: "20 mins", image: "https://images.pexels.com/photos/1146760/pexels-photo-1146760.jpeg", offer: "BOGO" },
-    { id: 3, name: "Haldiram's", time: "30 mins", image: "https://images.pexels.com/photos/12737656/pexels-photo-12737656.jpeg", offer: "₹100 OFF" },
-    { id: 4, name: "KFC", time: "35 mins", image: "https://images.pexels.com/photos/2347311/pexels-photo-2347311.jpeg", offer: "Free Item" },
-  ];
-
-  const recommended = [
-    { id: 1, name: "La Pino'z Pizza", rating: 4.3, reviews: '1.2k', time: '30-40 min', tag: '20% OFF', tagColor: '#FF6000', image: 'https://images.pexels.com/photos/1146760/pexels-photo-1146760.jpeg' },
-    { id: 2, name: "Burger Hub", rating: 4.4, reviews: '980', time: '25-35 min', tag: '₹50 OFF', tagColor: '#FF6000', image: 'https://images.pexels.com/photos/1639557/pexels-photo-1639557.jpeg' },
-    { id: 3, name: "Paratha Point", rating: 4.5, reviews: '2.1k', time: '20-30 min', tag: 'Top Rated', tagColor: '#FF6000', image: 'https://images.pexels.com/photos/12737656/pexels-photo-12737656.jpeg' },
-  ];
-
-  const moreProducts = [
-    { id: 1, name: "Cheese Burst Pizza", restaurant: "La Pino'z Pizza", price: "₹299", rating: 4.8, image: "https://images.pexels.com/photos/845812/pexels-photo-845812.jpeg" },
-    { id: 2, name: "Special Paneer Biryani", restaurant: "Biryani House", price: "₹199", rating: 4.5, image: "https://images.pexels.com/photos/1624487/pexels-photo-1624487.jpeg" },
-    { id: 3, name: "Crispy Veg Burger", restaurant: "Burger Hub", price: "₹149", rating: 4.3, image: "https://images.pexels.com/photos/1639557/pexels-photo-1639557.jpeg" },
-    { id: 4, name: "Spicy Hakka Noodles", restaurant: "Chinese Wok", price: "₹120", rating: 4.1, image: "https://images.pexels.com/photos/2347311/pexels-photo-2347311.jpeg" },
-  ];
+  }, [banners.length]);
 
   const handleBannerScroll = (event: NativeSyntheticEvent<NativeScrollEvent>) => {
     const scrollPosition = event.nativeEvent.contentOffset.x;
@@ -148,1273 +207,681 @@ export default function HomeScreen() {
     }
   };
 
-  return (
-    <SafeAreaView style={styles.container} edges={['top']}>
-      <View style={{ flex: 1 }}>
-        <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent}>
+  const categories = [
+    { id: 1, name: 'Pizza', image: 'https://images.pexels.com/photos/1146760/pexels-photo-1146760.jpeg' },
+    { id: 2, name: 'Burger', image: 'https://images.pexels.com/photos/1639557/pexels-photo-1639557.jpeg' },
+    { id: 3, name: 'Paratha', image: 'https://images.pexels.com/photos/12737656/pexels-photo-12737656.jpeg' },
+    { id: 4, name: 'Biryani', image: 'https://images.pexels.com/photos/1624487/pexels-photo-1624487.jpeg' },
+    { id: 5, name: 'Noodles', image: 'https://images.pexels.com/photos/2347311/pexels-photo-2347311.jpeg' },
+  ];
 
-          {/* Header */}
-          <View style={styles.header}>
-            <TouchableOpacity
-              style={styles.locationContainer}
-              onPress={detectCurrentLocation}
-              activeOpacity={0.7}
-            >
-              <Ionicons name="location" size={24} color={ORANGE} />
+  return (
+    <View style={styles.container}>
+      {/* STICKY COMPACT SEARCH BAR - only visible when scrolled */}
+      {isScrolled && (
+        <View style={[styles.stickySearchBar, { paddingTop: insets.top + 8 }]}>
+          <TouchableOpacity style={styles.stickySearchInner} onPress={() => router.push('/(tabs)/search')} activeOpacity={0.9}>
+            <Ionicons name="search" size={18} color="#9CA3AF" style={{ marginRight: 8 }} />
+            <Text style={styles.stickySearchText}>Search restaurants, cuisines...</Text>
+          </TouchableOpacity>
+        </View>
+      )}
+
+      <ScrollView
+        showsVerticalScrollIndicator={false}
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={[Colors.primary]} tintColor={Colors.primary} />}
+        bounces={false}
+        onScroll={(e) => setScrollY(e.nativeEvent.contentOffset.y)}
+        scrollEventThrottle={16}
+      >
+        {/* FULL HEADER — scrolls away */}
+        <View style={[styles.headerContainer, { paddingTop: insets.top + 10 }]}>
+          {/* HEADER MAIN ROW — Location Left, Profile Right */}
+          <View style={styles.headerMainRow}>
+
+            {/* LOCATION (LEFT) */}
+            <TouchableOpacity style={styles.locationContainer} onPress={detectCurrentLocation} activeOpacity={0.7}>
+              <View style={styles.locationIconCircle}>
+                <Ionicons name="location" size={18} color="#FFF" />
+              </View>
               <View style={styles.locationTextContainer}>
-                <View style={styles.locationRow}>
-                  <Text style={styles.locationTitle} numberOfLines={1}>
-                    {locationTitle || 'Home'}
-                  </Text>
+                <Text style={styles.locationDeliveryLabel}>DELIVERING TO</Text>
+                <View style={styles.locationRowInner}>
+                  <Text style={styles.locationTitle} numberOfLines={1}>{locationTitle || 'Home'}</Text>
                   {isDetectingLocation ? (
-                    <ActivityIndicator size="small" color={ORANGE} style={{ marginLeft: 4 }} />
+                    <View style={{ marginLeft: 6 }}><Loading size="small" color="#3E2723" /></View>
                   ) : (
-                    <Ionicons name="chevron-down" size={16} color="#000" style={{ marginLeft: 2 }} />
+                    <Ionicons name="chevron-down" size={14} color="#3E2723" style={{ marginLeft: 4 }} />
                   )}
                 </View>
-                <Text style={styles.locationSubtitle} numberOfLines={1}>
-                  {locationSubtitle || 'Detecting GPS...'}
-                </Text>
+                <Text style={styles.locationSubtitle} numberOfLines={1}>{locationSubtitle || 'Detecting location...'}</Text>
               </View>
             </TouchableOpacity>
 
-            <View style={styles.headerRight}>
-              <View style={styles.greetingContainer}>
-                <Text style={styles.greetingText}>
-                  {user?.name ? `Hi, ${user.name.split(' ')[0]}! 👋` : 'Good Day! 👋'}
-                </Text>
+            {/* PROFILE AVATAR (RIGHT) */}
+            <TouchableOpacity style={styles.profileAvatar} onPress={() => router.push('/(tabs)/profile')} activeOpacity={0.8}>
+              {user?.avatar ? (
+                <Image source={{ uri: user.avatar }} style={styles.avatarImage} />
+              ) : (
+                <Text style={styles.profileAvatarText}>{user?.name ? user.name.charAt(0).toUpperCase() : 'F'}</Text>
+              )}
+            </TouchableOpacity>
+          </View>
+
+          {/* SEARCH BAR */}
+          <TouchableOpacity style={styles.searchRow} onPress={() => router.push('/(tabs)/search')} activeOpacity={0.9}>
+            <View style={styles.searchContainer} pointerEvents="none">
+              <Ionicons name="search" size={20} color="#9CA3AF" style={styles.searchIcon} />
+              <Text style={styles.searchText}>Search for restaurants, cuisines...</Text>
+              <View style={styles.micCircle}>
+                <Ionicons name="mic" size={16} color={Colors.primary} />
               </View>
-              <TouchableOpacity style={styles.bellIcon}>
-                <Ionicons name="notifications-outline" size={24} color="#000" />
-              </TouchableOpacity>
-              <TouchableOpacity style={styles.profileAvatar} onPress={logout}>
-                <Text style={styles.profileAvatarText}>
-                  {user?.name ? user.name.charAt(0).toUpperCase() : 'P'}
-                </Text>
-              </TouchableOpacity>
-            </View>
-          </View>
-
-          {/* Search Bar */}
-          <View style={styles.searchRow}>
-            <View style={styles.searchContainer}>
-              <Ionicons name="search" size={20} color="#666" style={styles.searchIcon} />
-              <TextInput
-                placeholder="Search for 'Biryani'..."
-                placeholderTextColor="#888"
-                style={styles.searchInput}
-              />
-              <Feather name="mic" size={20} color="#666" style={styles.micIcon} />
-            </View>
-            <TouchableOpacity style={styles.filterBtn}>
-              <Ionicons name="options-outline" size={22} color="#000" />
-            </TouchableOpacity>
-          </View>
-
-          {/* Filters Scroll */}
-          <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.filtersScroll} contentContainerStyle={styles.filtersContent}>
-            <TouchableOpacity style={[styles.filterPill, { backgroundColor: ORANGE, borderColor: ORANGE }]}>
-              <Text style={[styles.filterPillText, { color: 'white' }]}>All</Text>
-            </TouchableOpacity>
-            <TouchableOpacity style={styles.filterPill}>
-              <Ionicons name="people" size={16} color="#555" style={styles.filterPillIcon} />
-              <Text style={styles.filterPillText}>Share</Text>
-            </TouchableOpacity>
-            <TouchableOpacity style={styles.filterPill}>
-              <MaterialCommunityIcons name="tag" size={16} color={ORANGE} style={styles.filterPillIcon} />
-              <Text style={styles.filterPillText}>Offers</Text>
-            </TouchableOpacity>
-            <TouchableOpacity style={styles.filterPill}>
-              <MaterialCommunityIcons name="leaf" size={16} color="#16A34A" style={styles.filterPillIcon} />
-              <Text style={styles.filterPillText}>Veg</Text>
-            </TouchableOpacity>
-            <TouchableOpacity style={styles.filterPill}>
-              <MaterialCommunityIcons name="bone" size={16} color="#DC2626" style={styles.filterPillIcon} />
-              <Text style={styles.filterPillText}>Non-Veg</Text>
-            </TouchableOpacity>
-          </ScrollView>
-
-          {/* Banners Swiper */}
-          <View style={styles.bannerWrapper}>
-            <ScrollView
-              ref={scrollRef}
-              horizontal
-              showsHorizontalScrollIndicator={false}
-              onScroll={handleBannerScroll}
-              scrollEventThrottle={16}
-              pagingEnabled={true}
-              snapToInterval={width}
-              decelerationRate="fast"
-              snapToAlignment="center"
-              disableIntervalMomentum={true}
-            >
-              {banners.map((banner, index) => (
-                <View key={banner.id} style={[styles.bannerContainer, { backgroundColor: banner.bgColor }]}>
-                  <View style={styles.bannerTextContent}>
-                    <Text style={styles.bannerCravings}>{banner.title}</Text>
-                    <Text style={styles.bannerFtafat}>{banner.subtitle}</Text>
-                    <Text style={styles.bannerDesc}>{banner.desc}</Text>
-                    <TouchableOpacity style={styles.orderNowBtn}>
-                      <Text style={styles.orderNowText}>Order Now</Text>
-                      <Ionicons name="arrow-forward" size={16} color="white" style={{ marginLeft: 4 }} />
-                    </TouchableOpacity>
-                  </View>
-                  <Image
-                    source={{ uri: banner.image }}
-                    style={styles.bannerImage}
-                    resizeMode="cover"
-                  />
-                </View>
-              ))}
-            </ScrollView>
-
-            {/* Banner Dots */}
-            <View style={styles.dotsContainer}>
-              {banners.map((_, i) => (
-                <View key={i} style={[styles.dot, i === activeBanner && { backgroundColor: ORANGE, width: 12 }]} />
-              ))}
-            </View>
-          </View>
-
-          {/* Flash Deal Timer */}
-          <TouchableOpacity style={styles.flashDealContainer} activeOpacity={0.9}>
-            <View style={styles.flashDealLeft}>
-              <FontAwesome5 name="fire" size={24} color="#FBBF24" />
-              <View style={styles.flashDealTextWrapper}>
-                <Text style={styles.flashDealTitle}>Flash Deals Live!</Text>
-                <Text style={styles.flashDealSub}>Up to 60% off on premium spots</Text>
-              </View>
-            </View>
-            <View style={styles.timerBoxWrapper}>
-              <View style={styles.timerBox}><Text style={styles.timerText}>{timeDisplay.hours}</Text></View>
-              <Text style={styles.timerColon}>:</Text>
-              <View style={styles.timerBox}><Text style={styles.timerText}>{timeDisplay.minutes}</Text></View>
-              <Text style={styles.timerColon}>:</Text>
-              <View style={styles.timerBox}><Text style={styles.timerText}>{timeDisplay.seconds}</Text></View>
             </View>
           </TouchableOpacity>
+        </View>
 
-          {/* Categories */}
+        <TouchableOpacity style={styles.diwaliPoster} onPress={() => router.push({ pathname: '/(tabs)/search', params: { q: 'Sweets' } })} activeOpacity={0.9}>
+          <Image 
+            source={{ uri: 'https://images.pexels.com/photos/13401111/pexels-photo-13401111.jpeg' }} 
+            style={styles.diwaliBgImage} 
+          />
+          <View style={styles.diwaliOverlay}>
+            <View style={styles.diwaliBadge}>
+              <Text style={styles.diwaliBadgeText}>FESTIVE SPECIAL 🪔</Text>
+            </View>
+            <Text style={styles.diwaliTitle}>Diwali Dhamaka Sale!</Text>
+            <Text style={styles.diwaliSubtitle}>Flat 50% OFF on Sweets, Desserts & Premium Biryanis. Treat your family today!</Text>
+            
+            <View style={styles.diwaliBtn}>
+              <Text style={styles.diwaliBtnText}>CLAIM OFFER NOW</Text>
+              <Ionicons name="arrow-forward" size={16} color="#B45309" style={{ marginLeft: 4 }} />
+            </View>
+          </View>
+        </TouchableOpacity>
+
+        {/* BANNERS */}
+        <View style={styles.bannerWrapper}>
+          <ScrollView
+            ref={scrollRef}
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            onScroll={handleBannerScroll}
+            scrollEventThrottle={16}
+            pagingEnabled
+            snapToInterval={width}
+            decelerationRate="fast"
+            snapToAlignment="center"
+          >
+            {banners.map((banner) => (
+              <View key={banner.id} style={[styles.bannerContainer, { backgroundColor: banner.bgColor }]}>
+                <View style={styles.bannerTextContent}>
+                  <Text style={styles.bannerCravings}>{banner.title}</Text>
+                  <Text style={[styles.bannerFtafat, { color: banner.textColor }]}>{banner.subtitle}</Text>
+                  <Text style={styles.bannerDesc}>{banner.desc}</Text>
+                </View>
+                <Image source={{ uri: banner.image }} style={styles.bannerImage} resizeMode="cover" />
+              </View>
+            ))}
+          </ScrollView>
+          <View style={styles.dotsContainer}>
+            {banners.map((_, i) => (
+              <View key={i} style={[styles.dot, i === activeBanner && { backgroundColor: Colors.primary, width: 14 }]} />
+            ))}
+          </View>
+        </View>
+
+        {/* CATEGORIES */}
+        <View style={styles.categoriesSection}>
+          <Text style={styles.sectionTitle}>What's on your mind?</Text>
           <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.categoriesScroll} contentContainerStyle={styles.categoriesContent}>
             {categories.map((cat) => (
-              <View key={cat.id} style={styles.categoryItem}>
+              <TouchableOpacity key={cat.id} style={styles.categoryItem} onPress={() => router.push({ pathname: '/(tabs)/search', params: { q: cat.name }})}>
                 <View style={styles.categoryImageContainer}>
                   <Image source={{ uri: cat.image }} style={styles.categoryImage} />
                 </View>
                 <Text style={styles.categoryName}>{cat.name}</Text>
-              </View>
-            ))}
-          </ScrollView>
-
-          {/* Order Again (NEW SECTION) */}
-          <View style={styles.orderAgainWrapper}>
-            <View style={styles.sectionHeader}>
-              <Text style={styles.sectionTitle}>Order Again</Text>
-              <MaterialCommunityIcons name="history" size={20} color="#666" />
-            </View>
-            <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.orderAgainScroll} contentContainerStyle={styles.orderAgainContent}>
-              {recentOrders.map((order) => (
-                <TouchableOpacity key={order.id} style={styles.orderAgainCard} activeOpacity={0.8}>
-                  <Image source={{ uri: order.image }} style={styles.orderAgainImage} />
-                  <View style={styles.orderAgainInfo}>
-                    <Text style={styles.orderAgainName} numberOfLines={1}>{order.name}</Text>
-                    <Text style={styles.orderAgainRest} numberOfLines={1}>{order.restaurant}</Text>
-                    <Text style={styles.orderAgainTime}>{order.time}</Text>
-                  </View>
-
-                  {/* Interactive Reorder Button */}
-                  <TouchableOpacity
-                    style={[
-                      styles.reorderBtn,
-                      addedId === order.id && { backgroundColor: '#DCFCE7', borderColor: '#16A34A' }
-                    ]}
-                    onPress={() => handleReorder(order.id)}
-                    disabled={reorderingId === order.id || addedId === order.id}
-                  >
-                    {reorderingId === order.id ? (
-                      <ActivityIndicator size="small" color={ORANGE} style={{ paddingHorizontal: 12, paddingVertical: 2 }} />
-                    ) : addedId === order.id ? (
-                      <>
-                        <Ionicons name="checkmark-circle" size={14} color="#16A34A" style={{ marginRight: 4 }} />
-                        <Text style={[styles.reorderBtnText, { color: '#16A34A' }]}>Added</Text>
-                      </>
-                    ) : (
-                      <>
-                        <Ionicons name="refresh" size={14} color={ORANGE} style={{ marginRight: 4 }} />
-                        <Text style={styles.reorderBtnText}>Reorder</Text>
-                      </>
-                    )}
-                  </TouchableOpacity>
-
-                </TouchableOpacity>
-              ))}
-            </ScrollView>
-          </View>
-
-          {/* Explore Cuisines */}
-          <View style={styles.sectionHeader}>
-            <Text style={styles.sectionTitle}>Explore Cuisines</Text>
-          </View>
-          <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.cuisinesScroll} contentContainerStyle={styles.cuisinesContent}>
-            {cuisines.map((cuisine) => (
-              <TouchableOpacity key={cuisine.id} style={[styles.cuisineCard, { backgroundColor: cuisine.color }]} activeOpacity={0.7}>
-                <Text style={styles.cuisineIcon}>{cuisine.icon}</Text>
-                <Text style={styles.cuisineName}>{cuisine.name}</Text>
               </TouchableOpacity>
             ))}
           </ScrollView>
+        </View>
 
-          {/* Top Brands for You (NEW SECTION) */}
-          <View style={[styles.sectionHeader, { marginTop: 8 }]}>
-            <Text style={styles.sectionTitle}>Top Brands For You</Text>
-            <TouchableOpacity style={styles.seeAllRow}>
-              <Text style={styles.seeAllText}>See all</Text>
-              <Ionicons name="chevron-forward" size={16} color={ORANGE} />
-            </TouchableOpacity>
-          </View>
-          <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.brandsScroll} contentContainerStyle={styles.brandsContent}>
-            {topBrands.map((brand) => (
-              <TouchableOpacity key={brand.id} style={styles.brandCard} activeOpacity={0.9}>
+        {/* TOP BRANDS / SPONSORED */}
+        <View style={styles.horizontalSection}>
+          <Text style={styles.sectionTitle}>Top Brands for you</Text>
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ paddingHorizontal: 20 }}>
+            {TOP_BRANDS.map((brand) => (
+              <TouchableOpacity key={brand.id} style={styles.brandCard} onPress={() => {}}>
                 <View style={styles.brandImageWrapper}>
                   <Image source={{ uri: brand.image }} style={styles.brandImage} />
                   <View style={styles.brandOfferBadge}>
                     <Text style={styles.brandOfferText}>{brand.offer}</Text>
                   </View>
                 </View>
-                <Text style={styles.brandName} numberOfLines={1}>{brand.name}</Text>
-                <View style={styles.brandTimeRow}>
-                  <Ionicons name="time-outline" size={12} color="#666" />
-                  <Text style={styles.brandTimeText}>{brand.time}</Text>
+                <Text style={styles.brandName}>{brand.name}</Text>
+                <View style={styles.brandMetaRow}>
+                  <Ionicons name="time-outline" size={12} color="#6B7280" />
+                  <Text style={styles.brandMetaText}>{brand.time}</Text>
                 </View>
               </TouchableOpacity>
             ))}
           </ScrollView>
+        </View>
 
-          {/* Recommended for you */}
-          <View style={styles.sectionHeader}>
-            <Text style={styles.sectionTitle}>Recommended for you</Text>
-            <TouchableOpacity style={styles.seeAllRow}>
-              <Text style={styles.seeAllText}>See all</Text>
-              <Ionicons name="chevron-forward" size={16} color={ORANGE} />
-            </TouchableOpacity>
-          </View>
-
-          <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.recommendedScroll} contentContainerStyle={styles.recommendedContent}>
-            {recommended.map((item) => (
-              <TouchableOpacity key={item.id} style={styles.foodCard} activeOpacity={0.9}>
-                <View style={styles.foodImageContainer}>
-                  <Image source={{ uri: item.image }} style={styles.foodImage} />
-                  <TouchableOpacity style={styles.heartBtn}>
-                    <Ionicons name="heart-outline" size={20} color="white" />
-                  </TouchableOpacity>
-                  <View style={[styles.tagBadge, { backgroundColor: item.tagColor }]}>
-                    <Text style={styles.tagText}>{item.tag}</Text>
+        {/* FEATURED PRODUCTS */}
+        <View style={styles.horizontalSection}>
+          <Text style={styles.sectionTitle}>Recommended Dishes</Text>
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ paddingHorizontal: 20 }}>
+            {DUMMY_PRODUCTS.map((product) => (
+              <TouchableOpacity key={product.id} style={styles.productCard} onPress={() => {}}>
+                <Image source={{ uri: product.image }} style={styles.productImage} />
+                <View style={styles.productDetails}>
+                  <View style={styles.productHeader}>
+                    <Text style={styles.productName}>{product.name}</Text>
+                    <View style={styles.ratingBadgeSm}>
+                      <Text style={styles.ratingTextSm}>{product.rating}</Text>
+                      <Ionicons name="star" size={8} color="#FFF" />
+                    </View>
                   </View>
-                </View>
-                <View style={styles.foodInfo}>
-                  <Text style={styles.foodName} numberOfLines={1}>{item.name}</Text>
-                  <View style={styles.ratingRow}>
-                    <Ionicons name="star" size={14} color="#F59E0B" />
-                    <Text style={styles.ratingText}>{item.rating}</Text>
-                    <Text style={styles.reviewsText}>({item.reviews})</Text>
-                  </View>
-                  <View style={styles.timeRow}>
-                    <Ionicons name="time-outline" size={14} color="#666" />
-                    <Text style={styles.timeText}>{item.time}</Text>
+                  <Text style={styles.productRestaurant}>{product.restaurant}</Text>
+                  <View style={styles.productFooter}>
+                    <Text style={styles.productPrice}>₹{product.price}</Text>
+                    <TouchableOpacity style={styles.addBtnSm} onPress={() => handleAddDummyProduct(product)}>
+                      <Text style={styles.addBtnTextSm}>ADD</Text>
+                    </TouchableOpacity>
                   </View>
                 </View>
               </TouchableOpacity>
             ))}
           </ScrollView>
+        </View>
 
-          {/* Shops Section */}
-          <View style={styles.sectionHeader}>
-            <Text style={styles.sectionTitle}>Shops</Text>
-            <TouchableOpacity style={styles.seeAllRow}>
-              <Text style={styles.seeAllText}>See all</Text>
-              <Ionicons name="chevron-forward" size={16} color={ORANGE} />
-            </TouchableOpacity>
-          </View>
-
-          <TouchableOpacity style={styles.shopCard} activeOpacity={0.9}>
-            <Image source={{ uri: 'https://images.pexels.com/photos/260922/pexels-photo-260922.jpeg' }} style={styles.shopImage} />
-            <View style={styles.shopInfo}>
-              <Text style={styles.shopName}>Bikaner</Text>
-              <Text style={styles.shopDesc}>North Indian, Chinese, Fast Food</Text>
-              <View style={styles.shopDetailsRow}>
-                <View style={styles.shopRating}>
-                  <Ionicons name="star" size={14} color="#F59E0B" />
-                  <Text style={styles.ratingText}>4.4</Text>
-                  <Text style={styles.reviewsText}>(1.5k)</Text>
-                </View>
-                <View style={styles.shopTime}>
-                  <Ionicons name="time-outline" size={14} color="#666" />
-                  <Text style={styles.timeText}>25-35 min</Text>
-                </View>
+        {/* RESTAURANTS LIST */}
+        <View style={styles.sectionContainer}>
+          <View style={styles.sectionHeaderRow}>
+            <Text style={styles.sectionTitle}>Restaurants Near You</Text>
+            {usingDummyData && (
+              <View style={styles.dummyBadge}>
+                <Text style={styles.dummyBadgeText}>DEMO MODE</Text>
               </View>
-            </View>
-            <TouchableOpacity style={styles.viewMenuBtn}>
-              <Text style={styles.viewMenuText}>View Menu</Text>
-              <Ionicons name="arrow-forward" size={14} color={ORANGE} style={{ marginLeft: 4 }} />
-            </TouchableOpacity>
-          </TouchableOpacity>
-
-          {/* More Products / Must Try Dishes - UNIQUE POP-OUT STYLE */}
-          <View style={[styles.sectionHeader, { marginTop: 24, marginBottom: 0 }]}>
-            <Text style={styles.sectionTitle}>Must Try Dishes</Text>
-            <View style={styles.sparkleTag}>
-              <Text style={styles.sparkleText}>✨ Unique</Text>
-            </View>
+            )}
           </View>
-
-          <View style={styles.uniqueGridContainer}>
-            {moreProducts.map((product) => (
-              <TouchableOpacity key={product.id} style={styles.uniqueCard} activeOpacity={0.8}>
-                <Image source={{ uri: product.image }} style={styles.uniqueImage} />
-                <View style={styles.uniqueRatingBadge}>
-                  <Ionicons name="star" size={10} color="#FFF" />
-                  <Text style={styles.uniqueRatingText}>{product.rating}</Text>
-                </View>
-
-                <Text style={styles.uniqueProductName} numberOfLines={1}>{product.name}</Text>
-                <Text style={styles.uniqueProductRest} numberOfLines={1}>{product.restaurant}</Text>
-
-                <View style={styles.uniqueCardFooter}>
-                  <Text style={styles.uniquePrice}>{product.price}</Text>
-                  <TouchableOpacity style={styles.uniqueAddBtn}>
-                    <Ionicons name="add" size={18} color="#FFF" />
-                  </TouchableOpacity>
-                </View>
-              </TouchableOpacity>
-            ))}
-          </View>
-
-          {/* Trending Products (Replaced Tags Cloud) */}
-          <View style={[styles.sectionHeader, { marginBottom: 12 }]}>
-            <Text style={styles.sectionTitle}>Trending Products</Text>
-            <View style={{ backgroundColor: '#FFF5F0', paddingHorizontal: 8, paddingVertical: 4, borderRadius: 12 }}>
-              <Ionicons name="trending-up" size={16} color={ORANGE} />
+          
+          {loading ? (
+            <View style={{ padding: 40 }}><Loading size="large" color={Colors.primary} /></View>
+          ) : (
+            <View style={styles.premiumRestaurantsList}>
+              {restaurants.map(r => (
+                <TouchableOpacity 
+                  key={r._id} 
+                  style={styles.premiumRestaurantCard}
+                  onPress={() => router.push(`/restaurant/${r._id}`)}
+                  activeOpacity={0.95}
+                >
+                  <View style={styles.prImageContainer}>
+                    <Image 
+                      source={{ uri: r.images?.[0] || 'https://images.pexels.com/photos/260922/pexels-photo-260922.jpeg' }} 
+                      style={styles.prImage} 
+                    />
+                    <View style={styles.prDeliveryBadge}>
+                      <Ionicons name="time" size={12} color="#FFF" />
+                      <Text style={styles.prDeliveryText}>{r.estimatedDeliveryTime || 30} min</Text>
+                    </View>
+                  </View>
+                  <View style={styles.prDetails}>
+                    <View style={styles.prHeaderRow}>
+                      <Text style={styles.prName} numberOfLines={1}>{r.name}</Text>
+                      <View style={styles.prRatingBox}>
+                        <Text style={styles.prRatingText}>{r.rating?.average || 4.2}</Text>
+                        <Ionicons name="star" size={10} color="#FFF" />
+                      </View>
+                    </View>
+                    <View style={styles.prSubRow}>
+                      <Text style={styles.prCuisines} numberOfLines={1}>{r.cuisines?.join(', ') || 'Various Cuisines'}</Text>
+                      <Text style={styles.prDistance}>{formatDistance(r.distance) || 'Nearby'}</Text>
+                    </View>
+                    <View style={styles.prPromoRow}>
+                      <Ionicons name="flame" size={14} color="#D94E1B" />
+                      <Text style={styles.prPromoText}>Free delivery on orders above ₹199</Text>
+                    </View>
+                  </View>
+                </TouchableOpacity>
+              ))}
             </View>
-          </View>
+          )}
+        </View>
 
-          <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.trendingScroll} contentContainerStyle={styles.trendingContent}>
-            {[
-              { id: 1, name: "Cold Coffee", price: "₹89", image: "https://images.pexels.com/photos/1209029/pexels-photo-1209029.jpeg" },
-              { id: 2, name: "Chicken Tikka", price: "₹249", image: "https://images.pexels.com/photos/2233729/pexels-photo-2233729.jpeg" },
-              { id: 3, name: "Lava Cake", price: "₹99", image: "https://images.pexels.com/photos/1055271/pexels-photo-1055271.jpeg" },
-              { id: 4, name: "Samosa", price: "₹20", image: "https://images.pexels.com/photos/2474661/pexels-photo-2474661.jpeg" },
-            ].map((product) => (
-              <TouchableOpacity key={product.id} style={styles.trendingCard} activeOpacity={0.9}>
-                <Image source={{ uri: product.image }} style={styles.trendingImage} />
-                <Text style={styles.trendingName} numberOfLines={1}>{product.name}</Text>
-                <View style={styles.trendingFooter}>
-                  <Text style={styles.trendingPrice}>{product.price}</Text>
-                  <Ionicons name="add-circle" size={24} color={ORANGE} />
+        {/* HEALTHY EATING SECTION */}
+        <View style={styles.horizontalSection}>
+          <Text style={styles.sectionTitle}>Guilt-Free Options 🌱</Text>
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ paddingHorizontal: 20 }}>
+            {HEALTHY_OPTIONS.map((item) => (
+              <TouchableOpacity key={item.id} style={styles.healthyCard} activeOpacity={0.9}>
+                <Image source={{ uri: item.image }} style={styles.healthyImage} />
+                <View style={styles.healthyDetails}>
+                  <Text style={styles.healthyName}>{item.name}</Text>
+                  <Text style={styles.healthyRestaurant}>{item.restaurant}</Text>
+                  <View style={styles.healthyFooter}>
+                    <View style={styles.caloriesBadge}>
+                      <Ionicons name="flame-outline" size={12} color="#059669" />
+                      <Text style={styles.caloriesText}>{item.calories}</Text>
+                    </View>
+                    <View style={styles.ratingBadgeSm}>
+                      <Text style={styles.ratingTextSm}>{item.rating}</Text>
+                      <Ionicons name="star" size={8} color="#FFF" />
+                    </View>
+                  </View>
                 </View>
               </TouchableOpacity>
             ))}
           </ScrollView>
+        </View>
 
-          {/* Ftafat PRO Banner */}
-          <TouchableOpacity style={styles.proBanner} activeOpacity={0.9}>
-            <View style={styles.proBannerContent}>
-              <View style={styles.proHeaderRow}>
-                <Text style={styles.proTitle}>Ftafat</Text>
-                <View style={styles.proBadge}>
-                  <Text style={styles.proBadgeText}>PRO</Text>
+        {/* POCKET FRIENDLY DEALS */}
+        <View style={[styles.horizontalSection, { marginBottom: 100 }]}>
+          <Text style={styles.sectionTitle}>Pocket Friendly Combos 💰</Text>
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ paddingHorizontal: 20 }}>
+            {POCKET_DEALS.map((deal) => (
+              <TouchableOpacity key={deal.id} style={styles.dealCard} activeOpacity={0.9}>
+                <Image source={{ uri: deal.image }} style={styles.dealImage} />
+                <View style={styles.dealOverlay}>
+                  <Text style={styles.dealTitle}>{deal.title}</Text>
+                  <Text style={styles.dealSubtitle}>{deal.subtitle}</Text>
+                  <View style={styles.dealPriceBox}>
+                    <Text style={styles.dealPrice}>{deal.price}</Text>
+                  </View>
                 </View>
-                <FontAwesome5 name="crown" size={16} color="#FBBF24" style={{ marginLeft: 8 }} />
-              </View>
-              <Text style={styles.proDesc}>Get unlimited free delivery and 30% extra off on all orders!</Text>
-              <TouchableOpacity style={styles.proBtn}>
-                <Text style={styles.proBtnText}>Join at ₹99/mo</Text>
               </TouchableOpacity>
-            </View>
-            <View style={styles.proBannerDecoration}>
-              <Ionicons name="star" size={120} color="rgba(255,255,255,0.05)" style={{ position: 'absolute', right: -30, top: -20 }} />
-            </View>
-          </TouchableOpacity>
+            ))}
+          </ScrollView>
+        </View>
 
-          {/* Bottom Footer */}
-          <View style={styles.footerContainer}>
-            <Ionicons name="heart" size={18} color={ORANGE} style={{ marginBottom: 4 }} />
-            <Text style={styles.footerText}>Created by Peeyush Tiwari</Text>
-            <Text style={styles.footerSubText}>For Demo Purposes Only</Text>
-          </View>
-
-        </ScrollView>
-
-      </View>
-    </SafeAreaView>
+      </ScrollView>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#FFFFFF',
-  },
-  scrollContent: {
-    paddingBottom: 20,
-  },
-  header: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingHorizontal: 16,
-    paddingTop: 10,
-    paddingBottom: 15,
-  },
-  locationContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    flex: 1,
-  },
-  locationTextContainer: {
-    marginLeft: 8,
-  },
-  locationRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  locationTitle: {
-    fontSize: 16,
-    fontWeight: 'bold',
-    color: '#000',
-  },
-  locationSubtitle: {
-    fontSize: 12,
-    color: '#666',
-    marginTop: 2,
-  },
-  headerRight: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    flex: 1,
-    justifyContent: 'flex-end',
-  },
-  greetingContainer: {
-    marginRight: 12,
-  },
-  greetingText: {
-    fontSize: 12,
-    fontWeight: '700',
-    color: ORANGE,
-  },
-  bellIcon: {
-    marginRight: 12,
-  },
-  profileAvatar: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    backgroundColor: '#FFE5D9',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  profileAvatarText: {
-    color: ORANGE,
-    fontWeight: 'bold',
-    fontSize: 18,
-  },
-  searchRow: {
-    flexDirection: 'row',
-    paddingHorizontal: 16,
-    alignItems: 'center',
-    marginBottom: 16,
-  },
-  searchContainer: {
-    flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#F3F4F6',
-    borderRadius: 12,
-    paddingHorizontal: 12,
-    height: 48,
-    marginRight: 12,
-  },
-  searchIcon: {
-    marginRight: 8,
-  },
-  searchInput: {
-    flex: 1,
-    fontSize: 14,
-    color: '#000',
-  },
-  micIcon: {
-    marginLeft: 8,
-  },
-  filterBtn: {
-    width: 48,
-    height: 48,
-    borderWidth: 1,
-    borderColor: '#E5E7EB',
-    borderRadius: 12,
-    justifyContent: 'center',
-    alignItems: 'center',
-    backgroundColor: '#FFF',
-  },
-  filtersScroll: {
-    marginBottom: 20,
-  },
-  filtersContent: {
-    paddingHorizontal: 16,
-  },
-  filterPill: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    borderRadius: 20,
-    borderWidth: 1,
-    borderColor: '#E5E7EB',
-    marginRight: 10,
-    backgroundColor: '#FFF',
-  },
-  filterPillIcon: {
-    marginRight: 6,
-  },
-  filterPillText: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#333',
-  },
-  bannerWrapper: {
-    marginBottom: 20,
-  },
-  bannerContainer: {
-    width: BANNER_WIDTH,
-    marginHorizontal: 16,
-    borderRadius: 16,
-    height: 180,
-    flexDirection: 'row',
-    overflow: 'hidden',
-  },
-  bannerTextContent: {
-    flex: 1.2,
-    padding: 16,
-    justifyContent: 'center',
-  },
-  bannerCravings: {
-    fontSize: 22,
-    fontWeight: '900',
-    fontStyle: 'italic',
-    color: '#111',
-  },
-  bannerFtafat: {
-    fontSize: 32,
-    fontWeight: '900',
-    fontStyle: 'italic',
-    color: ORANGE,
-    marginTop: -4,
-  },
-  bannerDesc: {
-    fontSize: 12,
-    color: '#444',
-    marginTop: 4,
-    marginBottom: 12,
-    fontWeight: '500',
-  },
-  orderNowBtn: {
-    backgroundColor: ORANGE,
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    borderRadius: 20,
-    alignSelf: 'flex-start',
-  },
-  orderNowText: {
-    color: '#FFF',
-    fontWeight: 'bold',
-    fontSize: 12,
-  },
-  dotsContainer: {
-    flexDirection: 'row',
-    justifyContent: 'center',
-    marginTop: 12,
-  },
-  dot: {
-    width: 6,
-    height: 6,
-    borderRadius: 3,
-    backgroundColor: '#D1D5DB',
-    marginHorizontal: 4,
-  },
-  bannerImage: {
-    flex: 1,
-    height: '100%',
-  },
-  flashDealContainer: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    backgroundColor: '#111827', // Very dark blue/gray
-    marginHorizontal: 16,
-    borderRadius: 16,
-    padding: 16,
-    marginBottom: 24,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.1,
-    shadowRadius: 6,
-    elevation: 3,
-  },
-  flashDealLeft: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  flashDealTextWrapper: {
-    marginLeft: 12,
-  },
-  flashDealTitle: {
-    color: '#FFF',
-    fontSize: 16,
-    fontWeight: 'bold',
-  },
-  flashDealSub: {
-    color: '#9CA3AF',
-    fontSize: 11,
-    marginTop: 2,
-  },
-  timerBoxWrapper: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  timerBox: {
-    backgroundColor: 'rgba(255, 96, 0, 0.2)',
-    paddingHorizontal: 6,
-    paddingVertical: 4,
-    borderRadius: 6,
-    borderWidth: 1,
-    borderColor: 'rgba(255, 96, 0, 0.4)',
-  },
-  timerText: {
-    color: ORANGE,
-    fontWeight: '900',
-    fontSize: 12,
-  },
-  timerColon: {
-    color: ORANGE,
-    fontWeight: 'bold',
-    marginHorizontal: 2,
-  },
-  categoriesScroll: {
-    marginBottom: 24,
-  },
-  categoriesContent: {
-    paddingHorizontal: 16,
-  },
-  categoryItem: {
-    alignItems: 'center',
-    marginRight: 20,
-  },
-  categoryImageContainer: {
-    width: 70,
-    height: 70,
-    borderRadius: 35,
-    backgroundColor: '#FDF7EC',
-    justifyContent: 'center',
-    alignItems: 'center',
-    overflow: 'hidden',
-    marginBottom: 8,
-    borderWidth: 1,
-    borderColor: '#F3E8D6',
-  },
-  categoryImage: {
-    width: '100%',
-    height: '100%',
-  },
-  categoryName: {
-    fontSize: 13,
-    fontWeight: '600',
-    color: '#333',
-  },
-  cuisinesScroll: {
-    marginBottom: 24,
-  },
-  cuisinesContent: {
-    paddingHorizontal: 16,
-  },
-  cuisineCard: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    borderRadius: 12,
-    marginRight: 12,
-  },
-  cuisineIcon: {
-    fontSize: 24,
-    marginRight: 8,
-  },
-  cuisineName: {
-    fontSize: 14,
-    fontWeight: 'bold',
-    color: '#333',
-  },
-  sectionHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingHorizontal: 16,
-    marginBottom: 16,
-  },
-  sectionTitle: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: '#000',
-  },
-  seeAllRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  seeAllText: {
-    color: ORANGE,
-    fontSize: 14,
-    fontWeight: '600',
-  },
-  recommendedScroll: {
-    marginBottom: 24,
-  },
-  recommendedContent: {
-    paddingHorizontal: 16,
-  },
-  foodCard: {
-    width: 160,
-    marginRight: 16,
-  },
-  foodImageContainer: {
-    width: '100%',
-    height: 120,
-    borderRadius: 12,
-    overflow: 'hidden',
-    marginBottom: 8,
-  },
-  foodImage: {
-    width: '100%',
-    height: '100%',
-  },
-  heartBtn: {
+  container: { flex: 1, backgroundColor: '#FFFFFF' },
+  stickySearchBar: {
     position: 'absolute',
-    top: 8,
-    right: 8,
-  },
-  tagBadge: {
-    position: 'absolute',
-    bottom: 0,
+    top: 0,
     left: 0,
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderTopRightRadius: 8,
-  },
-  tagText: {
-    color: 'white',
-    fontSize: 10,
-    fontWeight: 'bold',
-  },
-  foodInfo: {
-    paddingHorizontal: 4,
-  },
-  foodName: {
-    fontSize: 15,
-    fontWeight: 'bold',
-    color: '#000',
-    marginBottom: 4,
-  },
-  ratingRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 4,
-  },
-  ratingText: {
-    fontSize: 12,
-    fontWeight: 'bold',
-    color: '#333',
-    marginLeft: 4,
-  },
-  reviewsText: {
-    fontSize: 12,
-    color: '#888',
-    marginLeft: 4,
-  },
-  timeRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  timeText: {
-    fontSize: 12,
-    color: '#666',
-    marginLeft: 4,
-  },
-  shopCard: {
-    flexDirection: 'row',
-    marginHorizontal: 16,
-    padding: 12,
-    borderRadius: 16,
-    backgroundColor: '#FFF',
-    borderWidth: 1,
-    borderColor: '#F3F4F6',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.05,
-    shadowRadius: 8,
-    elevation: 2,
-  },
-  shopImage: {
-    width: 80,
-    height: 80,
-    borderRadius: 12,
-  },
-  shopInfo: {
-    flex: 1,
-    marginLeft: 12,
-    justifyContent: 'center',
-  },
-  shopName: {
-    fontSize: 16,
-    fontWeight: 'bold',
-    color: '#000',
-    marginBottom: 4,
-  },
-  shopDesc: {
-    fontSize: 12,
-    color: '#666',
-    marginBottom: 8,
-  },
-  shopDetailsRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  shopRating: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginRight: 12,
-  },
-  shopTime: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  viewMenuBtn: {
-    position: 'absolute',
-    bottom: 12,
-    right: 12,
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#FFF5F0',
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 8,
-  },
-  viewMenuText: {
-    color: ORANGE,
-    fontSize: 12,
-    fontWeight: 'bold',
-  },
-  floatingWidget: {
-    position: 'absolute',
-    bottom: 24,
-    left: 20,
-    right: 20,
-    backgroundColor: '#111827', // Dark modern gray
-    borderRadius: 100,
-    paddingVertical: 12,
+    right: 0,
+    zIndex: 100,
+    backgroundColor: '#FDF2E3',
     paddingHorizontal: 16,
-    flexDirection: 'row',
-    alignItems: 'center',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.25,
-    shadowRadius: 12,
+    paddingBottom: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: '#FDDCB5',
+    shadowColor: '#D94E1B',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.12,
+    shadowRadius: 8,
     elevation: 10,
   },
-  floatingWidgetIcon: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: ORANGE,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  floatingWidgetInfo: {
-    flex: 1,
-    marginLeft: 12,
-  },
-  floatingWidgetTitle: {
-    color: 'white',
-    fontSize: 15,
-    fontWeight: 'bold',
-  },
-  floatingWidgetSub: {
-    color: '#9CA3AF', // light gray
-    fontSize: 12,
-    marginTop: 2,
-  },
-  floatingWidgetBtn: {
-    backgroundColor: '#374151',
-    paddingVertical: 8,
-    paddingHorizontal: 16,
-    borderRadius: 20,
-  },
-  floatingWidgetBtnText: {
-    color: 'white',
-    fontWeight: 'bold',
-    fontSize: 12,
-  },
-  sparkleTag: {
-    backgroundColor: '#FFF5F0',
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 8,
-  },
-  sparkleText: {
-    color: ORANGE,
-    fontSize: 11,
-    fontWeight: 'bold',
-  },
-  uniqueGridContainer: {
+  stickySearchInner: {
     flexDirection: 'row',
-    flexWrap: 'wrap',
-    justifyContent: 'space-between',
-    paddingHorizontal: 16,
-    paddingTop: 40, // Space for the top floating images
-    paddingBottom: 24,
-  },
-  uniqueCard: {
-    width: (width - 48) / 2, // 2 columns with 16 padding on edges and 16 gap
+    alignItems: 'center',
     backgroundColor: '#FFF',
-    borderRadius: 24,
-    padding: 12,
-    paddingTop: 60, // Space inside card for the overlapping image
-    marginBottom: 50, // Gap between rows to fit the overlapping images
-    alignItems: 'center',
+    borderRadius: 14,
+    paddingHorizontal: 14,
+    height: 46,
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 10 },
-    shadowOpacity: 0.08,
-    shadowRadius: 15,
-    elevation: 5,
-    borderWidth: 1,
-    borderColor: 'rgba(255,96,0,0.1)',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.05,
+    shadowRadius: 4,
+    elevation: 2,
   },
-  uniqueImage: {
-    width: 100,
-    height: 100,
-    borderRadius: 50,
-    position: 'absolute',
-    top: -40,
-    borderWidth: 4,
-    borderColor: '#FFF',
-    backgroundColor: '#F3F4F6',
+  stickySearchText: {
+    fontFamily: STYLISH_FONT,
+    color: '#9CA3AF',
+    fontSize: 14,
+    flex: 1,
   },
-  uniqueRatingBadge: {
-    position: 'absolute',
-    top: 45, // Just below the floating image
-    backgroundColor: '#16A34A',
+
+  headerContainer: { 
+    backgroundColor: '#FDF2E3', // Warm cream — exact same as login screen
+    paddingBottom: 24,
+    borderBottomLeftRadius: 28,
+    borderBottomRightRadius: 28,
+    marginBottom: 20,
+    shadowColor: '#D94E1B',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.15,
+    shadowRadius: 12,
+    elevation: 6,
+    borderBottomWidth: 1,
+    borderBottomColor: '#FDDCB5',
+  },
+  headerMainRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: 6,
-    paddingVertical: 2,
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: '#FFF',
+    paddingHorizontal: 20,
+    marginBottom: 18,
   },
-  uniqueRatingText: {
-    color: '#FFF',
+  locationDeliveryLabel: {
+    fontFamily: BOLD_FONT,
     fontSize: 10,
-    fontWeight: 'bold',
-    marginLeft: 2,
-  },
-  uniqueProductName: {
-    fontSize: 15,
-    fontWeight: 'bold',
-    color: '#111',
-    textAlign: 'center',
-    marginTop: 8,
+    color: '#FF6000',
+    letterSpacing: 1.2,
     marginBottom: 2,
   },
-  uniqueProductRest: {
-    fontSize: 11,
-    color: '#666',
-    textAlign: 'center',
-    marginBottom: 12,
-  },
-  uniqueCardFooter: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    width: '100%',
-    marginTop: 'auto', // Push to bottom
-    paddingTop: 8,
-    borderTopWidth: 1,
-    borderTopColor: '#F3F4F6',
-  },
-  uniquePrice: {
-    fontSize: 16,
-    fontWeight: '900',
-    color: '#000',
-  },
-  uniqueAddBtn: {
-    backgroundColor: ORANGE,
+  locationContainer: { flexDirection: 'row', alignItems: 'center', flex: 1, marginRight: 12 },
+  locationIconCircle: {
     width: 32,
     height: 32,
     borderRadius: 16,
-    justifyContent: 'center',
+    backgroundColor: '#FF6000', // Orange circle pops on cream
     alignItems: 'center',
-    shadowColor: ORANGE,
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 6,
-    elevation: 4,
+    justifyContent: 'center',
   },
-  orderAgainWrapper: {
-    backgroundColor: '#FFF5F0',
-    paddingVertical: 16,
-    marginBottom: 24,
+  locationTextContainer: { marginLeft: 10, flex: 1 },
+  locationRowInner: { flexDirection: 'row', alignItems: 'center' },
+  locationTitle: { fontFamily: BOLD_FONT, fontSize: 16, color: '#3E2723' },
+  locationSubtitle: { fontFamily: STYLISH_FONT, fontSize: 12, color: '#8D6E63', marginTop: 2 },
+  
+  profileAvatar: { 
+    width: 44, 
+    height: 44, 
+    borderRadius: 22, 
+    backgroundColor: '#FF6000', 
+    justifyContent: 'center', 
+    alignItems: 'center',
+    borderWidth: 2,
+    borderColor: '#FDDCB5'
   },
-  orderAgainScroll: {
-    marginTop: 8,
-  },
-  orderAgainContent: {
-    paddingHorizontal: 16,
-  },
-  orderAgainCard: {
-    flexDirection: 'row',
-    backgroundColor: '#FFF',
-    width: 280,
-    padding: 12,
-    borderRadius: 16,
-    marginRight: 16,
+  avatarImage: { width: '100%', height: '100%', borderRadius: 22 },
+  profileAvatarText: { fontFamily: BOLD_FONT, fontSize: 18, color: '#FFF' },
+  
+  searchRow: { paddingHorizontal: 20 },
+  searchContainer: { 
+    flexDirection: 'row', 
+    alignItems: 'center', 
+    backgroundColor: '#FFF', 
+    borderRadius: 16, 
+    paddingHorizontal: 16, 
+    height: 52,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.05,
-    shadowRadius: 6,
-    elevation: 2,
-    alignItems: 'center',
-  },
-  orderAgainImage: {
-    width: 60,
-    height: 60,
-    borderRadius: 12,
-  },
-  orderAgainInfo: {
-    flex: 1,
-    marginLeft: 12,
-  },
-  orderAgainName: {
-    fontSize: 14,
-    fontWeight: 'bold',
-    color: '#000',
-  },
-  orderAgainRest: {
-    fontSize: 12,
-    color: '#666',
-    marginTop: 2,
-  },
-  orderAgainTime: {
-    fontSize: 10,
-    color: '#888',
-    marginTop: 6,
-  },
-  reorderBtn: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#FFF5F0',
-    borderWidth: 1,
-    borderColor: ORANGE,
-    paddingHorizontal: 10,
-    paddingVertical: 6,
-    borderRadius: 8,
-  },
-  reorderBtnText: {
-    color: ORANGE,
-    fontSize: 12,
-    fontWeight: 'bold',
-  },
-  brandsScroll: {
-    marginBottom: 24,
-  },
-  brandsContent: {
-    paddingHorizontal: 16,
-  },
-  brandCard: {
-    alignItems: 'center',
-    marginRight: 20,
-    width: 76,
-  },
-  brandImageWrapper: {
-    width: 76,
-    height: 76,
-    borderRadius: 38,
-    backgroundColor: '#FFF',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.1,
     shadowRadius: 8,
-    elevation: 3,
-    marginBottom: 8,
+    elevation: 2,
   },
-  brandImage: {
+  searchIcon: { marginRight: 10 },
+  searchText: { fontFamily: STYLISH_FONT, color: '#9CA3AF', flex: 1, fontSize: 14 },
+  micCircle: {
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    backgroundColor: Colors.primaryLight,
+    alignItems: 'center',
+    justifyContent: 'center'
+  },
+  
+  diwaliPoster: {
+    marginHorizontal: 16,
+    height: 180,
+    borderRadius: 24,
+    overflow: 'hidden',
+    marginBottom: 24,
+    marginTop: 10,
+    borderWidth: 2,
+    borderColor: '#FDE68A', // Gold border
+  },
+  diwaliBgImage: {
     width: '100%',
     height: '100%',
-    borderRadius: 38,
-  },
-  brandOfferBadge: {
     position: 'absolute',
-    bottom: -4,
-    alignSelf: 'center',
-    backgroundColor: '#DC2626', // Red
-    paddingHorizontal: 6,
-    paddingVertical: 2,
-    borderRadius: 4,
-    borderWidth: 1,
-    borderColor: '#FFF',
   },
-  brandOfferText: {
-    color: '#FFF',
-    fontSize: 9,
-    fontWeight: 'bold',
+  diwaliOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(120, 20, 10, 0.65)', // Festive red/dark overlay
+    padding: 20,
+    justifyContent: 'center',
   },
-  brandName: {
-    fontSize: 13,
-    fontWeight: 'bold',
-    color: '#000',
-    textAlign: 'center',
-  },
-  brandTimeRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginTop: 2,
-  },
-  brandTimeText: {
-    fontSize: 11,
-    color: '#666',
-    marginLeft: 2,
-  },
-  trendingScroll: {
-    marginBottom: 24,
-  },
-  trendingContent: {
-    paddingHorizontal: 16,
-  },
-  trendingCard: {
-    width: 130,
-    marginRight: 16,
-    backgroundColor: '#FFF',
-    borderRadius: 16,
-    padding: 8,
-    borderWidth: 1,
-    borderColor: '#F3F4F6',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.05,
-    shadowRadius: 8,
-    elevation: 2,
-  },
-  trendingImage: {
-    width: '100%',
-    height: 110,
-    borderRadius: 12,
+  diwaliBadge: {
+    backgroundColor: '#F59E0B',
+    alignSelf: 'flex-start',
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 8,
     marginBottom: 8,
   },
-  trendingName: {
-    color: '#000',
-    fontWeight: '600',
-    fontSize: 13,
+  diwaliBadgeText: {
+    fontFamily: BOLD_FONT,
+    color: '#FFF',
+    fontSize: 10,
+    letterSpacing: 1,
+  },
+  diwaliTitle: {
+    fontFamily: BOLD_FONT,
+    color: '#FEF3C7', // Light gold
+    fontSize: 26,
     marginBottom: 4,
   },
-  trendingFooter: {
+  diwaliSubtitle: {
+    fontFamily: STYLISH_FONT,
+    color: '#FFF',
+    fontSize: 13,
+    opacity: 0.9,
+    marginBottom: 16,
+  },
+  diwaliBtn: {
+    backgroundColor: '#FEF3C7', // Gold button
+    alignSelf: 'flex-start',
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 12,
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  diwaliBtnText: {
+    fontFamily: BOLD_FONT,
+    color: '#B45309',
+    fontSize: 12,
+  },
+
+  bannerWrapper: { marginBottom: 24 },
+  bannerContainer: { width: BANNER_WIDTH, marginHorizontal: 16, borderRadius: 20, height: 170, flexDirection: 'row', overflow: 'hidden' },
+  bannerTextContent: { flex: 1.2, padding: 20, justifyContent: 'center' },
+  bannerCravings: { fontFamily: BOLD_FONT, fontSize: 18, color: '#1F2937' },
+  bannerFtafat: { fontFamily: BOLD_FONT, fontSize: 32, marginTop: -4, letterSpacing: -1 },
+  bannerDesc: { fontFamily: STYLISH_FONT, fontSize: 12, color: '#6B7280', marginTop: 8, lineHeight: 18 },
+  bannerImage: { flex: 1, height: '100%' },
+  dotsContainer: { flexDirection: 'row', justifyContent: 'center', marginTop: 14 },
+  dot: { width: 6, height: 6, borderRadius: 3, backgroundColor: '#E5E7EB', marginHorizontal: 4 },
+  
+  categoriesSection: {
+    marginBottom: 24,
+  },
+  sectionTitleRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingHorizontal: 20,
+    marginBottom: 16,
+  },
+  sectionTitle: { 
+    fontFamily: BOLD_FONT, 
+    fontSize: 18, 
+    color: '#1F2937', 
+    paddingHorizontal: 20,
+    marginBottom: 16
+  },
+  dummyBadge: {
+    backgroundColor: '#FEF2F2',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 6,
+    borderWidth: 1,
+    borderColor: '#FECACA',
+    marginRight: 20,
+  },
+  dummyBadgeText: {
+    fontFamily: BOLD_FONT,
+    fontSize: 10,
+    color: '#EF4444',
+  },
+  
+  categoriesScroll: {},
+  categoriesContent: { paddingHorizontal: 20 },
+  categoryItem: { alignItems: 'center', marginRight: 20 },
+  categoryImageContainer: { 
+    width: 72, 
+    height: 72, 
+    borderRadius: 36, 
+    overflow: 'hidden', 
+    marginBottom: 8, 
+    backgroundColor: '#F9FAFB',
+    borderWidth: 1,
+    borderColor: '#F3F4F6'
+  },
+  categoryImage: { width: '100%', height: '100%' },
+  categoryName: { fontFamily: BOLD_FONT, fontSize: 12, color: '#4B5563' },
+  
+  horizontalSection: { marginBottom: 32 },
+  brandCard: { marginRight: 16, width: 100 },
+  brandImageWrapper: { width: 100, height: 100, borderRadius: 20, overflow: 'hidden', backgroundColor: '#F3F4F6', marginBottom: 8 },
+  brandImage: { width: '100%', height: '100%' },
+  brandOfferBadge: { position: 'absolute', bottom: 0, left: 0, right: 0, backgroundColor: 'rgba(217,78,27,0.9)', paddingVertical: 4, alignItems: 'center' },
+  brandOfferText: { fontFamily: BOLD_FONT, color: '#FFF', fontSize: 9, letterSpacing: 0.5 },
+  brandName: { fontFamily: BOLD_FONT, fontSize: 13, color: '#1F2937', textAlign: 'center' },
+  brandMetaRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', marginTop: 2 },
+  brandMetaText: { fontFamily: STYLISH_FONT, fontSize: 11, color: '#6B7280', marginLeft: 4 },
+  
+  productCard: { width: 240, marginRight: 16, backgroundColor: '#FFF', borderRadius: 20, shadowColor: '#000', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.05, shadowRadius: 10, elevation: 3, overflow: 'hidden', marginBottom: 10 },
+  productImage: { width: '100%', height: 130 },
+  productDetails: { padding: 12 },
+  productHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start' },
+  productName: { fontFamily: BOLD_FONT, fontSize: 15, color: '#1F2937', flex: 1, marginRight: 8 },
+  ratingBadgeSm: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#10B981', paddingHorizontal: 6, paddingVertical: 2, borderRadius: 6 },
+  ratingTextSm: { fontFamily: BOLD_FONT, color: '#FFF', fontSize: 10, marginRight: 2 },
+  productRestaurant: { fontFamily: STYLISH_FONT, fontSize: 12, color: '#6B7280', marginTop: 2, marginBottom: 12 },
+  productFooter: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
+  productPrice: { fontFamily: BOLD_FONT, fontSize: 16, color: '#1F2937' },
+  addBtnSm: { backgroundColor: '#FEF2F2', paddingHorizontal: 16, paddingVertical: 6, borderRadius: 8, borderWidth: 1, borderColor: '#FECACA' },
+  addBtnTextSm: { fontFamily: BOLD_FONT, color: '#EF4444', fontSize: 12 },
+
+  sectionContainer: { paddingBottom: 40 },
+  sectionHeaderRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
   },
-  trendingPrice: {
-    color: ORANGE,
-    fontWeight: 'bold',
-    fontSize: 14,
-  },
-  proBanner: {
-    backgroundColor: '#111827',
-    marginHorizontal: 16,
-    borderRadius: 20,
-    padding: 20,
-    marginBottom: 20,
-    overflow: 'hidden',
-    position: 'relative',
+  premiumRestaurantsList: { paddingHorizontal: 20 },
+  premiumRestaurantCard: {
+    backgroundColor: '#FFF',
+    borderRadius: 24,
+    marginBottom: 24,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.15,
-    shadowRadius: 12,
-    elevation: 5,
+    shadowOpacity: 0.08,
+    shadowRadius: 20,
+    elevation: 4,
+    overflow: 'hidden'
   },
-  proBannerContent: {
-    position: 'relative',
-    zIndex: 2,
+  prImageContainer: {
+    width: '100%',
+    height: 180,
+    backgroundColor: '#F3F4F6',
+    position: 'relative'
   },
-  proHeaderRow: {
+  prImage: {
+    width: '100%',
+    height: '100%',
+  },
+  prDeliveryBadge: {
+    position: 'absolute',
+    bottom: 12,
+    right: 12,
+    backgroundColor: 'rgba(0,0,0,0.6)',
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 8,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 12,
   },
-  proTitle: {
+  prDeliveryText: {
+    fontFamily: BOLD_FONT,
     color: '#FFF',
-    fontSize: 22,
-    fontWeight: '900',
-    fontStyle: 'italic',
+    fontSize: 11,
+    marginLeft: 4,
   },
-  proBadge: {
-    backgroundColor: '#FBBF24',
-    paddingHorizontal: 6,
-    paddingVertical: 2,
-    borderRadius: 4,
-    marginLeft: 6,
+  prDetails: {
+    padding: 16,
   },
-  proBadgeText: {
-    color: '#000',
-    fontWeight: '900',
-    fontSize: 12,
+  prHeaderRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 4,
   },
-  proDesc: {
-    color: '#9CA3AF',
-    fontSize: 13,
-    marginBottom: 16,
-    lineHeight: 18,
-    maxWidth: '80%',
+  prName: {
+    fontFamily: BOLD_FONT,
+    fontSize: 18,
+    color: '#1F2937',
+    flex: 1,
+    marginRight: 10,
   },
-  proBtn: {
-    backgroundColor: ORANGE,
-    alignSelf: 'flex-start',
-    paddingHorizontal: 16,
-    paddingVertical: 8,
+  prRatingBox: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#10B981',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
     borderRadius: 8,
   },
-  proBtnText: {
+  prRatingText: {
+    fontFamily: BOLD_FONT,
     color: '#FFF',
-    fontWeight: 'bold',
-    fontSize: 13,
+    fontSize: 12,
+    marginRight: 4,
   },
-  proBannerDecoration: {
-    position: 'absolute',
-    right: 0,
-    top: 0,
-    bottom: 0,
-    width: 100,
-    zIndex: 1,
-  },
-  footerContainer: {
+  prSubRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
     alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: 10,
-    paddingBottom: 10,
+    marginBottom: 12,
   },
-  footerText: {
-    color: '#000',
-    fontSize: 14,
-    fontWeight: '900',
+  prCuisines: {
+    fontFamily: STYLISH_FONT,
+    fontSize: 13,
+    color: '#6B7280',
+    flex: 1,
   },
-  footerSubText: {
+  prDistance: {
+    fontFamily: BOLD_FONT,
+    fontSize: 12,
     color: '#9CA3AF',
-    fontSize: 10,
-    marginTop: 2,
-    fontWeight: '600'
-  }
+  },
+  prPromoRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#FEF2F2',
+    padding: 10,
+    borderRadius: 10,
+  },
+  prPromoText: {
+    fontFamily: BOLD_FONT,
+    fontSize: 11,
+    color: '#D94E1B',
+    marginLeft: 6,
+  },
+  
+  healthyCard: { width: 220, marginRight: 16, backgroundColor: '#ECFDF5', borderRadius: 20, overflow: 'hidden', borderWidth: 1, borderColor: '#D1FAE5', marginBottom: 10 },
+  healthyImage: { width: '100%', height: 120 },
+  healthyDetails: { padding: 12 },
+  healthyName: { fontFamily: BOLD_FONT, fontSize: 14, color: '#065F46', marginBottom: 2 },
+  healthyRestaurant: { fontFamily: STYLISH_FONT, fontSize: 12, color: '#047857', opacity: 0.8 },
+  healthyFooter: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginTop: 12 },
+  caloriesBadge: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#D1FAE5', paddingHorizontal: 8, paddingVertical: 4, borderRadius: 12 },
+  caloriesText: { fontFamily: BOLD_FONT, fontSize: 10, color: '#059669', marginLeft: 4 },
+  
+  dealCard: { width: 280, height: 160, marginRight: 16, borderRadius: 24, overflow: 'hidden' },
+  dealImage: { width: '100%', height: '100%' },
+  dealOverlay: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.4)', padding: 16, justifyContent: 'flex-end' },
+  dealTitle: { fontFamily: BOLD_FONT, fontSize: 22, color: '#FFF' },
+  dealSubtitle: { fontFamily: STYLISH_FONT, fontSize: 14, color: '#E5E7EB', marginBottom: 12 },
+  dealPriceBox: { alignSelf: 'flex-start', backgroundColor: '#FF6000', paddingHorizontal: 12, paddingVertical: 6, borderRadius: 12 },
+  dealPrice: { fontFamily: BOLD_FONT, fontSize: 14, color: '#FFF' },
 });

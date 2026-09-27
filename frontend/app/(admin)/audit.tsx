@@ -11,6 +11,7 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useAdminStore } from '../../store/admin.store';
+import { Typography, Colors } from '../../constants/Theme';
 
 export default function AdminAuditScreen() {
   const { auditLogs, isLoading, fetchAuditLogs } = useAdminStore();
@@ -25,7 +26,6 @@ export default function AdminAuditScreen() {
 
   return (
     <SafeAreaView style={styles.safeArea}>
-      {/* Header */}
       <View style={styles.navbar}>
         <View>
           <Text style={styles.pageTitle}>Security & Audit Logs</Text>
@@ -33,7 +33,7 @@ export default function AdminAuditScreen() {
         </View>
 
         <TouchableOpacity onPress={onRefresh} style={styles.refreshBtn}>
-          <Ionicons name="refresh" size={18} color="#4B5563" />
+          <Ionicons name="refresh" size={18} color={Colors.textSecondary} />
         </TouchableOpacity>
       </View>
 
@@ -45,12 +45,12 @@ export default function AdminAuditScreen() {
       >
         {auditLogs.length === 0 ? (
           <View style={styles.emptyCard}>
-            <Ionicons name="shield-checkmark-outline" size={48} color="#D1D5DB" />
+            <Ionicons name="shield-checkmark-outline" size={48} color={Colors.borderDark} />
             <Text style={styles.emptyTitle}>No Audit Logs Recorded</Text>
             <Text style={styles.emptySubtitle}>Admin events and modifications will appear here.</Text>
           </View>
         ) : (
-          auditLogs.map((log) => (
+          auditLogs.map((log: any) => (
             <View key={log._id} style={styles.logCard}>
               <View style={styles.logHeader}>
                 <View style={styles.actionBadge}>
@@ -76,109 +76,21 @@ export default function AdminAuditScreen() {
 }
 
 const styles = StyleSheet.create({
-  safeArea: {
-    flex: 1,
-    backgroundColor: '#F9FAFB',
-  },
-  navbar: {
-    backgroundColor: '#FFFFFF',
-    paddingHorizontal: 16,
-    paddingVertical: 14,
-    borderBottomWidth: 1,
-    borderBottomColor: '#F3F4F6',
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-  },
-  pageTitle: {
-    fontSize: 18,
-    fontWeight: '900',
-    color: '#111827',
-  },
-  pageSubtitle: {
-    fontSize: 11,
-    color: '#6B7280',
-    fontWeight: '500',
-  },
-  refreshBtn: {
-    backgroundColor: '#F3F4F6',
-    padding: 8,
-    borderRadius: 10,
-  },
-  scrollContainer: {
-    flex: 1,
-  },
-  scrollContent: {
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    paddingBottom: 40,
-  },
-  emptyCard: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 20,
-    padding: 36,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginTop: 20,
-    borderWidth: 1,
-    borderColor: '#F3F4F6',
-  },
-  emptyTitle: {
-    fontSize: 16,
-    fontWeight: '800',
-    color: '#374151',
-    marginTop: 12,
-  },
-  emptySubtitle: {
-    fontSize: 12,
-    color: '#9CA3AF',
-    textAlign: 'center',
-    marginTop: 4,
-  },
-  logCard: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 16,
-    padding: 14,
-    marginBottom: 10,
-    borderWidth: 1,
-    borderColor: '#F3F4F6',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.03,
-    shadowRadius: 4,
-    elevation: 1,
-  },
-  logHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 8,
-  },
-  actionBadge: {
-    backgroundColor: '#EEF2FF',
-    paddingHorizontal: 8,
-    paddingVertical: 3,
-    borderRadius: 6,
-  },
-  actionText: {
-    fontSize: 10,
-    fontWeight: '800',
-    color: '#4F46E5',
-    textTransform: 'uppercase',
-  },
-  logDate: {
-    fontSize: 11,
-    color: '#9CA3AF',
-    fontWeight: '500',
-  },
-  targetInfo: {
-    fontSize: 13,
-    fontWeight: '700',
-    color: '#111827',
-  },
-  adminInfo: {
-    fontSize: 11,
-    color: '#6B7280',
-    marginTop: 2,
-  },
+  safeArea: { flex: 1, backgroundColor: Colors.background },
+  navbar: { backgroundColor: Colors.surface, paddingHorizontal: 16, paddingVertical: 14, borderBottomWidth: 1, borderBottomColor: Colors.border, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
+  pageTitle: { ...Typography.heading, fontSize: 18 },
+  pageSubtitle: { ...Typography.bodySmall, fontSize: 11 },
+  refreshBtn: { backgroundColor: Colors.background, padding: 8, borderRadius: 10 },
+  scrollContainer: { flex: 1 },
+  scrollContent: { paddingHorizontal: 16, paddingVertical: 12, paddingBottom: 40 },
+  emptyCard: { backgroundColor: Colors.surface, borderRadius: 20, padding: 36, alignItems: 'center', justifyContent: 'center', marginTop: 20, borderWidth: 1, borderColor: Colors.border },
+  emptyTitle: { ...Typography.title, fontSize: 16, marginTop: 12 },
+  emptySubtitle: { ...Typography.caption, textAlign: 'center', marginTop: 4 },
+  logCard: { backgroundColor: Colors.surface, borderRadius: 16, padding: 14, marginBottom: 10, borderWidth: 1, borderColor: Colors.border, shadowColor: '#000', shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.03, shadowRadius: 4, elevation: 1 },
+  logHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 },
+  actionBadge: { backgroundColor: '#EEF2FF', paddingHorizontal: 8, paddingVertical: 3, borderRadius: 6 },
+  actionText: { ...Typography.button, fontSize: 10, color: '#4F46E5', textTransform: 'uppercase' },
+  logDate: { ...Typography.caption, fontSize: 11 },
+  targetInfo: { ...Typography.title, fontSize: 13 },
+  adminInfo: { ...Typography.caption, fontSize: 11, marginTop: 2 },
 });

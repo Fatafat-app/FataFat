@@ -1,57 +1,100 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
   TextInput,
   TouchableOpacity,
-  ScrollView,
+  KeyboardAvoidingView,
+  Platform,
+  StyleSheet,
   ActivityIndicator,
   Alert,
-  StyleSheet,
+  ImageBackground,
+  Image,
+  Dimensions,
+  ScrollView,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
 import { useAuthStore } from '../../store/auth.store';
 import { authService } from '../../services/auth.service';
+import Animated, { 
+  FadeIn, 
+  FadeInDown, 
+  FadeInUp,
+  BounceIn,
+  useAnimatedStyle,
+  useSharedValue,
+  withSpring
+} from 'react-native-reanimated';
+
+const { width } = Dimensions.get('window');
+
+// Stylish Font Family Selection
+const STYLISH_FONT = Platform.select({
+  ios: 'Georgia',
+  android: 'serif',
+  default: 'System',
+});
+
+const BOLD_FONT = Platform.select({
+  ios: 'Georgia-Bold',
+  android: 'serif',
+  default: 'System',
+});
 
 export default function LoginScreen() {
   const [authMode, setAuthMode] = useState<'otp' | 'password'>('password');
-  const [phone, setPhone] = useState('+919822233344');
-  const [password, setPassword] = useState('Password@123');
+  const [phone, setPhone] = useState('');
+  const [password, setPassword] = useState('');
   const [otp, setOtp] = useState('');
   const [isOtpSent, setIsOtpSent] = useState(false);
   const [loading, setLoading] = useState(false);
-  const [errorMessage, setErrorMessage] = useState('');
 
   const setUser = useAuthStore((state) => state.setUser);
 
+  // Reanimated Button Scale
+  const buttonScale = useSharedValue(1);
+  const buttonAnimatedStyle = useAnimatedStyle(() => {
+    return {
+      transform: [{ scale: buttonScale.value }],
+    };
+  });
+
+  const animatePressIn = () => {
+    buttonScale.value = withSpring(0.92, { damping: 10, stiffness: 400 });
+  };
+  const animatePressOut = () => {
+    buttonScale.value = withSpring(1, { damping: 10, stiffness: 400 });
+  };
+
+  const navigateBasedOnRole = (userRole?: string) => {
+    if (userRole === 'admin') {
+      router.replace('/(admin)/dashboard');
+    } else if (userRole === 'restaurant_owner') {
+      router.replace('/(owner)/dashboard');
+    } else if (userRole === 'delivery_partner') {
+      router.replace('/(rider)/dashboard');
+    } else {
+      router.replace('/(tabs)');
+    }
+  };
+
   const handlePasswordLogin = async () => {
-    if (!phone || !password) {
-      setErrorMessage('Please enter both phone and password');
+    if (!phone || phone.length < 10 || !password) {
+      Alert.alert('Error', 'Please enter a valid 10-digit phone number and password');
       return;
     }
 
     try {
       setLoading(true);
-      setErrorMessage('');
-      const data = await authService.loginWithPassword({
-        phone: phone.startsWith('+') ? phone : `+91${phone}`,
-        password,
-      });
+      const fullPhone = phone.startsWith('+') ? phone : `+91${phone}`;
+      const data = await authService.loginWithPassword({ phone: fullPhone, password });
       setUser(data.user);
-      const userRole = data.user?.role;
-      if (userRole === 'admin') {
-        router.replace('/(admin)/dashboard');
-      } else if (userRole === 'restaurant_owner') {
-        router.replace('/(owner)/dashboard');
-      } else {
-        router.replace('/(tabs)');
-      }
+      navigateBasedOnRole(data.user?.role);
     } catch (error: any) {
-      const msg =
-        error.response?.data?.message || error.message || 'Login failed. Please check credentials.';
-      setErrorMessage(msg);
+      const msg = error.response?.data?.message || 'Login failed. Please check credentials.';
       Alert.alert('Login Error', msg);
     } finally {
       setLoading(false);
@@ -59,26 +102,21 @@ export default function LoginScreen() {
   };
 
   const handleSendOtp = async () => {
-    if (!phone) {
-      setErrorMessage('Please enter a valid phone number');
+    if (!phone || phone.length < 10) {
+      Alert.alert('Invalid Number', 'Please enter a valid 10-digit phone number');
       return;
     }
 
     try {
       setLoading(true);
-      setErrorMessage('');
       const fullPhone = phone.startsWith('+') ? phone : `+91${phone}`;
       const res = await authService.sendOtp({ phone: fullPhone });
       setIsOtpSent(true);
-      Alert.alert(
-        'OTP Sent',
-        res.otp
-          ? `Dev OTP: ${res.otp}`
-          : 'Verification code has been sent to your phone number.'
-      );
+      if (res.otp) {
+        Alert.alert('Dev OTP', `Your test OTP is: ${res.otp}`);
+      }
     } catch (error: any) {
       const msg = error.response?.data?.message || 'Failed to send OTP. Please try again.';
-      setErrorMessage(msg);
       Alert.alert('Error', msg);
     } finally {
       setLoading(false);
@@ -87,27 +125,18 @@ export default function LoginScreen() {
 
   const handleVerifyOtp = async () => {
     if (!otp || otp.length < 4) {
-      setErrorMessage('Please enter valid OTP');
+      Alert.alert('Invalid OTP', 'Please enter a valid OTP code');
       return;
     }
 
     try {
       setLoading(true);
-      setErrorMessage('');
       const fullPhone = phone.startsWith('+') ? phone : `+91${phone}`;
       const data = await authService.verifyOtp({ phone: fullPhone, otp });
       setUser(data.user);
-      const userRole = data.user?.role;
-      if (userRole === 'admin') {
-        router.replace('/(admin)/dashboard');
-      } else if (userRole === 'restaurant_owner') {
-        router.replace('/(owner)/dashboard');
-      } else {
-        router.replace('/(tabs)');
-      }
+      navigateBasedOnRole(data.user?.role);
     } catch (error: any) {
       const msg = error.response?.data?.message || 'Invalid or expired OTP';
-      setErrorMessage(msg);
       Alert.alert('Verification Failed', msg);
     } finally {
       setLoading(false);
@@ -117,401 +146,470 @@ export default function LoginScreen() {
   const fillPreset = (pPhone: string, pPass: string) => {
     setPhone(pPhone);
     setPassword(pPass);
-    setErrorMessage('');
+    setAuthMode('password');
   };
 
   return (
-    <SafeAreaView style={styles.safeArea}>
-      <ScrollView contentContainerStyle={styles.scrollContent} keyboardShouldPersistTaps="handled">
-        {/* Header Branding */}
-        <View style={styles.header}>
-          <Text style={styles.logoTitle}>Ftafat</Text>
-          <Text style={styles.subTitle}>Bhook lagi? 🍔</Text>
-          <Text style={styles.tagline}>Ftafat delivery at your doorstep!</Text>
+    <ImageBackground
+      source={require('../../assets/images/login_bg_simple.png')}
+      style={styles.fullScreenBg}
+      imageStyle={styles.backgroundImage}
+    >
+      <SafeAreaView style={{ flex: 1 }} edges={['bottom']}>
+        <KeyboardAvoidingView
+          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+          style={{ flex: 1 }}
+        >
+          <ScrollView
+            contentContainerStyle={styles.scrollContent}
+            keyboardShouldPersistTaps="handled"
+            showsVerticalScrollIndicator={false}
+            bounces={false}
+          >
+            {/* BRANDING SECTION */}
+            <View style={styles.brandingWrapper}>
+              <Animated.View entering={FadeInDown.duration(800).springify()} style={{ alignItems: 'center' }}>
+                <View style={styles.logoRow}>
+                  <Image source={require('../../assets/images/logo_transparent.png')} style={styles.brandImage} resizeMode="contain" />
+                </View>
 
-          {/* Value Props */}
-          <View style={styles.featuresRow}>
-            <FeatureIcon icon="flash-outline" text={'Lightning\nFast'} />
-            <FeatureIcon icon="restaurant-outline" text={'Top\nRestaurants'} />
-            <FeatureIcon icon="shield-checkmark-outline" text={'Live\nTracking'} />
-          </View>
-        </View>
+                <Text style={styles.bhookLagi}>Bhook lagi?</Text>
+                <Text style={styles.tagline}>Ftafat aa raha hai!</Text>
 
-        {/* Auth Box */}
-        <View style={styles.card}>
-          {/* Mode Switch Tabs */}
-          <View style={styles.tabContainer}>
-            <TouchableOpacity
-              style={[styles.tabButton, authMode === 'password' && styles.tabButtonActive]}
-              onPress={() => {
-                setAuthMode('password');
-                setIsOtpSent(false);
-              }}
-            >
-              <Text style={[styles.tabText, authMode === 'password' && styles.tabTextActive]}>
-                Password Login
-              </Text>
-            </TouchableOpacity>
-
-            <TouchableOpacity
-              style={[styles.tabButton, authMode === 'otp' && styles.tabButtonActive]}
-              onPress={() => {
-                setAuthMode('otp');
-              }}
-            >
-              <Text style={[styles.tabText, authMode === 'otp' && styles.tabTextActive]}>
-                OTP Login
-              </Text>
-            </TouchableOpacity>
-          </View>
-
-          {errorMessage ? (
-            <View style={styles.errorBox}>
-              <Ionicons name="alert-circle" size={18} color="#DC2626" style={{ marginRight: 6 }} />
-              <Text style={styles.errorText}>{errorMessage}</Text>
+                <View style={styles.featuresRow}>
+                  <FeatureIcon icon="restaurant-outline" text="Wide Variety" delay={200} />
+                  <FeatureIcon icon="bicycle-outline" text="Fast Delivery" delay={300} />
+                  <FeatureIcon icon="star-outline" text="Great Offers" delay={400} />
+                </View>
+              </Animated.View>
             </View>
-          ) : null}
 
-          {/* Phone Input */}
-          <Text style={styles.inputLabel}>Phone Number</Text>
-          <View style={styles.inputWrapper}>
-            <Text style={{ fontSize: 16, marginRight: 6 }}>🇮🇳</Text>
-            <TextInput
-              value={phone}
-              onChangeText={setPhone}
-              placeholder="+919822233344"
-              style={styles.textInput}
-              keyboardType="phone-pad"
-              autoCapitalize="none"
-              placeholderTextColor="#9CA3AF"
-            />
-          </View>
-
-          {/* Password Mode Fields */}
-          {authMode === 'password' && (
-            <>
-              <Text style={styles.inputLabel}>Password</Text>
-              <View style={styles.inputWrapper}>
-                <Ionicons name="lock-closed-outline" size={18} color="#6B7280" />
-                <TextInput
-                  value={password}
-                  onChangeText={setPassword}
-                  placeholder="Enter your password"
-                  secureTextEntry
-                  style={styles.textInput}
-                  placeholderTextColor="#9CA3AF"
-                />
-              </View>
-
-              <TouchableOpacity
-                style={styles.primaryButton}
-                disabled={loading}
-                onPress={handlePasswordLogin}
+            {/* LOGIN CARD */}
+            <View style={styles.cardWrapper}>
+              <Animated.View 
+                entering={FadeInUp.duration(800).delay(300).springify()} 
+                style={styles.card}
               >
-                {loading ? (
-                  <ActivityIndicator color="#713F12" />
-                ) : (
-                  <View style={styles.buttonContent}>
-                    <Text style={styles.primaryButtonText}>Login Now</Text>
-                    <Ionicons name="arrow-forward" size={18} color="#713F12" />
-                  </View>
-                )}
-              </TouchableOpacity>
-            </>
-          )}
-
-          {/* OTP Mode Fields */}
-          {authMode === 'otp' && (
-            <>
-              {isOtpSent ? (
-                <>
-                  <Text style={styles.inputLabel}>Enter OTP Code</Text>
-                  <View style={styles.inputWrapper}>
-                    <Ionicons name="key-outline" size={18} color="#6B7280" />
-                    <TextInput
-                      value={otp}
-                      onChangeText={setOtp}
-                      placeholder="6-digit OTP code"
-                      keyboardType="number-pad"
-                      style={[styles.textInput, { letterSpacing: 4 }]}
-                      placeholderTextColor="#9CA3AF"
-                    />
-                  </View>
-
-                  <TouchableOpacity
-                    style={styles.primaryButton}
-                    disabled={loading}
-                    onPress={handleVerifyOtp}
-                  >
-                    {loading ? (
-                      <ActivityIndicator color="#713F12" />
-                    ) : (
-                      <Text style={styles.primaryButtonText}>Verify & Continue</Text>
-                    )}
-                  </TouchableOpacity>
-
-                  <TouchableOpacity
-                    onPress={handleSendOtp}
-                    style={{ paddingVertical: 10, alignItems: 'center' }}
-                    disabled={loading}
-                  >
-                    <Text style={{ fontSize: 12, fontWeight: '700', color: '#A16207' }}>
-                      Resend OTP Code
-                    </Text>
-                  </TouchableOpacity>
-                </>
-              ) : (
-                <TouchableOpacity
-                  style={styles.primaryButton}
-                  disabled={loading}
-                  onPress={handleSendOtp}
-                >
-                  {loading ? (
-                    <ActivityIndicator color="#713F12" />
-                  ) : (
-                    <View style={styles.buttonContent}>
-                      <Text style={styles.primaryButtonText}>Get OTP</Text>
-                      <Ionicons name="phone-portrait-outline" size={18} color="#713F12" />
+                
+                {authMode === 'password' && !isOtpSent && (
+                  <Animated.View entering={FadeIn}>
+                    <View style={styles.inputContainer}>
+                      <View style={styles.countryCodeBox}>
+                        <Text style={styles.flag}>🇮🇳</Text>
+                        <Text style={styles.countryCodeText}>+91</Text>
+                        <Ionicons name="caret-down" size={12} color="#6B7280" style={{ marginLeft: 4 }} />
+                      </View>
+                      <View style={styles.divider} />
+                      <TextInput
+                        style={styles.textInput}
+                        placeholder="Phone number"
+                        placeholderTextColor="#9CA3AF"
+                        keyboardType="phone-pad"
+                        value={phone}
+                        onChangeText={setPhone}
+                        maxLength={10}
+                      />
                     </View>
-                  )}
-                </TouchableOpacity>
-              )}
-            </>
-          )}
 
-          {/* Quick Demo Test Logins */}
-          <View style={styles.presetSection}>
-            <Text style={styles.presetTitle}>⚡ Quick Test Accounts</Text>
-            <View style={styles.presetRow}>
-              <TouchableOpacity
-                onPress={() => fillPreset('+919999999999', 'Password@123')}
-                style={[styles.presetBadge, { backgroundColor: '#EEF2FF', borderColor: '#C7D2FE' }]}
-              >
-                <Text style={[styles.presetText, { color: '#4F46E5', fontWeight: '800' }]}>👑 Super Admin</Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                onPress={() => fillPreset('+919876543210', 'Password@123')}
-                style={styles.presetBadge}
-              >
-                <Text style={styles.presetText}>Owner (Rajesh)</Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                onPress={() => fillPreset('+919822233344', 'Password@123')}
-                style={styles.presetBadge}
-              >
-                <Text style={styles.presetText}>Customer (Priya)</Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                onPress={() => fillPreset('+919811122233', 'Password@123')}
-                style={styles.presetBadge}
-              >
-                <Text style={styles.presetText}>Rider (Amit)</Text>
-              </TouchableOpacity>
+                    <View style={styles.inputContainer}>
+                      <View style={styles.countryCodeBox}>
+                        <Ionicons name="lock-closed-outline" size={20} color="#6B7280" />
+                      </View>
+                      <View style={styles.divider} />
+                      <TextInput
+                        style={styles.textInput}
+                        placeholder="Password"
+                        placeholderTextColor="#9CA3AF"
+                        secureTextEntry
+                        value={password}
+                        onChangeText={setPassword}
+                      />
+                    </View>
+
+                    <Animated.View style={buttonAnimatedStyle}>
+                      <TouchableOpacity
+                        style={styles.continueButton}
+                        onPress={handlePasswordLogin}
+                        onPressIn={animatePressIn}
+                        onPressOut={animatePressOut}
+                        disabled={loading}
+                        activeOpacity={1}
+                      >
+                        <Text style={styles.continueButtonText}>Login Now</Text>
+                        {loading ? (
+                          <ActivityIndicator color="#FF6000" style={styles.arrowCircle} />
+                        ) : (
+                          <View style={styles.arrowCircle}>
+                            <Ionicons name="arrow-forward" size={20} color="#D94E1B" />
+                          </View>
+                        )}
+                      </TouchableOpacity>
+                    </Animated.View>
+
+                    <TouchableOpacity onPress={() => setAuthMode('otp')} style={styles.toggleAuthBtn}>
+                      <Text style={styles.toggleAuthText}>Or login with OTP instead</Text>
+                    </TouchableOpacity>
+                  </Animated.View>
+                )}
+
+                {authMode === 'otp' && !isOtpSent && (
+                  <Animated.View entering={FadeIn}>
+                    <View style={styles.inputContainer}>
+                      <View style={styles.countryCodeBox}>
+                        <Text style={styles.flag}>🇮🇳</Text>
+                        <Text style={styles.countryCodeText}>+91</Text>
+                        <Ionicons name="caret-down" size={12} color="#6B7280" style={{ marginLeft: 4 }} />
+                      </View>
+                      <View style={styles.divider} />
+                      <TextInput
+                        style={styles.textInput}
+                        placeholder="Phone number"
+                        placeholderTextColor="#9CA3AF"
+                        keyboardType="phone-pad"
+                        value={phone}
+                        onChangeText={setPhone}
+                        maxLength={10}
+                      />
+                    </View>
+
+                    <Animated.View style={buttonAnimatedStyle}>
+                      <TouchableOpacity
+                        style={styles.continueButton}
+                        onPress={handleSendOtp}
+                        onPressIn={animatePressIn}
+                        onPressOut={animatePressOut}
+                        disabled={loading}
+                        activeOpacity={1}
+                      >
+                        <Text style={styles.continueButtonText}>Get OTP</Text>
+                        {loading ? (
+                          <ActivityIndicator color="#FF6000" style={styles.arrowCircle} />
+                        ) : (
+                          <View style={styles.arrowCircle}>
+                            <Ionicons name="phone-portrait-outline" size={20} color="#D94E1B" />
+                          </View>
+                        )}
+                      </TouchableOpacity>
+                    </Animated.View>
+
+                    <TouchableOpacity onPress={() => setAuthMode('password')} style={styles.toggleAuthBtn}>
+                      <Text style={styles.toggleAuthText}>Or login with Password instead</Text>
+                    </TouchableOpacity>
+                  </Animated.View>
+                )}
+
+                {isOtpSent && (
+                  <Animated.View entering={FadeIn}>
+                    <Text style={styles.otpHeader}>Verify Number</Text>
+                    <Text style={styles.otpSub}>OTP sent to +91 {phone}</Text>
+
+                    <View style={styles.inputContainer}>
+                      <TextInput
+                        style={[styles.textInput, { textAlign: 'center', letterSpacing: 10, fontSize: 24 }]}
+                        placeholder="••••"
+                        placeholderTextColor="#D1D5DB"
+                        keyboardType="number-pad"
+                        value={otp}
+                        onChangeText={setOtp}
+                        maxLength={6}
+                        autoFocus
+                      />
+                    </View>
+
+                    <Animated.View style={buttonAnimatedStyle}>
+                      <TouchableOpacity
+                        style={styles.continueButton}
+                        onPress={handleVerifyOtp}
+                        onPressIn={animatePressIn}
+                        onPressOut={animatePressOut}
+                        disabled={loading}
+                        activeOpacity={1}
+                      >
+                        <Text style={styles.continueButtonText}>Verify & Login</Text>
+                        {loading ? (
+                          <ActivityIndicator color="#FF6000" style={styles.arrowCircle} />
+                        ) : (
+                          <View style={styles.arrowCircle}>
+                            <Ionicons name="checkmark-done" size={20} color="#D94E1B" />
+                          </View>
+                        )}
+                      </TouchableOpacity>
+                    </Animated.View>
+
+                    <View style={{ flexDirection: 'row', justifyContent: 'center', marginTop: 20, gap: 16 }}>
+                      <TouchableOpacity onPress={handleSendOtp} disabled={loading}>
+                        <Text style={{ color: '#D94E1B', fontWeight: 'bold', fontFamily: STYLISH_FONT }}>Resend Code</Text>
+                      </TouchableOpacity>
+                      <TouchableOpacity onPress={() => setIsOtpSent(false)} disabled={loading}>
+                        <Text style={{ color: '#6B7280', fontFamily: STYLISH_FONT }}>Change Number</Text>
+                      </TouchableOpacity>
+                    </View>
+                  </Animated.View>
+                )}
+
+                {/* Quick Demo Logins */}
+                <View style={styles.presetSection}>
+                  <Text style={styles.presetTitle}>⚡ Quick Test Accounts</Text>
+                  <View style={styles.presetRow}>
+                    <TouchableOpacity onPress={() => fillPreset('+919999999999', 'Password@123')} style={[styles.presetBadge, { backgroundColor: '#FFF5F0', borderColor: '#FFEDD5' }]}>
+                      <Text style={[styles.presetText, { color: '#D94E1B' }]}>Admin</Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity onPress={() => fillPreset('+919876543210', 'Password@123')} style={styles.presetBadge}>
+                      <Text style={styles.presetText}>Owner</Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity onPress={() => fillPreset('+919811122233', 'Password@123')} style={styles.presetBadge}>
+                      <Text style={styles.presetText}>Rider</Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity onPress={() => fillPreset('+919822233344', 'Password@123')} style={styles.presetBadge}>
+                      <Text style={styles.presetText}>User</Text>
+                    </TouchableOpacity>
+                  </View>
+                </View>
+
+              </Animated.View>
             </View>
-          </View>
-        </View>
-      </ScrollView>
-    </SafeAreaView>
+          </ScrollView>
+        </KeyboardAvoidingView>
+      </SafeAreaView>
+    </ImageBackground>
   );
 }
 
-function FeatureIcon({ icon, text }: { icon: keyof typeof Ionicons.glyphMap; text: string }) {
+function FeatureIcon({ icon, text, delay }: { icon: keyof typeof Ionicons.glyphMap; text: string; delay: number }) {
   return (
-    <View style={styles.featureItem}>
+    <Animated.View entering={BounceIn.delay(delay).springify()} style={styles.featureBox}>
       <View style={styles.featureCircle}>
-        <Ionicons name={icon} size={22} color="#854D0E" />
+        <Ionicons name={icon} size={22} color="#D94E1B" />
       </View>
       <Text style={styles.featureText}>{text}</Text>
-    </View>
+    </Animated.View>
   );
 }
 
 const styles = StyleSheet.create({
-  safeArea: {
+  fullScreenBg: {
     flex: 1,
-    backgroundColor: '#FEFCE8',
+    width: '100%',
+    height: '100%',
+    backgroundColor: '#FDF2E3',
+  },
+  backgroundImage: {
+    resizeMode: 'cover',
   },
   scrollContent: {
     flexGrow: 1,
-    paddingBottom: 24,
+    paddingBottom: 40,
+    justifyContent: 'center', // Centers the content beautifully vertically
   },
-  header: {
+  brandingWrapper: {
     paddingHorizontal: 24,
-    paddingTop: 24,
-    paddingBottom: 16,
+    paddingTop: Platform.OS === 'ios' ? 40 : 50,
+    paddingBottom: 30,
     alignItems: 'center',
   },
-  logoTitle: {
-    fontSize: 44,
-    fontWeight: '900',
-    color: '#4A2B11',
-    letterSpacing: -1,
-    marginBottom: 4,
+  logoRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 8,
   },
-  subTitle: {
-    fontSize: 18,
-    fontWeight: '700',
-    color: '#8C5E35',
+  brandImage: {
+    width: 220,
+    height: 70,
+  },
+  logoText: {
+    fontSize: 48,
+    fontFamily: BOLD_FONT,
+    color: '#3E2723',
+    marginLeft: 8,
+    letterSpacing: -1,
+  },
+  bhookLagi: {
+    fontSize: 22,
+    fontFamily: BOLD_FONT,
+    color: '#3E2723',
+    textAlign: 'center',
+    marginTop: 4,
   },
   tagline: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#CA8A04',
-    marginBottom: 16,
+    fontSize: 24,
+    fontFamily: BOLD_FONT,
+    color: '#D94E1B',
+    textAlign: 'center',
+    marginBottom: 28,
   },
   featuresRow: {
     flexDirection: 'row',
-    justifyContent: 'space-around',
+    justifyContent: 'center',
+    gap: 20,
     width: '100%',
-    paddingHorizontal: 8,
   },
-  featureItem: {
+  featureBox: {
     alignItems: 'center',
+    width: width * 0.22,
   },
   featureCircle: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
-    backgroundColor: '#FEF08A',
+    width: 50,
+    height: 50,
+    borderRadius: 25,
+    backgroundColor: 'rgba(255, 255, 255, 0.9)',
     alignItems: 'center',
     justifyContent: 'center',
-    marginBottom: 6,
-  },
-  featureText: {
-    fontSize: 11,
-    fontWeight: '700',
-    color: '#4A2B11',
-    textAlign: 'center',
-    lineHeight: 14,
-  },
-  card: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 28,
-    marginHorizontal: 16,
-    padding: 20,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.05,
+    marginBottom: 8,
+    shadowColor: '#D94E1B',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.1,
     shadowRadius: 8,
     elevation: 3,
   },
-  tabContainer: {
+  featureText: {
+    fontSize: 11,
+    fontFamily: STYLISH_FONT,
+    fontWeight: '700',
+    color: '#3E2723',
+    textAlign: 'center',
+  },
+  cardWrapper: {
+    paddingHorizontal: 20,
+  },
+  card: {
+    backgroundColor: 'rgba(255, 255, 255, 0.95)',
+    borderRadius: 28,
+    padding: 24,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 12 },
+    shadowOpacity: 0.08,
+    shadowRadius: 24,
+    elevation: 8,
+  },
+  inputContainer: {
     flexDirection: 'row',
-    backgroundColor: '#FEF9C3',
-    borderRadius: 16,
-    padding: 4,
+    alignItems: 'center',
+    borderWidth: 1.5,
+    borderColor: '#F3F4F6',
+    borderRadius: 18,
     marginBottom: 16,
+    height: 60,
+    backgroundColor: '#FFFFFF',
+    overflow: 'hidden',
   },
-  tabButton: {
-    flex: 1,
-    paddingVertical: 10,
-    borderRadius: 12,
-    alignItems: 'center',
-  },
-  tabButtonActive: {
-    backgroundColor: '#FACC15',
-  },
-  tabText: {
-    fontSize: 14,
-    fontWeight: '700',
-    color: '#854D0E',
-  },
-  tabTextActive: {
-    color: '#713F12',
-  },
-  errorBox: {
+  countryCodeBox: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#FEF2F2',
-    borderWidth: 1,
-    borderColor: '#FECACA',
-    borderRadius: 12,
-    padding: 10,
-    marginBottom: 14,
-  },
-  errorText: {
-    fontSize: 12,
-    color: '#B91C1C',
-    flex: 1,
-  },
-  inputLabel: {
-    fontSize: 12,
-    fontWeight: '700',
-    color: '#4B5563',
-    marginBottom: 4,
-  },
-  inputWrapper: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    paddingHorizontal: 16,
+    height: '100%',
     backgroundColor: '#F9FAFB',
-    borderWidth: 1,
-    borderColor: '#E5E7EB',
-    borderRadius: 14,
-    paddingHorizontal: 12,
-    paddingVertical: 10,
-    marginBottom: 14,
+  },
+  flag: {
+    fontSize: 18,
+    marginRight: 4,
+  },
+  countryCodeText: {
+    fontSize: 15,
+    fontFamily: BOLD_FONT,
+    color: '#374151',
+  },
+  divider: {
+    width: 1,
+    height: 24,
+    backgroundColor: '#E5E7EB',
   },
   textInput: {
     flex: 1,
-    fontSize: 15,
-    color: '#111827',
-    marginLeft: 8,
-    fontWeight: '500',
+    paddingHorizontal: 16,
+    fontSize: 16,
+    fontFamily: STYLISH_FONT,
+    fontWeight: '600',
+    color: '#1F2937',
+    height: '100%',
   },
-  primaryButton: {
-    backgroundColor: '#FACC15',
-    borderRadius: 16,
-    paddingVertical: 14,
-    alignItems: 'center',
-    justifyContent: 'center',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 2,
-    marginTop: 4,
-  },
-  buttonContent: {
+  continueButton: {
+    backgroundColor: '#D94E1B',
+    borderRadius: 18,
+    height: 60,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
+    marginTop: 8,
+    shadowColor: '#D94E1B',
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.25,
+    shadowRadius: 12,
+    elevation: 6,
   },
-  primaryButtonText: {
-    fontSize: 16,
-    fontWeight: '800',
-    color: '#713F12',
-    marginRight: 6,
+  continueButtonText: {
+    color: '#FFFFFF',
+    fontSize: 18,
+    fontFamily: BOLD_FONT,
+  },
+  arrowCircle: {
+    position: 'absolute',
+    right: 10,
+    width: 40,
+    height: 40,
+    borderRadius: 12,
+    backgroundColor: '#FFFFFF',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  toggleAuthBtn: {
+    marginTop: 20,
+    alignItems: 'center',
+    padding: 8,
+  },
+  toggleAuthText: {
+    color: '#6B7280',
+    fontSize: 13,
+    fontFamily: STYLISH_FONT,
+    fontWeight: '600',
+  },
+  otpHeader: {
+    fontSize: 20,
+    fontFamily: BOLD_FONT,
+    color: '#1F2937',
+    textAlign: 'center',
+    marginBottom: 6,
+  },
+  otpSub: {
+    fontSize: 14,
+    fontFamily: STYLISH_FONT,
+    color: '#6B7280',
+    textAlign: 'center',
+    marginBottom: 24,
   },
   presetSection: {
-    marginTop: 20,
-    paddingTop: 16,
+    marginTop: 24,
+    paddingTop: 20,
     borderTopWidth: 1,
     borderTopColor: '#F3F4F6',
+    alignItems: 'center',
   },
   presetTitle: {
     fontSize: 11,
-    fontWeight: '800',
+    fontFamily: BOLD_FONT,
     color: '#9CA3AF',
     textTransform: 'uppercase',
     letterSpacing: 0.5,
-    marginBottom: 8,
+    marginBottom: 12,
   },
   presetRow: {
     flexDirection: 'row',
+    justifyContent: 'center',
     flexWrap: 'wrap',
-    gap: 8,
+    gap: 10,
   },
   presetBadge: {
-    backgroundColor: '#F3F4F6',
+    backgroundColor: '#F9FAFB',
     borderWidth: 1,
     borderColor: '#E5E7EB',
-    paddingHorizontal: 10,
-    paddingVertical: 6,
-    borderRadius: 8,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 12,
   },
   presetText: {
-    fontSize: 11,
-    fontWeight: '600',
-    color: '#374151',
+    fontSize: 12,
+    fontFamily: STYLISH_FONT,
+    fontWeight: '700',
+    color: '#4B5563',
   },
 });

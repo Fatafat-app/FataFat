@@ -11,9 +11,11 @@ interface AdminState {
   users: User[];
   restaurants: Restaurant[];
   coupons: Coupon[];
+  auditLogs: any[];
   isLoading: boolean;
 
   fetchAdminOverview: () => Promise<void>;
+  fetchAuditLogs: () => Promise<void>;
   fetchUsers: (role?: string, search?: string) => Promise<void>;
   updateUserRole: (userId: string, role: string) => Promise<void>;
   toggleUserStatus: (userId: string, currentActive: boolean) => Promise<void>;
@@ -32,6 +34,7 @@ export const useAdminStore = create<AdminState>((set, get) => ({
   users: [],
   restaurants: [],
   coupons: [],
+  auditLogs: [],
   isLoading: true,
 
   fetchAdminOverview: async () => {
@@ -44,6 +47,10 @@ export const useAdminStore = create<AdminState>((set, get) => ({
     } finally {
       set({ isLoading: false });
     }
+  },
+
+  fetchAuditLogs: async () => {
+    // Audit logs mock or API stub
   },
 
   fetchUsers: async (role, search) => {

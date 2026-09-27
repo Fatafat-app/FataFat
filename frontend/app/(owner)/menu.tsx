@@ -17,6 +17,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useOwnerStore } from '../../store/owner.store';
 import { formatPaise } from '../../utils/formatters';
 import { MenuItem } from '../../types';
+import { Typography, Colors } from '../../constants/Theme';
 
 export default function OwnerMenuScreen() {
   const { restaurant, menuCategories, isLoading, fetchOwnerData, toggleItemStock, addNewDish } =
@@ -56,7 +57,7 @@ export default function OwnerMenuScreen() {
       await addNewDish({
         name: dishName.trim(),
         category: dishCategory.trim(),
-        price: Math.round(priceNum * 100), // convert ₹ to paise
+        price: Math.round(priceNum * 100),
         description: dishDesc.trim() || undefined,
         isVeg: dishIsVeg,
         preparationTime: parseInt(dishPrepTime, 10) || 20,
@@ -67,7 +68,6 @@ export default function OwnerMenuScreen() {
 
       Alert.alert('Success 🎉', 'New dish added to menu successfully!');
       setIsModalOpen(false);
-      // Reset Form
       setDishName('');
       setDishPrice('');
       setDishDesc('');
@@ -91,7 +91,6 @@ export default function OwnerMenuScreen() {
 
   return (
     <SafeAreaView style={styles.safeArea}>
-      {/* Header */}
       <View style={styles.navbar}>
         <View>
           <Text style={styles.pageTitle}>Menu & Stock</Text>
@@ -107,24 +106,22 @@ export default function OwnerMenuScreen() {
         </TouchableOpacity>
       </View>
 
-      {/* Search Input */}
       <View style={styles.searchWrapper}>
-        <Ionicons name="search" size={18} color="#9CA3AF" style={{ marginRight: 8 }} />
+        <Ionicons name="search" size={18} color={Colors.textSecondary} style={{ marginRight: 8 }} />
         <TextInput
           value={searchQuery}
           onChangeText={setSearchQuery}
           placeholder="Search menu dishes..."
           style={styles.searchInput}
-          placeholderTextColor="#9CA3AF"
+          placeholderTextColor={Colors.textSecondary}
         />
         {searchQuery ? (
           <TouchableOpacity onPress={() => setSearchQuery('')}>
-            <Ionicons name="close-circle" size={18} color="#9CA3AF" />
+            <Ionicons name="close-circle" size={18} color={Colors.textSecondary} />
           </TouchableOpacity>
         ) : null}
       </View>
 
-      {/* Category Pills */}
       <View style={styles.categoryScrollContainer}>
         <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.categoryPillsRow}>
           {categoriesList.map((cat) => (
@@ -149,7 +146,6 @@ export default function OwnerMenuScreen() {
         </ScrollView>
       </View>
 
-      {/* Items List */}
       <ScrollView
         style={styles.scrollContainer}
         contentContainerStyle={styles.scrollContent}
@@ -157,7 +153,7 @@ export default function OwnerMenuScreen() {
       >
         {filteredItems.length === 0 ? (
           <View style={styles.emptyCard}>
-            <Ionicons name="fast-food-outline" size={48} color="#D1D5DB" />
+            <Ionicons name="fast-food-outline" size={48} color={Colors.borderDark} />
             <Text style={styles.emptyTitle}>No Dishes Found</Text>
             <Text style={styles.emptySubtitle}>Try clearing search or add a new menu dish.</Text>
           </View>
@@ -187,13 +183,13 @@ export default function OwnerMenuScreen() {
                     <View
                       style={[
                         styles.vegSquare,
-                        { borderColor: item.isVeg ? '#16A34A' : '#DC2626' },
+                        { borderColor: item.isVeg ? Colors.success : Colors.error },
                       ]}
                     >
                       <View
                         style={[
                           styles.vegDot,
-                          { backgroundColor: item.isVeg ? '#16A34A' : '#DC2626' },
+                          { backgroundColor: item.isVeg ? Colors.success : Colors.error },
                         ]}
                       />
                     </View>
@@ -204,12 +200,11 @@ export default function OwnerMenuScreen() {
                   <Text style={styles.itemPrice}>{formatPaise(item.price)}</Text>
                 </View>
 
-                {/* In Stock / Out of Stock Toggle */}
                 <View style={styles.stockControl}>
                   <Text
                     style={[
                       styles.stockStatusLabel,
-                      { color: isAvailable ? '#15803D' : '#DC2626' },
+                      { color: isAvailable ? Colors.success : Colors.error },
                     ]}
                   >
                     {isAvailable ? 'IN STOCK' : 'SOLD OUT'}
@@ -218,7 +213,7 @@ export default function OwnerMenuScreen() {
                     value={isAvailable}
                     onValueChange={(val) => toggleItemStock(item._id, val)}
                     trackColor={{ false: '#FECACA', true: '#BBF7D0' }}
-                    thumbColor={isAvailable ? '#16A34A' : '#DC2626'}
+                    thumbColor={isAvailable ? Colors.success : Colors.error}
                   />
                 </View>
               </View>
@@ -227,14 +222,13 @@ export default function OwnerMenuScreen() {
         )}
       </ScrollView>
 
-      {/* Add New Dish Modal */}
       <Modal visible={isModalOpen} animationType="slide" transparent>
         <View style={styles.modalOverlay}>
           <View style={styles.modalContent}>
             <View style={styles.modalHeader}>
               <Text style={styles.modalTitle}>Add New Dish</Text>
               <TouchableOpacity onPress={() => setIsModalOpen(false)}>
-                <Ionicons name="close" size={24} color="#374151" />
+                <Ionicons name="close" size={24} color={Colors.text} />
               </TouchableOpacity>
             </View>
 
@@ -245,7 +239,7 @@ export default function OwnerMenuScreen() {
                 onChangeText={setDishName}
                 placeholder="e.g. Paneer Butter Masala"
                 style={styles.inputField}
-                placeholderTextColor="#9CA3AF"
+                placeholderTextColor={Colors.textSecondary}
               />
 
               <Text style={styles.inputLabel}>Category *</Text>
@@ -254,7 +248,7 @@ export default function OwnerMenuScreen() {
                 onChangeText={setDishCategory}
                 placeholder="e.g. Starters, Main Course, Pizza"
                 style={styles.inputField}
-                placeholderTextColor="#9CA3AF"
+                placeholderTextColor={Colors.textSecondary}
               />
 
               <Text style={styles.inputLabel}>Price in Rupees (₹) *</Text>
@@ -264,7 +258,7 @@ export default function OwnerMenuScreen() {
                 placeholder="e.g. 249"
                 keyboardType="numeric"
                 style={styles.inputField}
-                placeholderTextColor="#9CA3AF"
+                placeholderTextColor={Colors.textSecondary}
               />
 
               <Text style={styles.inputLabel}>Description (Optional)</Text>
@@ -275,20 +269,19 @@ export default function OwnerMenuScreen() {
                 multiline
                 numberOfLines={2}
                 style={[styles.inputField, { height: 60 }]}
-                placeholderTextColor="#9CA3AF"
+                placeholderTextColor={Colors.textSecondary}
               />
 
-              {/* Veg / Non-Veg Selector */}
               <Text style={styles.inputLabel}>Food Type</Text>
               <View style={styles.vegSelectRow}>
                 <TouchableOpacity
                   onPress={() => setDishIsVeg(true)}
                   style={[styles.typeOption, dishIsVeg && styles.typeOptionActiveGreen]}
                 >
-                  <View style={[styles.vegSquare, { borderColor: '#16A34A' }]}>
-                    <View style={[styles.vegDot, { backgroundColor: '#16A34A' }]} />
+                  <View style={[styles.vegSquare, { borderColor: Colors.success }]}>
+                    <View style={[styles.vegDot, { backgroundColor: Colors.success }]} />
                   </View>
-                  <Text style={[styles.typeText, dishIsVeg && { color: '#15803D', fontWeight: '800' }]}>
+                  <Text style={[styles.typeText, dishIsVeg && { color: Colors.success, fontWeight: '800' }]}>
                     Vegetarian
                   </Text>
                 </TouchableOpacity>
@@ -297,10 +290,10 @@ export default function OwnerMenuScreen() {
                   onPress={() => setDishIsVeg(false)}
                   style={[styles.typeOption, !dishIsVeg && styles.typeOptionActiveRed]}
                 >
-                  <View style={[styles.vegSquare, { borderColor: '#DC2626' }]}>
-                    <View style={[styles.vegDot, { backgroundColor: '#DC2626' }]} />
+                  <View style={[styles.vegSquare, { borderColor: Colors.error }]}>
+                    <View style={[styles.vegDot, { backgroundColor: Colors.error }]} />
                   </View>
-                  <Text style={[styles.typeText, !dishIsVeg && { color: '#B91C1C', fontWeight: '800' }]}>
+                  <Text style={[styles.typeText, !dishIsVeg && { color: Colors.error, fontWeight: '800' }]}>
                     Non-Veg
                   </Text>
                 </TouchableOpacity>
@@ -312,17 +305,16 @@ export default function OwnerMenuScreen() {
                 onChangeText={setDishImageUrl}
                 placeholder="https://images.pexels.com/..."
                 style={styles.inputField}
-                placeholderTextColor="#9CA3AF"
+                placeholderTextColor={Colors.textSecondary}
               />
 
-              {/* Submit Button */}
               <TouchableOpacity
                 onPress={handleCreateDish}
                 disabled={submitting}
                 style={styles.submitDishBtn}
               >
                 {submitting ? (
-                  <ActivityIndicator color="#FFF" />
+                  <ActivityIndicator color={Colors.white} />
                 ) : (
                   <Text style={styles.submitDishText}>Add Dish to Menu</Text>
                 )}
@@ -336,279 +328,49 @@ export default function OwnerMenuScreen() {
 }
 
 const styles = StyleSheet.create({
-  safeArea: {
-    flex: 1,
-    backgroundColor: '#F9FAFB',
-  },
-  navbar: {
-    backgroundColor: '#FFFFFF',
-    paddingHorizontal: 16,
-    paddingVertical: 14,
-    borderBottomWidth: 1,
-    borderBottomColor: '#F3F4F6',
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-  },
-  pageTitle: {
-    fontSize: 18,
-    fontWeight: '900',
-    color: '#111827',
-  },
-  pageSubtitle: {
-    fontSize: 11,
-    color: '#6B7280',
-    fontWeight: '500',
-  },
-  addDishHeaderBtn: {
-    backgroundColor: '#FF6000',
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 12,
-    paddingVertical: 7,
-    borderRadius: 12,
-  },
-  addDishHeaderText: {
-    color: '#FFFFFF',
-    fontSize: 12,
-    fontWeight: '800',
-  },
-  searchWrapper: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#FFFFFF',
-    marginHorizontal: 16,
-    marginTop: 12,
-    paddingHorizontal: 12,
-    paddingVertical: 9,
-    borderRadius: 14,
-    borderWidth: 1,
-    borderColor: '#E5E7EB',
-  },
-  searchInput: {
-    flex: 1,
-    fontSize: 13,
-    color: '#111827',
-    fontWeight: '500',
-  },
-  categoryScrollContainer: {
-    marginTop: 10,
-    marginBottom: 6,
-  },
-  categoryPillsRow: {
-    paddingHorizontal: 16,
-    gap: 8,
-  },
-  categoryPill: {
-    paddingHorizontal: 14,
-    paddingVertical: 6,
-    borderRadius: 16,
-    backgroundColor: '#FFFFFF',
-    borderWidth: 1,
-    borderColor: '#E5E7EB',
-  },
-  categoryPillActive: {
-    backgroundColor: '#FF6000',
-    borderColor: '#FF6000',
-  },
-  categoryPillText: {
-    fontSize: 12,
-    fontWeight: '700',
-    color: '#4B5563',
-  },
-  categoryPillTextActive: {
-    color: '#FFFFFF',
-  },
-  scrollContainer: {
-    flex: 1,
-  },
-  scrollContent: {
-    paddingHorizontal: 16,
-    paddingVertical: 10,
-    paddingBottom: 40,
-  },
-  emptyCard: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 20,
-    padding: 36,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginTop: 20,
-    borderWidth: 1,
-    borderColor: '#F3F4F6',
-  },
-  emptyTitle: {
-    fontSize: 16,
-    fontWeight: '800',
-    color: '#374151',
-    marginTop: 12,
-  },
-  emptySubtitle: {
-    fontSize: 12,
-    color: '#9CA3AF',
-    textAlign: 'center',
-    marginTop: 4,
-  },
-  itemCard: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 18,
-    padding: 12,
-    marginBottom: 10,
-    flexDirection: 'row',
-    alignItems: 'center',
-    borderWidth: 1,
-    borderColor: '#F3F4F6',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.03,
-    shadowRadius: 4,
-    elevation: 1,
-  },
-  itemCardOutOfStock: {
-    opacity: 0.65,
-    backgroundColor: '#F9FAFB',
-  },
-  itemImage: {
-    width: 68,
-    height: 68,
-    borderRadius: 12,
-    backgroundColor: '#F3F4F6',
-    marginRight: 12,
-  },
-  itemInfo: {
-    flex: 1,
-    marginRight: 8,
-  },
-  vegRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 2,
-  },
-  vegSquare: {
-    width: 12,
-    height: 12,
-    borderWidth: 1,
-    borderRadius: 2,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginRight: 4,
-  },
-  vegDot: {
-    width: 5,
-    height: 5,
-    borderRadius: 2.5,
-  },
-  categoryTag: {
-    fontSize: 10,
-    color: '#9CA3AF',
-    fontWeight: '700',
-    textTransform: 'uppercase',
-  },
-  itemName: {
-    fontSize: 14,
-    fontWeight: '800',
-    color: '#111827',
-  },
-  itemPrice: {
-    fontSize: 13,
-    fontWeight: '900',
-    color: '#FF6000',
-    marginTop: 2,
-  },
-  stockControl: {
-    alignItems: 'center',
-  },
-  stockStatusLabel: {
-    fontSize: 9,
-    fontWeight: '900',
-    marginBottom: 2,
-    letterSpacing: 0.5,
-  },
-  modalOverlay: {
-    flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.45)',
-    justifyContent: 'flex-end',
-  },
-  modalContent: {
-    backgroundColor: '#FFFFFF',
-    borderTopLeftRadius: 28,
-    borderTopRightRadius: 28,
-    padding: 20,
-    maxHeight: '85%',
-  },
-  modalHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingBottom: 14,
-    borderBottomWidth: 1,
-    borderBottomColor: '#F3F4F6',
-  },
-  modalTitle: {
-    fontSize: 18,
-    fontWeight: '900',
-    color: '#111827',
-  },
-  formScroll: {
-    paddingVertical: 14,
-    paddingBottom: 30,
-  },
-  inputLabel: {
-    fontSize: 12,
-    fontWeight: '700',
-    color: '#4B5563',
-    marginBottom: 4,
-    marginTop: 10,
-  },
-  inputField: {
-    backgroundColor: '#F9FAFB',
-    borderWidth: 1,
-    borderColor: '#E5E7EB',
-    borderRadius: 12,
-    paddingHorizontal: 12,
-    paddingVertical: 10,
-    fontSize: 14,
-    color: '#111827',
-  },
-  vegSelectRow: {
-    flexDirection: 'row',
-    gap: 10,
-  },
-  typeOption: {
-    flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: 10,
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: '#E5E7EB',
-    backgroundColor: '#F9FAFB',
-  },
-  typeOptionActiveGreen: {
-    backgroundColor: '#F0FDF4',
-    borderColor: '#22C55E',
-  },
-  typeOptionActiveRed: {
-    backgroundColor: '#FEF2F2',
-    borderColor: '#EF4444',
-  },
-  typeText: {
-    fontSize: 12,
-    fontWeight: '600',
-    color: '#4B5563',
-    marginLeft: 6,
-  },
-  submitDishBtn: {
-    backgroundColor: '#FF6000',
-    borderRadius: 16,
-    paddingVertical: 14,
-    alignItems: 'center',
-    marginTop: 20,
-  },
-  submitDishText: {
-    color: '#FFFFFF',
-    fontSize: 15,
-    fontWeight: '900',
-  },
+  safeArea: { flex: 1, backgroundColor: Colors.background },
+  navbar: { backgroundColor: Colors.surface, paddingHorizontal: 16, paddingVertical: 14, borderBottomWidth: 1, borderBottomColor: Colors.border, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
+  pageTitle: { ...Typography.heading, fontSize: 18 },
+  pageSubtitle: { ...Typography.bodySmall, fontSize: 11 },
+  addDishHeaderBtn: { backgroundColor: Colors.primary, flexDirection: 'row', alignItems: 'center', paddingHorizontal: 12, paddingVertical: 7, borderRadius: 12 },
+  addDishHeaderText: { ...Typography.button, color: Colors.white, fontSize: 12 },
+  searchWrapper: { flexDirection: 'row', alignItems: 'center', backgroundColor: Colors.surface, marginHorizontal: 16, marginTop: 12, paddingHorizontal: 12, paddingVertical: 9, borderRadius: 14, borderWidth: 1, borderColor: Colors.border },
+  searchInput: { ...Typography.bodySmall, flex: 1, fontSize: 13, color: Colors.text },
+  categoryScrollContainer: { marginTop: 10, marginBottom: 6 },
+  categoryPillsRow: { paddingHorizontal: 16, gap: 8 },
+  categoryPill: { paddingHorizontal: 14, paddingVertical: 6, borderRadius: 16, backgroundColor: Colors.surface, borderWidth: 1, borderColor: Colors.border },
+  categoryPillActive: { backgroundColor: Colors.primary, borderColor: Colors.primary },
+  categoryPillText: { ...Typography.button, fontSize: 12, color: Colors.textSecondary },
+  categoryPillTextActive: { color: Colors.white },
+  scrollContainer: { flex: 1 },
+  scrollContent: { paddingHorizontal: 16, paddingVertical: 10, paddingBottom: 40 },
+  emptyCard: { backgroundColor: Colors.surface, borderRadius: 20, padding: 36, alignItems: 'center', justifyContent: 'center', marginTop: 20, borderWidth: 1, borderColor: Colors.border },
+  emptyTitle: { ...Typography.title, fontSize: 16, marginTop: 12 },
+  emptySubtitle: { ...Typography.caption, textAlign: 'center', marginTop: 4 },
+  itemCard: { backgroundColor: Colors.surface, borderRadius: 18, padding: 12, marginBottom: 10, flexDirection: 'row', alignItems: 'center', borderWidth: 1, borderColor: Colors.border, shadowColor: '#000', shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.03, shadowRadius: 4, elevation: 1 },
+  itemCardOutOfStock: { opacity: 0.65, backgroundColor: Colors.background },
+  itemImage: { width: 68, height: 68, borderRadius: 12, backgroundColor: Colors.border, marginRight: 12 },
+  itemInfo: { flex: 1, marginRight: 8 },
+  vegRow: { flexDirection: 'row', alignItems: 'center', marginBottom: 2 },
+  vegSquare: { width: 12, height: 12, borderWidth: 1, borderRadius: 2, alignItems: 'center', justifyContent: 'center', marginRight: 4 },
+  vegDot: { width: 5, height: 5, borderRadius: 2.5 },
+  categoryTag: { ...Typography.label, fontSize: 10, color: Colors.textSecondary },
+  itemName: { ...Typography.title, fontSize: 14 },
+  itemPrice: { ...Typography.heading, fontSize: 13, color: Colors.primary, marginTop: 2 },
+  stockControl: { alignItems: 'center' },
+  stockStatusLabel: { ...Typography.label, fontSize: 9, marginBottom: 2 },
+  modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.45)', justifyContent: 'flex-end' },
+  modalContent: { backgroundColor: Colors.surface, borderTopLeftRadius: 28, borderTopRightRadius: 28, padding: 20, maxHeight: '85%' },
+  modalHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingBottom: 14, borderBottomWidth: 1, borderBottomColor: Colors.border },
+  modalTitle: { ...Typography.heading, fontSize: 18 },
+  formScroll: { paddingVertical: 14, paddingBottom: 30 },
+  inputLabel: { ...Typography.button, fontSize: 12, color: Colors.textSecondary, marginBottom: 4, marginTop: 10 },
+  inputField: { ...Typography.bodySmall, backgroundColor: Colors.background, borderWidth: 1, borderColor: Colors.border, borderRadius: 12, paddingHorizontal: 12, paddingVertical: 10, fontSize: 14 },
+  vegSelectRow: { flexDirection: 'row', gap: 10 },
+  typeOption: { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', paddingVertical: 10, borderRadius: 12, borderWidth: 1, borderColor: Colors.border, backgroundColor: Colors.background },
+  typeOptionActiveGreen: { backgroundColor: '#F0FDF4', borderColor: Colors.success },
+  typeOptionActiveRed: { backgroundColor: '#FEF2F2', borderColor: Colors.error },
+  typeText: { ...Typography.button, fontSize: 12, color: Colors.textSecondary, marginLeft: 6 },
+  submitDishBtn: { backgroundColor: Colors.primary, borderRadius: 16, paddingVertical: 14, alignItems: 'center', marginTop: 20 },
+  submitDishText: { ...Typography.heading, color: Colors.white, fontSize: 15 },
 });

@@ -14,6 +14,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
 import { useOwnerStore } from '../../store/owner.store';
 import { formatPaise } from '../../utils/formatters';
+import { Typography, Colors } from '../../constants/Theme';
 
 export default function OwnerDashboardScreen() {
   const { restaurant, orders, isLoading, isOpen, fetchOwnerData, toggleStoreStatus } =
@@ -26,7 +27,7 @@ export default function OwnerDashboardScreen() {
   if (isLoading) {
     return (
       <SafeAreaView style={styles.centerContainer}>
-        <ActivityIndicator size="large" color="#FF6000" />
+        <ActivityIndicator size="large" color={Colors.primary} />
         <Text style={styles.loadingText}>Loading owner dashboard...</Text>
       </SafeAreaView>
     );
@@ -57,7 +58,7 @@ export default function OwnerDashboardScreen() {
           onPress={() => router.replace('/(tabs)')}
           style={styles.switchModeButton}
         >
-          <Ionicons name="swap-horizontal" size={16} color="#4B5563" style={{ marginRight: 4 }} />
+          <Ionicons name="swap-horizontal" size={16} color={Colors.text} style={{ marginRight: 4 }} />
           <Text style={styles.switchModeText}>User View</Text>
         </TouchableOpacity>
       </View>
@@ -71,7 +72,7 @@ export default function OwnerDashboardScreen() {
         <View style={[styles.storeStatusCard, isOpen ? styles.storeOpenBg : styles.storeClosedBg]}>
           <View style={{ flex: 1, marginRight: 12 }}>
             <View style={styles.statusDotRow}>
-              <View style={[styles.statusDot, { backgroundColor: isOpen ? '#10B981' : '#EF4444' }]} />
+              <View style={[styles.statusDot, { backgroundColor: isOpen ? Colors.success : Colors.error }]} />
               <Text style={[styles.statusTitle, { color: isOpen ? '#065F46' : '#991B1B' }]}>
                 {isOpen ? 'STORE IS OPEN & ACCEPTING ORDERS' : 'STORE IS CURRENTLY OFFLINE'}
               </Text>
@@ -86,8 +87,8 @@ export default function OwnerDashboardScreen() {
           <Switch
             value={isOpen}
             onValueChange={toggleStoreStatus}
-            trackColor={{ false: '#D1D5DB', true: '#86EFAC' }}
-            thumbColor={isOpen ? '#16A34A' : '#9CA3AF'}
+            trackColor={{ false: Colors.border, true: '#86EFAC' }}
+            thumbColor={isOpen ? Colors.success : Colors.textSecondary}
           />
         </View>
 
@@ -136,7 +137,7 @@ export default function OwnerDashboardScreen() {
           {/* Completed */}
           <View style={styles.metricCard}>
             <View style={[styles.metricIconCircle, { backgroundColor: '#DCFCE7' }]}>
-              <Ionicons name="checkmark-done-outline" size={20} color="#16A34A" />
+              <Ionicons name="checkmark-done-outline" size={20} color={Colors.success} />
             </View>
             <Text style={styles.metricValue}>{completedOrders.length}</Text>
             <Text style={styles.metricLabel}>Completed Orders</Text>
@@ -161,14 +162,14 @@ export default function OwnerDashboardScreen() {
           onPress={() => router.push('/(owner)/orders')}
           style={styles.actionCard}
         >
-          <View style={[styles.actionIconBox, { backgroundColor: '#FFF7ED' }]}>
-            <Ionicons name="restaurant" size={22} color="#FF6000" />
+          <View style={[styles.actionIconBox, { backgroundColor: Colors.primaryLight }]}>
+            <Ionicons name="restaurant" size={22} color={Colors.primary} />
           </View>
           <View style={styles.actionTextBox}>
             <Text style={styles.actionTitle}>Kitchen Display System (KDS)</Text>
-            <Text style={styles.actionSubtitle}>Accept orders, track prep status & rider pickups</Text>
+            <Text style={styles.actionSubtitle}>Accept orders, track prep status & pickup</Text>
           </View>
-          <Ionicons name="chevron-forward" size={18} color="#9CA3AF" />
+          <Ionicons name="chevron-forward" size={18} color={Colors.textSecondary} />
         </TouchableOpacity>
 
         <TouchableOpacity
@@ -180,9 +181,9 @@ export default function OwnerDashboardScreen() {
           </View>
           <View style={styles.actionTextBox}>
             <Text style={styles.actionTitle}>Menu & Stock Management</Text>
-            <Text style={styles.actionSubtitle}>Toggle items in-stock / out-of-stock, add dishes</Text>
+            <Text style={styles.actionSubtitle}>Manage availability and add new dishes</Text>
           </View>
-          <Ionicons name="chevron-forward" size={18} color="#9CA3AF" />
+          <Ionicons name="chevron-forward" size={18} color={Colors.textSecondary} />
         </TouchableOpacity>
 
         {/* Store Timings & Settings */}
@@ -213,250 +214,42 @@ export default function OwnerDashboardScreen() {
 }
 
 const styles = StyleSheet.create({
-  safeArea: {
-    flex: 1,
-    backgroundColor: '#F9FAFB',
-  },
-  centerContainer: {
-    flex: 1,
-    backgroundColor: '#FFFFFF',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  loadingText: {
-    color: '#6B7280',
-    fontWeight: '600',
-    marginTop: 12,
-  },
-  navbar: {
-    backgroundColor: '#FFFFFF',
-    paddingHorizontal: 16,
-    paddingVertical: 14,
-    borderBottomWidth: 1,
-    borderBottomColor: '#F3F4F6',
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-  },
-  portalBadge: {
-    fontSize: 9,
-    fontWeight: '900',
-    color: '#EA580C',
-    letterSpacing: 0.5,
-  },
-  restaurantName: {
-    fontSize: 18,
-    fontWeight: '900',
-    color: '#111827',
-    marginTop: 1,
-  },
-  switchModeButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#F3F4F6',
-    paddingHorizontal: 10,
-    paddingVertical: 6,
-    borderRadius: 10,
-    borderWidth: 1,
-    borderColor: '#E5E7EB',
-  },
-  switchModeText: {
-    fontSize: 11,
-    fontWeight: '700',
-    color: '#374151',
-  },
-  scrollContainer: {
-    flex: 1,
-  },
-  scrollContent: {
-    paddingHorizontal: 16,
-    paddingVertical: 14,
-    paddingBottom: 40,
-  },
-  storeStatusCard: {
-    borderRadius: 20,
-    padding: 16,
-    marginBottom: 14,
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    borderWidth: 1,
-  },
-  storeOpenBg: {
-    backgroundColor: '#F0FDF4',
-    borderColor: '#BBF7D0',
-  },
-  storeClosedBg: {
-    backgroundColor: '#FEF2F2',
-    borderColor: '#FECACA',
-  },
-  statusDotRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 4,
-  },
-  statusDot: {
-    width: 8,
-    height: 8,
-    borderRadius: 4,
-    marginRight: 6,
-  },
-  statusTitle: {
-    fontSize: 11,
-    fontWeight: '900',
-    letterSpacing: 0.5,
-  },
-  statusSubtitle: {
-    fontSize: 12,
-    color: '#4B5563',
-    lineHeight: 16,
-  },
-  alertBanner: {
-    backgroundColor: '#FEF3C7',
-    borderWidth: 1,
-    borderColor: '#FDE68A',
-    borderRadius: 16,
-    padding: 14,
-    marginBottom: 14,
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-  },
-  alertLeft: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  alertPulseCircle: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    backgroundColor: '#D97706',
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginRight: 12,
-  },
-  alertHeading: {
-    fontSize: 13,
-    fontWeight: '900',
-    color: '#92400E',
-  },
-  alertSub: {
-    fontSize: 11,
-    color: '#B45309',
-    fontWeight: '500',
-  },
-  sectionTitle: {
-    fontSize: 11,
-    fontWeight: '900',
-    color: '#6B7280',
-    letterSpacing: 0.5,
-    marginBottom: 10,
-  },
-  metricsGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 10,
-    marginBottom: 14,
-  },
-  metricCard: {
-    width: '48%',
-    backgroundColor: '#FFFFFF',
-    borderRadius: 18,
-    padding: 14,
-    borderWidth: 1,
-    borderColor: '#F3F4F6',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.03,
-    shadowRadius: 4,
-    elevation: 1,
-  },
-  metricIconCircle: {
-    width: 34,
-    height: 34,
-    borderRadius: 17,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: 8,
-  },
-  metricValue: {
-    fontSize: 18,
-    fontWeight: '900',
-    color: '#111827',
-  },
-  metricLabel: {
-    fontSize: 11,
-    color: '#6B7280',
-    fontWeight: '600',
-    marginTop: 2,
-  },
-  actionCard: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 18,
-    padding: 14,
-    marginBottom: 10,
-    flexDirection: 'row',
-    alignItems: 'center',
-    borderWidth: 1,
-    borderColor: '#F3F4F6',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.03,
-    shadowRadius: 4,
-    elevation: 1,
-  },
-  actionIconBox: {
-    width: 44,
-    height: 44,
-    borderRadius: 14,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginRight: 12,
-  },
-  actionTextBox: {
-    flex: 1,
-    marginRight: 8,
-  },
-  actionTitle: {
-    fontSize: 14,
-    fontWeight: '800',
-    color: '#111827',
-  },
-  actionSubtitle: {
-    fontSize: 11,
-    color: '#9CA3AF',
-    marginTop: 2,
-  },
-  settingsCard: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 18,
-    padding: 16,
-    marginTop: 6,
-    borderWidth: 1,
-    borderColor: '#F3F4F6',
-  },
-  cardHeader: {
-    fontSize: 11,
-    fontWeight: '900',
-    color: '#4B5563',
-    letterSpacing: 0.5,
-    marginBottom: 12,
-  },
-  settingRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    paddingVertical: 8,
-    borderBottomWidth: 1,
-    borderBottomColor: '#F9FAFB',
-  },
-  settingLabel: {
-    fontSize: 12,
-    color: '#6B7280',
-    fontWeight: '500',
-  },
-  settingValue: {
-    fontSize: 12,
-    color: '#111827',
-    fontWeight: '700',
-  },
+  safeArea: { flex: 1, backgroundColor: Colors.background },
+  centerContainer: { flex: 1, backgroundColor: Colors.surface, alignItems: 'center', justifyContent: 'center' },
+  loadingText: { ...Typography.bodySmall, color: Colors.textSecondary, marginTop: 12 },
+  navbar: { backgroundColor: Colors.surface, paddingHorizontal: 16, paddingVertical: 14, borderBottomWidth: 1, borderBottomColor: Colors.border, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
+  portalBadge: { ...Typography.label, fontSize: 9, color: Colors.primary, letterSpacing: 0.5 },
+  restaurantName: { ...Typography.heading, fontSize: 18, marginTop: 1 },
+  switchModeButton: { flexDirection: 'row', alignItems: 'center', backgroundColor: Colors.background, paddingHorizontal: 10, paddingVertical: 6, borderRadius: 10, borderWidth: 1, borderColor: Colors.border },
+  switchModeText: { ...Typography.button, fontSize: 11, color: Colors.text },
+  scrollContainer: { flex: 1 },
+  scrollContent: { paddingHorizontal: 16, paddingVertical: 14, paddingBottom: 40 },
+  storeStatusCard: { borderRadius: 20, padding: 16, marginBottom: 14, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', borderWidth: 1 },
+  storeOpenBg: { backgroundColor: '#F0FDF4', borderColor: '#BBF7D0' },
+  storeClosedBg: { backgroundColor: '#FEF2F2', borderColor: '#FECACA' },
+  statusDotRow: { flexDirection: 'row', alignItems: 'center', marginBottom: 4 },
+  statusDot: { width: 8, height: 8, borderRadius: 4, marginRight: 6 },
+  statusTitle: { ...Typography.button, fontSize: 11, letterSpacing: 0.5 },
+  statusSubtitle: { ...Typography.bodySmall, fontSize: 12 },
+  alertBanner: { backgroundColor: '#FEF3C7', borderWidth: 1, borderColor: '#FDE68A', borderRadius: 16, padding: 14, marginBottom: 14, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
+  alertLeft: { flexDirection: 'row', alignItems: 'center' },
+  alertPulseCircle: { width: 36, height: 36, borderRadius: 18, backgroundColor: '#D97706', alignItems: 'center', justifyContent: 'center', marginRight: 12 },
+  alertHeading: { ...Typography.title, fontSize: 13, color: '#92400E' },
+  alertSub: { ...Typography.caption, color: '#B45309' },
+  sectionTitle: { ...Typography.label, fontSize: 11, letterSpacing: 0.5, marginBottom: 10 },
+  metricsGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 10, marginBottom: 14 },
+  metricCard: { width: '48%', backgroundColor: Colors.surface, borderRadius: 18, padding: 14, borderWidth: 1, borderColor: Colors.border, shadowColor: '#000', shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.03, shadowRadius: 4, elevation: 1 },
+  metricIconCircle: { width: 34, height: 34, borderRadius: 17, alignItems: 'center', justifyContent: 'center', marginBottom: 8 },
+  metricValue: { ...Typography.heading, fontSize: 18 },
+  metricLabel: { ...Typography.caption, fontSize: 11, marginTop: 2 },
+  actionCard: { backgroundColor: Colors.surface, borderRadius: 18, padding: 14, marginBottom: 10, flexDirection: 'row', alignItems: 'center', borderWidth: 1, borderColor: Colors.border, shadowColor: '#000', shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.03, shadowRadius: 4, elevation: 1 },
+  actionIconBox: { width: 44, height: 44, borderRadius: 14, alignItems: 'center', justifyContent: 'center', marginRight: 12 },
+  actionTextBox: { flex: 1, marginRight: 8 },
+  actionTitle: { ...Typography.title, fontSize: 14 },
+  actionSubtitle: { ...Typography.caption, marginTop: 2 },
+  settingsCard: { backgroundColor: Colors.surface, borderRadius: 18, padding: 16, marginTop: 6, borderWidth: 1, borderColor: Colors.border },
+  cardHeader: { ...Typography.label, fontSize: 11, letterSpacing: 0.5, marginBottom: 12 },
+  settingRow: { flexDirection: 'row', justifyContent: 'space-between', paddingVertical: 8, borderBottomWidth: 1, borderBottomColor: Colors.background },
+  settingLabel: { ...Typography.bodySmall, fontSize: 12 },
+  settingValue: { ...Typography.button, fontSize: 12 },
 });

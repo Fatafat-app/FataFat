@@ -67,4 +67,32 @@ export const restaurantService = {
       items: categoryItems,
     }));
   },
+
+  /**
+   * Search for restaurants by query and location
+   */
+  async searchRestaurants(q: string, lat?: number, lng?: number): Promise<Restaurant[]> {
+    const response = await api.get<ApiResponse<Restaurant[] | PaginatedData<Restaurant>>>('/search/restaurants', {
+      params: { q, lat, lng },
+    });
+    const data = response.data.data;
+    if (Array.isArray(data)) {
+      return data;
+    }
+    return (data as PaginatedData<Restaurant>).items || [];
+  },
+
+  /**
+   * Search menu items by query
+   */
+  async searchMenuItems(q: string): Promise<MenuItem[]> {
+    const response = await api.get<ApiResponse<MenuItem[] | PaginatedData<MenuItem>>>('/search/items', {
+      params: { q },
+    });
+    const data = response.data.data;
+    if (Array.isArray(data)) {
+      return data;
+    }
+    return (data as PaginatedData<MenuItem>).items || [];
+  }
 };
