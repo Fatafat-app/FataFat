@@ -13,21 +13,26 @@ import {
   Image,
   Dimensions,
   ScrollView,
+  Modal,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
+import * as WebBrowser from 'expo-web-browser';
+import * as Google from 'expo-auth-session/providers/google';
 import { useAuthStore } from '../../store/auth.store';
 import { authService } from '../../services/auth.service';
-import Animated, { 
-  FadeIn, 
-  FadeInDown, 
+import Animated, {
+  FadeIn,
+  FadeInDown,
   FadeInUp,
   BounceIn,
   useAnimatedStyle,
   useSharedValue,
   withSpring
 } from 'react-native-reanimated';
+
+WebBrowser.maybeCompleteAuthSession();
 
 const { width } = Dimensions.get('window');
 
@@ -51,8 +56,94 @@ export default function LoginScreen() {
   const [otp, setOtp] = useState('');
   const [isOtpSent, setIsOtpSent] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [googleLoading, setGoogleLoading] = useState(false);
 
   const setUser = useAuthStore((state) => state.setUser);
+
+  const GOOGLE_CLIENT_ID = '392432738097-bs54bnjhhjg873ufvdgi2g84vsuoei3p.apps.googleusercontent.com';
+
+  // Expo Google Auth Request Hook
+  const [request, response, promptAsync] = Google.useAuthRequest({
+    clientId: process.env.EXPO_PUBLIC_GOOGLE_CLIENT_ID || GOOGLE_CLIENT_ID,
+    webClientId: process.env.EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID || GOOGLE_CLIENT_ID,
+    androidClientId: process.env.EXPO_PUBLIC_GOOGLE_ANDROID_CLIENT_ID || GOOGLE_CLIENT_ID,
+    iosClientId: process.env.EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID || GOOGLE_CLIENT_ID,
+    redirectUri: 'https://auth.expo.io/@anonymous/frontend',
+    scopes: ['profile', 'email'],
+  });
+
+  useEffect(() => {
+    if (request?.redirectUri) {
+      console.log('[Google Auth Redirect URI]:', request.redirectUri);
+    }
+  }, [request]);
+
+  useEffect(() => {
+    if (response?.type === 'success' && response.authentication) {
+      handleGoogleAuthSuccess(response.authentication.accessToken, response.authentication.idToken);
+    }
+  }, [response]);
+
+  const handleGoogleAuthSuccess = async (accessToken?: string, idToken?: string) => {
+    try {
+      setGoogleLoading(true);
+      let email = '';
+      let name = '';
+      let avatar = '';
+      let googleId = '';
+
+      if (accessToken) {
+        try {
+          const userInfoRes = await fetch('https://www.googleapis.com/userinfo/v2/me', {
+            headers: { Authorization: `Bearer ${accessToken}` },
+          });
+          const userInfo = await userInfoRes.json();
+          email = userInfo.email;
+          name = userInfo.name;
+          avatar = userInfo.picture;
+          googleId = userInfo.id;
+        } catch (e) {
+          console.log('[Google User Info Fetch Error]', e);
+        }
+      }
+
+      if (!email && !idToken) {
+        Alert.alert('Google Sign-In', 'Could not retrieve your Google account details.');
+        return;
+      }
+
+      const data = await authService.loginWithGoogle({
+        idToken,
+        email,
+        name: name || (email ? email.split('@')[0] : 'Google User'),
+        avatar,
+        googleId: googleId || ('google_' + email.replace(/[^a-zA-Z0-9]/g, '_')),
+      });
+      setUser(data.user);
+      navigateBasedOnRole(data.user?.role);
+    } catch (error: any) {
+      const msg = error.response?.data?.message || error.message || 'Google Sign-In failed.';
+      Alert.alert('Google Sign-In Error', msg);
+    } finally {
+      setGoogleLoading(false);
+    }
+  };
+
+  const handleGoogleLogin = async () => {
+    try {
+      setGoogleLoading(true);
+      if (request) {
+        await promptAsync();
+      } else {
+        Alert.alert('Google Sign-In', 'Google Auth is initializing. Please tap again.');
+      }
+    } catch (error: any) {
+      console.log('[Google login error]', error);
+      Alert.alert('Google Sign-In', error.message || 'Failed to open Google Sign-In');
+    } finally {
+      setGoogleLoading(false);
+    }
+  };
 
   // Reanimated Button Scale
   const buttonScale = useSharedValue(1);
@@ -186,11 +277,11 @@ export default function LoginScreen() {
 
             {/* LOGIN CARD */}
             <View style={styles.cardWrapper}>
-              <Animated.View 
-                entering={FadeInUp.duration(800).delay(300).springify()} 
+              <Animated.View
+                entering={FadeInUp.duration(800).delay(300).springify()}
                 style={styles.card}
               >
-                
+
                 {authMode === 'password' && !isOtpSent && (
                   <Animated.View entering={FadeIn}>
                     <View style={styles.inputContainer}>
@@ -346,6 +437,31 @@ export default function LoginScreen() {
                     </View>
                   </Animated.View>
                 )}
+
+                {/* Google Sign-In Option */}
+                <View style={styles.orDividerRow}>
+                  <View style={styles.orLine} />
+                  <Text style={styles.orText}>OR CONTINUE WITH</Text>
+                  <View style={styles.orLine} />
+                </View>
+
+                <TouchableOpacity
+                  style={styles.googleButton}
+                  onPress={handleGoogleLogin}
+                  disabled={googleLoading || loading}
+                  activeOpacity={0.8}
+                >
+                  {googleLoading ? (
+                    <ActivityIndicator color="#4285F4" size="small" />
+                  ) : (
+                    <>
+                      <View style={styles.googleIconCircle}>
+                        <Ionicons name="logo-google" size={18} color="#EA4335" />
+                      </View>
+                      <Text style={styles.googleButtonText}>Continue with Google</Text>
+                    </>
+                  )}
+                </TouchableOpacity>
 
                 {/* Quick Demo Logins */}
                 <View style={styles.presetSection}>
@@ -613,5 +729,196 @@ const styles = StyleSheet.create({
     fontFamily: STYLISH_FONT,
     fontWeight: '700',
     color: '#4B5563',
+  },
+  orDividerRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginVertical: 18,
+    paddingHorizontal: 8,
+  },
+  orLine: {
+    flex: 1,
+    height: 1,
+    backgroundColor: '#E5E7EB',
+  },
+  orText: {
+    fontSize: 11,
+    fontFamily: BOLD_FONT,
+    color: '#9CA3AF',
+    marginHorizontal: 12,
+    letterSpacing: 0.8,
+  },
+  googleButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#FFFFFF',
+    borderWidth: 1.5,
+    borderColor: '#E5E7EB',
+    borderRadius: 18,
+    height: 54,
+    shadowColor: '#000000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 6,
+    elevation: 2,
+    marginBottom: 4,
+  },
+  googleIconCircle: {
+    width: 30,
+    height: 30,
+    borderRadius: 15,
+    backgroundColor: '#FEE2E2',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: 10,
+  },
+  googleButtonText: {
+    fontSize: 15,
+    fontFamily: BOLD_FONT,
+    color: '#1F2937',
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.55)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 20,
+  },
+  googleModalContent: {
+    width: '100%',
+    maxWidth: 400,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 24,
+    padding: 24,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 10 },
+    shadowOpacity: 0.15,
+    shadowRadius: 20,
+    elevation: 10,
+  },
+  googleModalHeader: {
+    alignItems: 'center',
+    marginBottom: 20,
+  },
+  googleIconBadge: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    backgroundColor: '#FEE2E2',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 10,
+  },
+  googleModalTitle: {
+    fontSize: 20,
+    fontFamily: BOLD_FONT,
+    color: '#1F2937',
+    textAlign: 'center',
+  },
+  googleModalSubtitle: {
+    fontSize: 13,
+    fontFamily: STYLISH_FONT,
+    color: '#6B7280',
+    textAlign: 'center',
+    marginTop: 4,
+  },
+  googleAccountList: {
+    gap: 10,
+    marginBottom: 16,
+  },
+  googleAccountItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 12,
+    borderRadius: 14,
+    backgroundColor: '#F9FAFB',
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+  },
+  avatarCircle: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: 12,
+  },
+  avatarLetter: {
+    color: '#FFFFFF',
+    fontSize: 16,
+    fontFamily: BOLD_FONT,
+  },
+  accountName: {
+    fontSize: 14,
+    fontFamily: BOLD_FONT,
+    color: '#1F2937',
+  },
+  accountEmail: {
+    fontSize: 12,
+    fontFamily: STYLISH_FONT,
+    color: '#6B7280',
+    marginTop: 1,
+  },
+  orDividerRowModal: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginVertical: 12,
+  },
+  orTextModal: {
+    fontSize: 10,
+    fontFamily: BOLD_FONT,
+    color: '#9CA3AF',
+    marginHorizontal: 10,
+    letterSpacing: 0.5,
+  },
+  modalInput: {
+    borderWidth: 1.5,
+    borderColor: '#E5E7EB',
+    borderRadius: 14,
+    paddingHorizontal: 16,
+    height: 48,
+    fontSize: 14,
+    fontFamily: STYLISH_FONT,
+    color: '#1F2937',
+    backgroundColor: '#FAFAFA',
+  },
+  modalButtonRow: {
+    flexDirection: 'row',
+    gap: 12,
+    marginTop: 20,
+  },
+  modalCancelButton: {
+    flex: 1,
+    height: 46,
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: '#D1D5DB',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#FFFFFF',
+  },
+  modalCancelText: {
+    fontSize: 14,
+    fontFamily: BOLD_FONT,
+    color: '#6B7280',
+  },
+  modalSubmitButton: {
+    flex: 1,
+    height: 46,
+    borderRadius: 14,
+    backgroundColor: '#EA4335',
+    alignItems: 'center',
+    justifyContent: 'center',
+    shadowColor: '#EA4335',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.25,
+    shadowRadius: 8,
+    elevation: 4,
+  },
+  modalSubmitText: {
+    fontSize: 14,
+    fontFamily: BOLD_FONT,
+    color: '#FFFFFF',
   },
 });

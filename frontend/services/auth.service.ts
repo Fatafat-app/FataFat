@@ -64,6 +64,25 @@ export const authService = {
   },
 
   /**
+   * Login with Firebase / Google Authentication
+   */
+  async loginWithGoogle(payload: {
+    idToken?: string;
+    email?: string;
+    name?: string;
+    avatar?: string;
+    googleId?: string;
+  }): Promise<AuthResponseData> {
+    const response = await api.post<ApiResponse<any>>('/auth/google', payload);
+    const data = response.data.data;
+    const { accessToken, refreshToken } = extractTokens(data);
+    if (accessToken) {
+      await saveAuthTokens(accessToken, refreshToken || '');
+    }
+    return data;
+  },
+
+  /**
    * Fetch current authenticated user's profile
    */
   async getProfile(): Promise<User> {

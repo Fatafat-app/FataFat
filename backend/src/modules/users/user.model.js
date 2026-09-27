@@ -30,8 +30,8 @@ const userSchema = new mongoose.Schema(
     },
     phone: {
       type: String,
-      required: [true, 'Phone number is required'],
       unique: true,
+      sparse: true,
       trim: true,
       match: [/^\+?[1-9]\d{9,14}$/, 'Invalid phone number format'],
     },
@@ -50,6 +50,13 @@ const userSchema = new mongoose.Schema(
     },
     passwordHash: { type: String, select: false },
     refreshTokenHash: { type: String, select: false },
+
+    googleId: { type: String, sparse: true, index: true },
+    authProvider: {
+      type: String,
+      enum: ['phone', 'google', 'email'],
+      default: 'phone',
+    },
 
     isVerified: { type: Boolean, default: false },
     isActive: { type: Boolean, default: true },

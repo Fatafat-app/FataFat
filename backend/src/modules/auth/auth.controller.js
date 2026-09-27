@@ -56,4 +56,11 @@ async function logout(req, res) {
   success(res, null, 'Logged out successfully');
 }
 
-module.exports = { register, login, sendOtp, verifyOtp, refresh, logout };
+async function loginWithGoogle(req, res) {
+  const { accessToken, refreshToken, user } = await authService.loginWithGoogle(req.body);
+
+  res.cookie('refreshToken', refreshToken, REFRESH_COOKIE_OPTIONS);
+  success(res, { accessToken, refreshToken, user }, 'Google login successful');
+}
+
+module.exports = { register, login, sendOtp, verifyOtp, refresh, logout, loginWithGoogle };

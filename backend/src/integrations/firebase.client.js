@@ -68,4 +68,19 @@ async function sendMulticastNotification(fcmTokens, { title, body, data = {} }) 
   }
 }
 
-module.exports = { sendPushNotification, sendMulticastNotification };
+async function verifyFirebaseToken(idToken) {
+  const app = getFirebaseApp();
+  try {
+    const decodedToken = await app.auth().verifyIdToken(idToken);
+    return decodedToken;
+  } catch (err) {
+    logger.warn('[Firebase] ID Token verification failed', { error: err.message });
+    throw err;
+  }
+}
+
+module.exports = {
+  sendPushNotification,
+  sendMulticastNotification,
+  verifyFirebaseToken,
+};

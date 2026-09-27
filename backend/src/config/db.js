@@ -1,13 +1,18 @@
-'use strict';
-
+const dns = require('dns');
 const mongoose = require('mongoose');
 const env = require('./env');
 const logger = require('./logger');
 
+// Ensure reliable DNS resolution for MongoDB Atlas SRV records
+try {
+  dns.setServers(['8.8.8.8', '1.1.1.1', '8.8.4.4']);
+} catch (e) {
+  // safe fallback
+}
+
 const MONGOOSE_OPTIONS = {
-  serverSelectionTimeoutMS: 5000,
+  serverSelectionTimeoutMS: 10000,
   socketTimeoutMS: 45000,
-  retryWrites: false,
   autoIndex: true,
 };
 

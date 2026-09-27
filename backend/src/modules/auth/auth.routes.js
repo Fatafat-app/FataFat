@@ -28,6 +28,9 @@ router.post('/verify-otp', otpLimiter, validate(verifyOtpSchema), controller.ver
 router.post('/refresh', validate(refreshTokenSchema), controller.refresh);
 router.post('/refresh-token', validate(refreshTokenSchema), controller.refresh);
 
+router.post('/google', authLimiter, controller.loginWithGoogle);
+router.post('/firebase-login', authLimiter, controller.loginWithGoogle);
+
 router.post('/logout', authenticate, controller.logout);
 
 module.exports = router;

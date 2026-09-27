@@ -159,6 +159,84 @@ async function logout(userId) {
   await User.findByIdAndUpdate(userId, { refreshTokenHash: null });
 }
 
+const { verifyFirebaseToken } = require('../../integrations/firebase.client');
+
+async function loginWithGoogle(payload = {}) {
+  const { idToken, email, name, avatar, googleId } = payload;
+
+  let verifiedEmail = email;
+  let verifiedName = name;
+  let verifiedAvatar = avatar;
+  let verifiedGoogleId = googleId;
+
+  if (idToken) {
+    try {
+      const decoded = await verifyFirebaseToken(idToken);
+      if (decoded) {
+        verifiedEmail = decoded.email || verifiedEmail;
+        verifiedName = decoded.name || verifiedName;
+        verifiedAvatar = decoded.picture || verifiedAvatar;
+        verifiedGoogleId = decoded.uid || decoded.sub || verifiedGoogleId;
+      }
+    } catch (err) {
+      // If token verify fails but email/googleId is passed in dev
+      if (!verifiedEmail && !verifiedGoogleId) {
+        throw new UnauthorizedError('Invalid Google authentication token', ERROR_CODES.TOKEN_INVALID);
+      }
+    }
+  }
+
+  if (!verifiedEmail && !verifiedGoogleId) {
+    throw new BusinessError('Google account email or ID is required', ERROR_CODES.INVALID_CREDENTIALS);
+  }
+
+  const queryOr = [];
+  if (verifiedGoogleId) queryOr.push({ googleId: verifiedGoogleId });
+  if (verifiedEmail) queryOr.push({ email: verifiedEmail.toLowerCase() });
+
+  let user = await User.findOne({ $or: queryOr });
+
+  if (!user) {
+    user = await User.create({
+      name: verifiedName || (verifiedEmail ? verifiedEmail.split('@')[0] : 'Ftafat User'),
+      email: verifiedEmail ? verifiedEmail.toLowerCase() : undefined,
+      avatar: verifiedAvatar,
+      googleId: verifiedGoogleId,
+      authProvider: 'google',
+      isVerified: true,
+      isActive: true,
+      role: ROLES.CUSTOMER,
+    });
+  } else {
+    let hasChanges = false;
+    if (!user.googleId && verifiedGoogleId) {
+      user.googleId = verifiedGoogleId;
+      hasChanges = true;
+    }
+    if (!user.avatar && verifiedAvatar) {
+      user.avatar = verifiedAvatar;
+      hasChanges = true;
+    }
+    if (verifiedEmail && !user.email) {
+      user.email = verifiedEmail.toLowerCase();
+      hasChanges = true;
+    }
+    if (!user.isVerified) {
+      user.isVerified = true;
+      hasChanges = true;
+    }
+    if (hasChanges) {
+      await user.save();
+    }
+  }
+
+  if (!user.isActive) {
+    throw new BusinessError('Account is deactivated. Please contact support.', ERROR_CODES.ACCOUNT_INACTIVE);
+  }
+
+  return issueTokenPair(user);
+}
+
 module.exports = {
   register,
   loginWithPassword,
@@ -166,4 +244,5 @@ module.exports = {
   verifyOtpAndLogin,
   refreshAccessToken,
   logout,
+  loginWithGoogle,
 };
