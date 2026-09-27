@@ -13,6 +13,7 @@ router.post('/', controller.placeOrder);
 router.get('/fees/current', controller.getCurrentFees);
 router.get('/mine', controller.getMyOrders);
 router.get('/:id', controller.getOrder);
+router.patch('/:id/cancel', controller.cancelOrder);
 
 router.get('/restaurant/:restaurantId', requireRole(ROLES.RESTAURANT_OWNER, ROLES.ADMIN), controller.getRestaurantOrders);
 

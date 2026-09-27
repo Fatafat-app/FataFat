@@ -8,6 +8,7 @@ import {
   RefreshControl,
   Alert,
   StyleSheet,
+  Image,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
@@ -259,13 +260,30 @@ export default function OrdersScreen() {
                   </View>
                 </View>
 
-                {/* Items Summary */}
+                {/* Items Summary with Images */}
                 <View style={styles.itemList}>
-                  {order.items?.map((it, idx) => (
-                    <Text key={idx} style={styles.itemText}>
-                      {it.quantity} × {it.name}
-                    </Text>
-                  ))}
+                  {order.items?.map((it, idx) => {
+                    const imageUrl = (it as any).menuItem?.images?.[0] || 'https://images.pexels.com/photos/1639557/pexels-photo-1639557.jpeg';
+                    const isVeg = (it as any).menuItem?.isVeg;
+                    
+                    return (
+                      <View key={idx} style={styles.itemRow}>
+                        <Image source={{ uri: imageUrl }} style={styles.itemImage} />
+                        <View style={styles.itemTextContainer}>
+                          <View style={styles.itemNameRow}>
+                            {isVeg !== undefined && (
+                              <View style={[styles.vegSquare, { borderColor: isVeg ? '#16A34A' : '#DC2626' }]}>
+                                <View style={[styles.vegDot, { backgroundColor: isVeg ? '#16A34A' : '#DC2626' }]} />
+                              </View>
+                            )}
+                            <Text style={styles.itemName} numberOfLines={1}>{it.name}</Text>
+                          </View>
+                          <Text style={styles.itemQuantity}>Qty: {it.quantity}</Text>
+                        </View>
+                        <Text style={styles.itemPrice}>{formatPaise(it.price * it.quantity)}</Text>
+                      </View>
+                    );
+                  })}
                 </View>
 
                 {/* Footer with Price and Details */}
@@ -327,9 +345,17 @@ const styles = StyleSheet.create({
   statusPillText: { ...Typography.button, fontSize: 10, color: '#C2410C' },
   statusDeliveredText: { color: Colors.success },
   statusCancelledText: { color: Colors.error },
-  itemList: { marginVertical: 6 },
-  itemText: { ...Typography.bodySmall, fontSize: 13 },
-  orderCardFooter: { marginTop: 10, paddingTop: 10, borderTopWidth: 1, borderTopColor: Colors.background, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
+  itemList: { marginVertical: 8 },
+  itemRow: { flexDirection: 'row', alignItems: 'center', marginBottom: 12 },
+  itemImage: { width: 44, height: 44, borderRadius: 10, backgroundColor: Colors.border },
+  itemTextContainer: { flex: 1, marginLeft: 12, marginRight: 8 },
+  itemNameRow: { flexDirection: 'row', alignItems: 'center', marginBottom: 2 },
+  vegSquare: { width: 12, height: 12, borderWidth: 1, borderRadius: 2, alignItems: 'center', justifyContent: 'center', marginRight: 6 },
+  vegDot: { width: 6, height: 6, borderRadius: 3 },
+  itemName: { ...Typography.subtitle, fontSize: 14, flex: 1 },
+  itemQuantity: { ...Typography.caption, color: Colors.textSecondary },
+  itemPrice: { ...Typography.title, fontSize: 14, color: Colors.text },
+  orderCardFooter: { marginTop: 4, paddingTop: 12, borderTopWidth: 1, borderTopColor: Colors.borderLight || '#F3F4F6', flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
   orderDate: { ...Typography.caption },
-  orderTotal: { ...Typography.title, fontSize: 15 },
+  orderTotal: { ...Typography.title, fontSize: 16 },
 });
