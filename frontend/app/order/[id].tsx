@@ -7,6 +7,7 @@ import {
   ActivityIndicator,
   Alert,
   StyleSheet,
+  Image,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useLocalSearchParams, router } from 'expo-router';
@@ -136,7 +137,7 @@ export default function OrderDetailsScreen() {
   const currentStep = getStepIndex(displayStatus);
   const isCancelled = displayStatus === 'CANCELLED';
   const restName =
-    (typeof order.restaurant === 'object' && order.restaurant !== null && (order.restaurant as any).name)
+    (typeof (order as any).restaurant === 'object' && (order as any).restaurant !== null && (order as any).restaurant.name)
     || (typeof order.restaurantId === 'object' && order.restaurantId !== null && (order.restaurantId as any).name)
     || (typeof (order as any).restaurantName === 'string' ? (order as any).restaurantName : null)
     || 'Partner Restaurant';
@@ -206,15 +207,28 @@ export default function OrderDetailsScreen() {
         {/* Items Summary */}
         <View style={styles.card}>
           <Text style={styles.cardHeading}>ITEMS</Text>
-          {order.items?.map((item, idx) => (
-            <View key={idx} style={[styles.itemRow, idx !== order.items.length - 1 && styles.itemBorder]}>
-              <View style={styles.itemLeft}>
-                <View style={styles.qtyBox}><Text style={styles.qtyText}>{item.quantity}</Text></View>
-                <Text style={styles.itemName}>x {item.name}</Text>
+          {order.items?.map((item, idx) => {
+            const imageUrl = (item as any).menuItem?.images?.[0] || 'https://images.pexels.com/photos/1639557/pexels-photo-1639557.jpeg';
+            const isVeg = (item as any).menuItem?.isVeg;
+            
+            return (
+              <View key={idx} style={[styles.itemRow, idx !== order.items.length - 1 && styles.itemBorder]}>
+                <Image source={{ uri: imageUrl }} style={styles.itemImage} />
+                <View style={styles.itemMiddle}>
+                  <View style={styles.itemNameRow}>
+                    {isVeg !== undefined && (
+                      <View style={[styles.vegSquare, { borderColor: isVeg ? '#16A34A' : '#DC2626' }]}>
+                        <View style={[styles.vegDot, { backgroundColor: isVeg ? '#16A34A' : '#DC2626' }]} />
+                      </View>
+                    )}
+                    <Text style={styles.itemName} numberOfLines={1}>{item.name}</Text>
+                  </View>
+                  <Text style={styles.itemQuantity}>Qty: {item.quantity}</Text>
+                </View>
+                <Text style={styles.itemPrice}>{formatPaise(item.price * item.quantity)}</Text>
               </View>
-              <Text style={styles.itemPrice}>{formatPaise(item.price * item.quantity)}</Text>
-            </View>
-          ))}
+            );
+          })}
         </View>
 
         {/* Bill Summary */}
@@ -288,13 +302,16 @@ const styles = StyleSheet.create({
   cancelledSubtitle: { ...Typography.bodySmall, color: Colors.textSecondary, marginTop: 4 },
   restaurantName: { ...Typography.title, fontSize: 18, marginBottom: 4 },
   dateText: { ...Typography.caption, color: Colors.textSecondary },
-  itemRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingVertical: 10 },
-  itemBorder: { borderBottomWidth: 1, borderBottomColor: Colors.background },
-  itemLeft: { flexDirection: 'row', alignItems: 'center' },
-  qtyBox: { backgroundColor: Colors.primaryLight, paddingHorizontal: 8, paddingVertical: 4, borderRadius: 6, marginRight: 10 },
-  qtyText: { ...Typography.button, color: Colors.primary },
-  itemName: { ...Typography.body, color: Colors.text },
-  itemPrice: { ...Typography.title, fontSize: 14 },
+  itemRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingVertical: 12 },
+  itemBorder: { borderBottomWidth: 1, borderBottomColor: '#F3F4F6' },
+  itemImage: { width: 48, height: 48, borderRadius: 10, backgroundColor: Colors.border },
+  itemMiddle: { flex: 1, marginLeft: 12, marginRight: 8 },
+  itemNameRow: { flexDirection: 'row', alignItems: 'center', marginBottom: 2 },
+  vegSquare: { width: 12, height: 12, borderWidth: 1, borderRadius: 2, alignItems: 'center', justifyContent: 'center', marginRight: 6 },
+  vegDot: { width: 6, height: 6, borderRadius: 3 },
+  itemName: { ...Typography.subtitle, fontSize: 14, flex: 1, color: Colors.text },
+  itemQuantity: { ...Typography.caption, color: Colors.textSecondary },
+  itemPrice: { ...Typography.title, fontSize: 14, color: Colors.text },
   billRow: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 8 },
   billLabel: { ...Typography.bodySmall, color: Colors.textSecondary },
   billValue: { ...Typography.subtitle, fontSize: 13 },

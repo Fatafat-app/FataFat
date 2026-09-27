@@ -30,7 +30,7 @@ function createLimiter(options) {
 
 const globalLimiter = createLimiter({
   windowMs: 15 * 60 * 1000,
-  max: 100,
+  max: 1000,
   keyPrefix: 'global',
   message: 'Too many requests from this IP. Please try again in 15 minutes.',
 });

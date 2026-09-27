@@ -107,7 +107,10 @@ export const orderService = {
    * Cancel an order
    */
   async cancelOrder(orderId: string, reason?: string): Promise<Order> {
-    throw new Error('Cancel order feature is not supported by the backend yet.');
+    const response = await api.patch<ApiResponse<any>>(`/orders/${orderId}/cancel`, { reason });
+    const raw = response.data.data;
+    const orderObj = raw?.order || raw;
+    return normalizeOrder(orderObj);
   },
 
   /**

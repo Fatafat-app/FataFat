@@ -157,7 +157,7 @@ async function findNearbyRestaurants({ lat, lng, radiusKm = 50 }, query = {}) {
 
       [restaurants, total] = await Promise.all([
         Restaurant.find(geoFilter).skip(skip).limit(limit),
-        Restaurant.countDocuments(geoFilter),
+        Restaurant.countDocuments(filter), // countDocuments doesn't support $near
       ]);
     } catch (err) {
       logger.warn('[GeoQuery] Fallback to standard query', { error: err.message });

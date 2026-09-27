@@ -69,8 +69,7 @@ async function placeOrder(userId, payload = {}) {
     throw new BusinessError('Restaurant not found for this order', 'RESTAURANT_REQUIRED');
   }
 
-  const Restaurant = require('../restaurants/restaurant.model');
-  const restaurant = await Restaurant.findById(orderRestaurantId);
+  const restaurant = await restaurantService.getRestaurantById(orderRestaurantId);
   if (!restaurant) {
     throw new NotFoundError('Restaurant not found');
   }
@@ -218,6 +217,7 @@ async function getUserOrders(userId, query) {
   const [orders, total] = await Promise.all([
     Order.find(filter)
       .populate('restaurant', 'name coverImage')
+      .populate('items.menuItem', 'images isVeg')
       .sort({ createdAt: -1 })
       .skip(skip)
       .limit(limit),
@@ -265,10 +265,40 @@ async function updateOrderStatus(orderId, newStatus, requestingUser) {
   return order;
 }
 
+async function cancelOrder(orderId, reason, requestingUser) {
+  const order = await Order.findById(orderId);
+  if (!order) throw new NotFoundError('Order not found');
+
+  // Verify the order belongs to the user
+  if (order.user.toString() !== requestingUser.id) {
+    throw new BusinessError('Not authorized to cancel this order', ERROR_CODES.FORBIDDEN);
+  }
+
+  // Use state machine to transition to cancelled
+  stateMachine.transition(order, 'cancelled');
+  if (reason) {
+    order.specialInstructions = order.specialInstructions ? `${order.specialInstructions}\nCancel Reason: ${reason}` : `Cancel Reason: ${reason}`;
+  }
+  await order.save();
+
+  await order.populate('user', 'name phone email');
+  await order.populate('restaurant', 'name phone address');
+  await order.populate('items.menuItem', 'images isVeg');
+
+  notificationQueue.add('order-status-changed', {
+    userId: requestingUser.id,
+    orderId: order._id.toString(),
+    newStatus: 'cancelled',
+  }).catch(() => {});
+
+  return order;
+}
+
 module.exports = {
   placeOrder,
   getOrderById,
   getUserOrders,
   getRestaurantOrders,
   updateOrderStatus,
+  cancelOrder,
 };

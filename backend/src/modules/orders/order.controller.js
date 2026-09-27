@@ -38,11 +38,17 @@ async function getCurrentFees(req, res) {
   success(res, { config }, 'Current fee configuration retrieved');
 }
 
+async function cancelOrder(req, res) {
+  const order = await orderService.cancelOrder(req.params.id, req.body.reason, req.user);
+  success(res, { order }, 'Order cancelled successfully');
+}
+
 module.exports = {
   placeOrder,
   getOrder,
   getMyOrders,
   getRestaurantOrders,
   updateStatus,
+  cancelOrder,
   getCurrentFees,
 };
