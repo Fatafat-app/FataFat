@@ -151,7 +151,7 @@ export default function LoginScreen() {
 
   return (
     <ImageBackground
-      source={require('../../assets/images/login_bg_simple.png')}
+      source={require('../../assets/images/login_bg_food.jpeg')}
       style={styles.fullScreenBg}
       imageStyle={styles.backgroundImage}
     >
@@ -394,7 +394,9 @@ const styles = StyleSheet.create({
     backgroundColor: '#FDF2E3',
   },
   backgroundImage: {
-    resizeMode: 'cover',
+    resizeMode: 'stretch',
+    width: '100%',
+    height: '100%',
   },
   scrollContent: {
     flexGrow: 1,
