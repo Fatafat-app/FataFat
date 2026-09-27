@@ -44,6 +44,15 @@ export default function RestaurantScreen() {
   const [selectedItemForMod, setSelectedItemForMod] = useState<MenuItem | null>(null);
   const [modSelections, setModSelections] = useState<Record<string, MenuItemModifierOption[]>>({});
 
+  // Product Detail Sheet State
+  const [detailSheetVisible, setDetailSheetVisible] = useState(false);
+  const [detailItem, setDetailItem] = useState<MenuItem | null>(null);
+
+  const openDetailSheet = (item: MenuItem) => {
+    setDetailItem(item);
+    setDetailSheetVisible(true);
+  };
+
   const fetchDetails = async () => {
     if (!id) return;
     try {
@@ -257,7 +266,12 @@ export default function RestaurantScreen() {
                   const qty = getItemQuantityInCart(item._id);
 
                   return (
-                    <View key={item._id} style={styles.menuItemCard}>
+                    <TouchableOpacity
+                      key={item._id}
+                      style={styles.menuItemCard}
+                      onPress={() => openDetailSheet(item)}
+                      activeOpacity={0.92}
+                    >
                       <View style={styles.itemTextContainer}>
                         <View style={styles.vegBadgeRow}>
                           <View style={[styles.vegSquare, { borderColor: item.isVeg ? '#16A34A' : '#DC2626' }]}>
@@ -298,7 +312,7 @@ export default function RestaurantScreen() {
                           </TouchableOpacity>
                         )}
                       </View>
-                    </View>
+                    </TouchableOpacity>
                   );
                 })}
               </View>
@@ -306,6 +320,121 @@ export default function RestaurantScreen() {
           )}
         </View>
       </ScrollView>
+
+      {/* ── PRODUCT DETAIL BOTTOM SHEET ── */}
+      <Modal visible={detailSheetVisible} animationType="slide" transparent statusBarTranslucent>
+        <TouchableOpacity
+          style={styles.detailOverlay}
+          activeOpacity={1}
+          onPress={() => setDetailSheetVisible(false)}
+        />
+        {detailItem && (
+          <View style={styles.detailSheet}>
+            {/* Drag handle */}
+            <View style={styles.detailHandle} />
+
+            {/* Food Image */}
+            <View style={styles.detailImageWrapper}>
+              <Image
+                source={{ uri: detailItem.images?.[0] || 'https://images.pexels.com/photos/1639557/pexels-photo-1639557.jpeg' }}
+                style={styles.detailImage}
+                resizeMode="cover"
+              />
+              {/* Veg / Non-veg badge on image */}
+              <View style={[styles.detailVegBadge, { borderColor: detailItem.isVeg ? '#16A34A' : '#DC2626' }]}>
+                <View style={[styles.detailVegDot, { backgroundColor: detailItem.isVeg ? '#16A34A' : '#DC2626' }]} />
+              </View>
+            </View>
+
+            <ScrollView style={styles.detailBody} showsVerticalScrollIndicator={false}>
+              {/* Name & Price */}
+              <View style={styles.detailTitleRow}>
+                <Text style={styles.detailName}>{detailItem.name}</Text>
+                <Text style={styles.detailPrice}>{formatPaise(detailItem.price)}</Text>
+              </View>
+
+              {/* Badges row */}
+              <View style={styles.detailBadgesRow}>
+                <View style={[styles.detailTypeBadge, { backgroundColor: detailItem.isVeg ? '#F0FDF4' : '#FEF2F2', borderColor: detailItem.isVeg ? '#16A34A' : '#DC2626' }]}>
+                  <Text style={[styles.detailTypeText, { color: detailItem.isVeg ? '#15803D' : '#DC2626' }]}>
+                    {detailItem.isVeg ? '🟢 Pure Veg' : '🔴 Non-Veg'}
+                  </Text>
+                </View>
+                {detailItem.calories ? (
+                  <View style={styles.detailCalBadge}>
+                    <Ionicons name="flame-outline" size={13} color="#F97316" />
+                    <Text style={styles.detailCalText}>{detailItem.calories} kcal</Text>
+                  </View>
+                ) : null}
+                {detailItem.modifierGroups && detailItem.modifierGroups.length > 0 && (
+                  <View style={styles.detailCustomBadge}>
+                    <Ionicons name="options-outline" size={13} color={Colors.primary} />
+                    <Text style={styles.detailCustomText}>Customizable</Text>
+                  </View>
+                )}
+              </View>
+
+              {/* Description */}
+              {detailItem.description ? (
+                <View style={styles.detailDescBox}>
+                  <Text style={styles.detailDescLabel}>About this dish</Text>
+                  <Text style={styles.detailDesc}>{detailItem.description}</Text>
+                </View>
+              ) : null}
+
+              {/* Sold out notice */}
+              {!detailItem.isAvailable && (
+                <View style={styles.soldOutBox}>
+                  <Ionicons name="close-circle-outline" size={16} color="#DC2626" />
+                  <Text style={styles.soldOutText}>Currently unavailable</Text>
+                </View>
+              )}
+            </ScrollView>
+
+            {/* Add to Cart Button */}
+            <View style={styles.detailFooter}>
+              {(() => {
+                const qty = getItemQuantityInCart(detailItem._id);
+                if (!detailItem.isAvailable) {
+                  return (
+                    <View style={[styles.detailAddBtn, { backgroundColor: '#E5E7EB' }]}>
+                      <Text style={[styles.detailAddBtnText, { color: '#9CA3AF' }]}>Sold Out</Text>
+                    </View>
+                  );
+                }
+                if (qty > 0 && (!detailItem.modifierGroups || detailItem.modifierGroups.length === 0)) {
+                  return (
+                    <View style={styles.detailQtyRow}>
+                      <TouchableOpacity onPress={() => updateQuantity(detailItem._id, -1)} style={styles.detailQtyBtn}>
+                        <Ionicons name="remove" size={20} color={Colors.primary} />
+                      </TouchableOpacity>
+                      <Text style={styles.detailQtyCount}>{qty}</Text>
+                      <TouchableOpacity onPress={() => updateQuantity(detailItem._id, 1)} style={styles.detailQtyBtn}>
+                        <Ionicons name="add" size={20} color={Colors.primary} />
+                      </TouchableOpacity>
+                    </View>
+                  );
+                }
+                return (
+                  <TouchableOpacity
+                    style={styles.detailAddBtn}
+                    onPress={() => {
+                      setDetailSheetVisible(false);
+                      setTimeout(() => onAddPress(detailItem), 300);
+                    }}
+                    activeOpacity={0.85}
+                  >
+                    <Ionicons name="add-circle-outline" size={20} color="#FFF" style={{ marginRight: 8 }} />
+                    <Text style={styles.detailAddBtnText}>
+                      {detailItem.modifierGroups && detailItem.modifierGroups.length > 0 ? 'Customise & Add' : 'Add to Cart'}
+                    </Text>
+                  </TouchableOpacity>
+                );
+              })()}
+            </View>
+          </View>
+        )}
+      </Modal>
 
       {/* Modifier Modal */}
       <Modal visible={modModalVisible} animationType="slide" transparent={true}>
@@ -452,7 +581,105 @@ const styles = StyleSheet.create({
   viewCartRight: { flexDirection: 'row', alignItems: 'center' },
   viewCartText: { ...Typography.button, marginRight: 4, fontSize: 13 },
   
-  // Modal styles
+  // Detail Sheet styles
+  detailOverlay: {
+    position: 'absolute', top: 0, left: 0, right: 0, bottom: 0,
+    backgroundColor: 'rgba(0,0,0,0.45)',
+  },
+  detailSheet: {
+    position: 'absolute', bottom: 0, left: 0, right: 0,
+    backgroundColor: Colors.surface,
+    borderTopLeftRadius: 28, borderTopRightRadius: 28,
+    maxHeight: '88%',
+    overflow: 'hidden',
+  },
+  detailHandle: {
+    width: 40, height: 4, borderRadius: 2,
+    backgroundColor: Colors.border,
+    alignSelf: 'center', marginTop: 10, marginBottom: 4,
+  },
+  detailImageWrapper: {
+    position: 'relative',
+  },
+  detailImage: {
+    width: '100%', height: 220,
+  },
+  detailVegBadge: {
+    position: 'absolute', top: 12, left: 12,
+    width: 22, height: 22, borderRadius: 3,
+    borderWidth: 1.5, backgroundColor: '#FFF',
+    alignItems: 'center', justifyContent: 'center',
+  },
+  detailVegDot: {
+    width: 10, height: 10, borderRadius: 5,
+  },
+  detailBody: {
+    paddingHorizontal: 20, paddingTop: 16,
+  },
+  detailTitleRow: {
+    flexDirection: 'row', justifyContent: 'space-between',
+    alignItems: 'flex-start', marginBottom: 12,
+  },
+  detailName: {
+    ...Typography.heading, fontSize: 20, flex: 1, marginRight: 12,
+  },
+  detailPrice: {
+    ...Typography.heading, fontSize: 20, color: Colors.primary,
+  },
+  detailBadgesRow: {
+    flexDirection: 'row', gap: 8, marginBottom: 16, flexWrap: 'wrap',
+  },
+  detailTypeBadge: {
+    flexDirection: 'row', alignItems: 'center',
+    paddingHorizontal: 10, paddingVertical: 4,
+    borderRadius: 20, borderWidth: 1,
+  },
+  detailTypeText: { ...Typography.label, fontSize: 12 },
+  detailCalBadge: {
+    flexDirection: 'row', alignItems: 'center', gap: 4,
+    backgroundColor: '#FFF7ED', paddingHorizontal: 10, paddingVertical: 4,
+    borderRadius: 20, borderWidth: 1, borderColor: '#FED7AA',
+  },
+  detailCalText: { ...Typography.label, fontSize: 12, color: '#EA580C' },
+  detailCustomBadge: {
+    flexDirection: 'row', alignItems: 'center', gap: 4,
+    backgroundColor: Colors.primaryLight, paddingHorizontal: 10, paddingVertical: 4,
+    borderRadius: 20, borderWidth: 1, borderColor: '#FED7AA',
+  },
+  detailCustomText: { ...Typography.label, fontSize: 12, color: Colors.primary },
+  detailDescBox: {
+    backgroundColor: Colors.background, borderRadius: 14,
+    padding: 14, marginBottom: 16,
+  },
+  detailDescLabel: { ...Typography.label, color: Colors.textSecondary, marginBottom: 6 },
+  detailDesc: { ...Typography.body, lineHeight: 22, color: Colors.text },
+  soldOutBox: {
+    flexDirection: 'row', alignItems: 'center', gap: 6,
+    backgroundColor: '#FEF2F2', padding: 12, borderRadius: 12, marginBottom: 16,
+  },
+  soldOutText: { ...Typography.label, color: '#DC2626' },
+  detailFooter: {
+    padding: 16, paddingBottom: 28,
+    borderTopWidth: 1, borderTopColor: Colors.border,
+    backgroundColor: Colors.surface,
+  },
+  detailAddBtn: {
+    backgroundColor: Colors.primary, borderRadius: 16,
+    paddingVertical: 16, alignItems: 'center', justifyContent: 'center',
+    flexDirection: 'row',
+  },
+  detailAddBtnText: {
+    ...Typography.button, color: '#FFF', fontSize: 16,
+  },
+  detailQtyRow: {
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'center',
+    backgroundColor: Colors.primaryLight, borderRadius: 16,
+    borderWidth: 1.5, borderColor: Colors.primary, paddingVertical: 10,
+  },
+  detailQtyBtn: { paddingHorizontal: 24 },
+  detailQtyCount: { ...Typography.heading, fontSize: 20, color: Colors.primary, minWidth: 40, textAlign: 'center' },
+
+  // Modifier modal styles
   modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'flex-end' },
   modalContent: { backgroundColor: Colors.surface, borderTopLeftRadius: 24, borderTopRightRadius: 24, padding: 20, maxHeight: '80%' },
   modalHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16, borderBottomWidth: 1, borderBottomColor: Colors.border, paddingBottom: 16 },
@@ -468,3 +695,4 @@ const styles = StyleSheet.create({
   modOptionPrice: { ...Typography.body, color: Colors.textSecondary },
   modalFooter: { paddingTop: 10 },
 });
+

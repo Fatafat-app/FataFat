@@ -104,11 +104,35 @@ export default function ProfileScreen() {
         {/* Content Body */}
         <View style={styles.bodyContainer}>
           
-          {/* Quick Stats/Links Row */}
+          {/* Ftafat Gold Premium Banner */}
+          <TouchableOpacity 
+            style={styles.goldBanner}
+            onPress={() => Alert.alert('Ftafat Gold', 'Subscribe to Ftafat Gold for free deliveries and premium discounts! (Coming soon)')}
+          >
+            <View style={styles.goldBannerLeft}>
+              <View style={styles.goldIconWrapper}>
+                <Ionicons name="star" size={20} color="#F59E0B" />
+              </View>
+              <View>
+                <Text style={styles.goldTitle}>Ftafat GOLD</Text>
+                <Text style={styles.goldSub}>Free delivery & extra discounts</Text>
+              </View>
+            </View>
+            <View style={styles.goldActionBtn}>
+              <Text style={styles.goldActionText}>JOIN</Text>
+            </View>
+          </TouchableOpacity>
+
+          {/* Quick Links Row */}
           <View style={styles.statsRow}>
-            <TouchableOpacity style={styles.statBox} onPress={() => router.push('/address')}>
-              <Ionicons name="location" size={24} color="#D94E1B" />
-              <Text style={styles.statLabel}>Addresses</Text>
+            <TouchableOpacity style={styles.statBox} onPress={() => router.push('/(tabs)/orders')}>
+              <Ionicons name="receipt" size={24} color="#D94E1B" />
+              <Text style={styles.statLabel}>Orders</Text>
+            </TouchableOpacity>
+            <View style={styles.statDivider} />
+            <TouchableOpacity style={styles.statBox} onPress={() => router.push('/(tabs)/saved')}>
+              <Ionicons name="heart" size={24} color="#D94E1B" />
+              <Text style={styles.statLabel}>Favorites</Text>
             </TouchableOpacity>
             <View style={styles.statDivider} />
             <TouchableOpacity style={styles.statBox} onPress={() => router.push('/notifications')}>
@@ -118,12 +142,80 @@ export default function ProfileScreen() {
               </View>
               <Text style={styles.statLabel}>Alerts</Text>
             </TouchableOpacity>
-            <View style={styles.statDivider} />
-            <TouchableOpacity style={styles.statBox} onPress={() => {}}>
-              <Ionicons name="wallet" size={24} color="#D94E1B" />
-              <Text style={styles.statLabel}>Wallet</Text>
-            </TouchableOpacity>
           </View>
+
+          {/* Food & Activity Section */}
+          <View style={styles.sectionTitleRow}>
+            <Text style={styles.sectionTitle}>Food & Activity</Text>
+          </View>
+          
+          <View style={styles.menuCard}>
+            <ProfileRow
+              icon="location-outline"
+              title="Manage Addresses"
+              subtitle="Home, Work & other locations"
+              onPress={() => router.push('/address')}
+              iconColor="#D94E1B"
+              bgColor="rgba(217, 78, 27, 0.1)"
+            />
+            <View style={styles.menuDivider} />
+            <ProfileRow
+              icon="ticket-outline"
+              title="Coupons & Offers"
+              subtitle="Vouchers and promotional codes"
+              onPress={() => Alert.alert('Coupons', 'No active coupons at the moment.')}
+              iconColor="#10B981"
+              bgColor="#ECFDF5"
+            />
+            <View style={styles.menuDivider} />
+            <ProfileRow
+              icon="star-outline"
+              title="My Reviews"
+              subtitle="Ratings and feedback you provided"
+              onPress={() => Alert.alert('Coming Soon', 'Your reviews will appear here.')}
+              iconColor="#F59E0B"
+              bgColor="#FEF3C7"
+              hideBorder
+            />
+          </View>
+
+          {/* Payments & Wallet Section */}
+          <View style={styles.sectionTitleRow}>
+            <Text style={styles.sectionTitle}>Money & Payments</Text>
+          </View>
+          
+          <View style={styles.menuCard}>
+            <ProfileRow
+              icon="wallet-outline"
+              title="Ftafat Money"
+              subtitle="Balance & gift cards"
+              onPress={() => Alert.alert('Ftafat Money', 'Your wallet balance is ₹0')}
+              iconColor="#8B5CF6"
+              bgColor="#F5F3FF"
+            />
+            <View style={styles.menuDivider} />
+            <ProfileRow
+              icon="card-outline"
+              title="Payment Modes"
+              subtitle="Saved cards, UPI & more"
+              onPress={() => Alert.alert('Payment Modes', 'Manage your saved cards and UPI IDs here (Coming soon).')}
+              iconColor="#3B82F6"
+              bgColor="#EFF6FF"
+              hideBorder
+            />
+          </View>
+
+          {/* Refer & Earn Banner */}
+          <TouchableOpacity 
+            style={styles.referBanner}
+            onPress={() => Alert.alert('Refer & Earn', 'Your referral code is FTAFAT150. Share it with friends!')}
+          >
+            <View style={styles.referContent}>
+              <Text style={styles.referTitle}>Refer & Earn ₹150</Text>
+              <Text style={styles.referSub}>Invite friends to Ftafat and earn rewards</Text>
+            </View>
+            <Ionicons name="gift" size={32} color="#FFF" style={styles.referIcon} />
+          </TouchableOpacity>
 
           {/* Role-Specific Dashboard Banners */}
           {isAdmin && (
@@ -190,7 +282,7 @@ export default function ProfileScreen() {
               icon="document-text-outline"
               title="Terms & Privacy Policy"
               subtitle="Legal details and conditions"
-              onPress={() => {}}
+              onPress={() => Alert.alert('Terms & Privacy', 'Our full terms and privacy policy will open in a browser.')}
               iconColor="#4F46E5"
               bgColor="#EEF2FF"
             />
@@ -199,7 +291,7 @@ export default function ProfileScreen() {
               icon="help-circle-outline"
               title="Help & Support"
               subtitle="24/7 Live chat & assistance"
-              onPress={() => {}}
+              onPress={() => Alert.alert('Support', 'Contacting support...')}
               iconColor="#10B981"
               bgColor="#ECFDF5"
               hideBorder
@@ -398,6 +490,85 @@ const styles = StyleSheet.create({
     shadowRadius: 12,
     elevation: 3,
     alignItems: 'center',
+  },
+  goldBanner: {
+    backgroundColor: '#1C1917',
+    borderRadius: 20,
+    padding: 16,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 16,
+    borderWidth: 1,
+    borderColor: '#44403C',
+  },
+  goldBannerLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  goldIconWrapper: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: 'rgba(245, 158, 11, 0.2)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: 12,
+  },
+  goldTitle: {
+    fontSize: 16,
+    fontFamily: BOLD_FONT,
+    color: '#FCD34D',
+  },
+  goldSub: {
+    fontSize: 12,
+    fontFamily: STYLISH_FONT,
+    color: '#D6D3D1',
+  },
+  goldActionBtn: {
+    backgroundColor: '#F59E0B',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 12,
+  },
+  goldActionText: {
+    fontSize: 12,
+    fontFamily: BOLD_FONT,
+    color: '#1C1917',
+  },
+  referBanner: {
+    backgroundColor: '#6366F1',
+    borderRadius: 20,
+    padding: 18,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 16,
+    marginTop: 8,
+    shadowColor: '#6366F1',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 10,
+    elevation: 5,
+  },
+  referContent: {
+    flex: 1,
+  },
+  referTitle: {
+    fontSize: 17,
+    fontFamily: BOLD_FONT,
+    color: '#FFF',
+    marginBottom: 4,
+  },
+  referSub: {
+    fontSize: 13,
+    fontFamily: STYLISH_FONT,
+    color: '#E0E7FF',
+    lineHeight: 18,
+  },
+  referIcon: {
+    marginLeft: 16,
+    opacity: 0.9,
   },
   statBox: {
     flex: 1,
