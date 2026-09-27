@@ -1,30 +1,16 @@
 'use strict';
 
-/**
- * rateLimiter.middleware.js — Redis-backed rate limiting.
- *
- * Multiple limiters for different sensitivity levels:
- *   - globalLimiter:   broad protection for all routes
- *   - authLimiter:     tight limit on /auth/* (login, register)
- *   - otpLimiter:      very tight limit on OTP send/verify
- *   - paymentLimiter:  prevents double-submission on payment endpoints
- */
-
 const rateLimit = require('express-rate-limit');
 const { RedisStore } = require('rate-limit-redis');
 const redis = require('../config/redis');
 const ERROR_CODES = require('../common/constants/errorCodes');
 
-/**
- * Factory: create a rate limiter with a Redis store.
- * @param {object} options - express-rate-limit options
- */
 function createLimiter(options) {
   return rateLimit({
     windowMs: options.windowMs,
     max: options.max,
-    standardHeaders: true,   // Send RateLimit-* headers
-    legacyHeaders: false,     // Disable X-RateLimit-* legacy headers
+    standardHeaders: true,
+    legacyHeaders: false,
     store: new RedisStore({
       sendCommand: (...args) => redis.call(...args),
       prefix: `rl:${options.keyPrefix || 'global'}:`,
@@ -42,7 +28,6 @@ function createLimiter(options) {
   });
 }
 
-// 100 requests per 15 minutes per IP — applied to all routes
 const globalLimiter = createLimiter({
   windowMs: 15 * 60 * 1000,
   max: 100,
@@ -50,7 +35,10 @@ const globalLimiter = createLimiter({
   message: 'Too many requests from this IP. Please try again in 15 minutes.',
 });
 
+<<<<<<< HEAD
 // 100 auth attempts per 15 minutes per IP
+=======
+>>>>>>> 8086dc5b428c7112ded9ff5f2007d14bed108613
 const authLimiter = createLimiter({
   windowMs: 15 * 60 * 1000,
   max: 100,
@@ -58,17 +46,18 @@ const authLimiter = createLimiter({
   message: 'Too many authentication attempts. Please try again in 15 minutes.',
 });
 
+<<<<<<< HEAD
 // 100 OTP requests per 10 minutes per phone number
+=======
+>>>>>>> 8086dc5b428c7112ded9ff5f2007d14bed108613
 const otpLimiter = createLimiter({
   windowMs: 10 * 60 * 1000,
   max: 100,
   keyPrefix: 'otp',
   message: 'Too many OTP requests for this number. Please wait 10 minutes.',
-  // Keyed by phone from req.body instead of IP
   keyGenerator: (req) => req.body?.phone || req.ip,
 });
 
-// 5 payment attempts per 10 minutes per user
 const paymentLimiter = createLimiter({
   windowMs: 10 * 60 * 1000,
   max: 5,

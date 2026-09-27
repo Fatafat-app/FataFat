@@ -2,14 +2,6 @@
 
 require('dotenv').config();
 
-/**
- * env.js — Centralised environment variable validation.
- *
- * Reads process.env, validates required vars, and exports a typed
- * config object. The app WILL NOT START if a required variable is missing.
- * No other file should read process.env directly — import this module instead.
- */
-
 const REQUIRED_VARS = [
   'NODE_ENV',
   'PORT',
@@ -44,9 +36,7 @@ function validateEnv() {
   }
 }
 
-// Load .env file in non-production environments
 if (process.env.NODE_ENV !== 'production') {
-  // dotenv is loaded in server.js before this module is imported
 }
 
 validateEnv();

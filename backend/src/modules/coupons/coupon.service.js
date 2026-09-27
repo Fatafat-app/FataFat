@@ -4,15 +4,6 @@ const Coupon = require('./coupon.model');
 const { NotFoundError, BusinessError } = require('../../common/errors');
 const ERROR_CODES = require('../../common/constants/errorCodes');
 
-/**
- * Validate a coupon code and return discount amount.
- *
- * @param {string} code
- * @param {string} userId
- * @param {number} cartTotal - Paise
- * @param {string} [restaurantId]
- * @returns {{ coupon, discountAmount: number }}
- */
 async function validateCoupon(code, userId, cartTotal, restaurantId) {
   const coupon = await Coupon.findOne({ code: code.toUpperCase(), isActive: true });
 
@@ -42,7 +33,6 @@ async function validateCoupon(code, userId, cartTotal, restaurantId) {
     throw new BusinessError('Coupon not valid for this restaurant', ERROR_CODES.COUPON_INVALID);
   }
 
-  // Calculate discount
   let discountAmount;
   if (coupon.discountType === 'percent') {
     discountAmount = Math.round(cartTotal * coupon.value / 100);
@@ -50,16 +40,12 @@ async function validateCoupon(code, userId, cartTotal, restaurantId) {
       discountAmount = Math.min(discountAmount, coupon.maxDiscount);
     }
   } else {
-    discountAmount = Math.min(coupon.value, cartTotal); // Can't discount more than cart
+    discountAmount = Math.min(coupon.value, cartTotal);
   }
 
   return { coupon, discountAmount };
 }
 
-/**
- * Redeem a coupon (increment usage count).
- * Called at order placement, not at validation time.
- */
 async function redeemCoupon(couponId, userId) {
   await Coupon.findByIdAndUpdate(couponId, {
     $inc: { usageCount: 1 },
@@ -67,16 +53,10 @@ async function redeemCoupon(couponId, userId) {
   });
 }
 
-/**
- * Admin: create a coupon.
- */
 async function createCoupon(data) {
   return Coupon.create(data);
 }
 
-/**
- * Admin: deactivate expired coupons (called by cron job).
- */
 async function deactivateExpiredCoupons() {
   const result = await Coupon.updateMany(
     { expiresAt: { $lte: new Date() }, isActive: true },

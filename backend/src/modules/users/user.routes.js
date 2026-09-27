@@ -6,9 +6,8 @@ const controller = require('./user.controller');
 const { authenticate } = require('../../middlewares/auth.middleware');
 
 const router = Router();
-const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 5 * 1024 * 1024 } }); // 5MB
+const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 5 * 1024 * 1024 } });
 
-// All user routes require authentication
 router.use(authenticate);
 
 router.get('/me', controller.getMe);

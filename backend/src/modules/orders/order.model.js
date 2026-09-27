@@ -1,23 +1,15 @@
 'use strict';
 
-/**
- * order.model.js — Mongoose schema for orders.
- *
- * Items embed a price snapshot at time of order — never re-read from menu.
- * This ensures historical orders are correct even if menu prices change.
- * All monetary values in paise.
- */
-
 const mongoose = require('mongoose');
 const { ORDER_STATUS, PAYMENT_STATUS } = require('../../common/constants/orderStatuses');
 
 const orderItemSchema = new mongoose.Schema(
   {
     menuItem: { type: mongoose.Schema.Types.ObjectId, ref: 'MenuItem', required: true },
-    name: { type: String, required: true },        // Snapshot: name at order time
-    price: { type: Number, required: true },        // Snapshot: price in paise at order time
+    name: { type: String, required: true },
+    price: { type: Number, required: true },
     quantity: { type: Number, required: true, min: 1 },
-    totalPrice: { type: Number, required: true },   // price * quantity (paise)
+    totalPrice: { type: Number, required: true },
   },
   { _id: false }
 );
@@ -45,16 +37,15 @@ const orderSchema = new mongoose.Schema(
       pincode: { type: String, required: true },
       location: {
         type: { type: String, enum: ['Point'], default: 'Point' },
-        coordinates: [Number], // [lng, lat]
+        coordinates: [Number],
       },
     },
 
-    // All monetary values in paise
     subtotal: { type: Number, required: true },
     deliveryFee: { type: Number, default: 0 },
     taxAmount: { type: Number, default: 0 },
     discountAmount: { type: Number, default: 0 },
-    totalAmount: { type: Number, required: true }, // Final amount charged
+    totalAmount: { type: Number, required: true },
 
     couponCode: { type: String },
     couponId: { type: mongoose.Schema.Types.ObjectId, ref: 'Coupon' },
@@ -72,7 +63,6 @@ const orderSchema = new mongoose.Schema(
 
     timeline: [timelineSchema],
 
-    // Idempotency key to prevent duplicate order creation
     idempotencyKey: { type: String, unique: true, sparse: true },
 
     deliveryPartnerId: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },

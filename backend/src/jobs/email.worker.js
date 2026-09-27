@@ -1,11 +1,5 @@
 'use strict';
 
-/**
- * email.worker.js — BullMQ background worker for email sending.
- *
- * Processes jobs from the 'emails' queue.
- */
-
 const { Worker } = require('bullmq');
 const redis = require('../config/redis');
 const logger = require('../config/logger');

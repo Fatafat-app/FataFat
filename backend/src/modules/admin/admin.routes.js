@@ -8,7 +8,6 @@ const ROLES = require('../../common/constants/roles');
 
 const router = Router();
 
-// All admin routes strictly require ADMIN role
 router.use(authenticate, requireRole([ROLES.ADMIN]));
 
 router.get('/dashboard', controller.getDashboard);

@@ -1,11 +1,5 @@
 'use strict';
 
-/**
- * sms.worker.js — BullMQ background worker for SMS & OTP delivery.
- *
- * Processes jobs from the 'sms' queue.
- */
-
 const { Worker } = require('bullmq');
 const redis = require('../config/redis');
 const logger = require('../config/logger');
@@ -18,7 +12,6 @@ const worker = new Worker(
 
     switch (name) {
       case 'otp':
-        // Integration point for Fast2SMS / Twilio / Kaleyra
         logger.info(`[SMSWorker] OTP sent to ${data.phone}: [${data.otp}]`);
         break;
       case 'order-alert':

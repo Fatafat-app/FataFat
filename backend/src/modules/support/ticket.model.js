@@ -1,9 +1,5 @@
 'use strict';
 
-/**
- * ticket.model.js — Customer support ticket schema.
- */
-
 const mongoose = require('mongoose');
 
 const messageSchema = new mongoose.Schema(

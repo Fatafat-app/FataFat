@@ -1,24 +1,11 @@
 'use strict';
 
-/**
- * maps.client.js — Google Maps API wrapper.
- *
- * Provides geocoding and distance matrix operations.
- * All external map requests go through this module.
- */
-
 const axios = require('axios');
 const env = require('../config/env');
 const logger = require('../config/logger');
 
 const MAPS_BASE_URL = 'https://maps.googleapis.com/maps/api';
 
-/**
- * Geocode an address string to coordinates.
- *
- * @param {string} address - Human-readable address
- * @returns {Promise<{ lat: number, lng: number, formattedAddress: string }>}
- */
 async function geocodeAddress(address) {
   try {
     const response = await axios.get(`${MAPS_BASE_URL}/geocode/json`, {
@@ -43,13 +30,6 @@ async function geocodeAddress(address) {
   }
 }
 
-/**
- * Calculate distance and duration between origin and destination.
- *
- * @param {{ lat: number, lng: number }} origin
- * @param {{ lat: number, lng: number }} destination
- * @returns {Promise<{ distanceMeters: number, durationSeconds: number }>}
- */
 async function getDistance(origin, destination) {
   try {
     const response = await axios.get(`${MAPS_BASE_URL}/distancematrix/json`, {

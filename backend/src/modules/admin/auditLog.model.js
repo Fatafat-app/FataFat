@@ -1,11 +1,5 @@
 'use strict';
 
-/**
- * auditLog.model.js — Admin audit trail.
- *
- * Records every privileged administrative action for compliance and security.
- */
-
 const mongoose = require('mongoose');
 
 const auditLogSchema = new mongoose.Schema(
@@ -24,7 +18,7 @@ const auditLogSchema = new mongoose.Schema(
     },
     resource: {
       type: String,
-      required: true, // e.g., 'User', 'Restaurant', 'Order', 'Coupon'
+      required: true,
       trim: true,
     },
     resourceId: {

@@ -1,11 +1,5 @@
 'use strict';
 
-/**
- * payoutReconciliation.worker.js — BullMQ cron worker for calculating and reconciling partner payouts.
- *
- * Runs on a daily schedule to calculate restaurant and rider net balances.
- */
-
 const { Worker, Queue } = require('bullmq');
 const redis = require('../config/redis');
 const DeliveryPartner = require('../modules/delivery/delivery.model');
@@ -16,7 +10,6 @@ const logger = require('../config/logger');
 
 const payoutQueue = new Queue('payouts', { connection: redis });
 
-// Schedule daily reconciliation at 2 AM
 payoutQueue
   .add(
     'reconcile-daily-payouts',
@@ -31,7 +24,6 @@ const worker = new Worker(
     logger.info('[PayoutWorker] Starting daily payout reconciliation...');
 
     try {
-      // 1. Reset daily earnings for riders, rollover to pendingPayout
       const riders = await DeliveryPartner.find({ 'earnings.today': { $gt: 0 } });
       for (const rider of riders) {
         rider.earnings.today = 0;

@@ -20,14 +20,14 @@ describe('Coupon Service', () => {
       usageCount: 10,
       perUserLimit: 1,
       usedBy: [],
-      minOrderAmount: 20000, // ₹200
+      minOrderAmount: 20000,
       discountType: 'percent',
-      value: 50, // 50%
-      maxDiscount: 10000, // max ₹100
+      value: 50,
+      maxDiscount: 10000,
     });
 
-    const result = await couponService.validateCoupon('SUMMER50', 'user123', 30000); // ₹300 cart
-    expect(result.discountAmount).toBe(10000); // Capped at ₹100 (10000 paise)
+    const result = await couponService.validateCoupon('SUMMER50', 'user123', 30000);
+    expect(result.discountAmount).toBe(10000);
   });
 
   test('throws BusinessError when cart total is below min order amount', async () => {
@@ -39,13 +39,13 @@ describe('Coupon Service', () => {
       usageCount: 5,
       perUserLimit: 1,
       usedBy: [],
-      minOrderAmount: 50000, // ₹500
+      minOrderAmount: 50000,
       discountType: 'flat',
       value: 5000,
     });
 
     await expect(
-      couponService.validateCoupon('FLAT50', 'user123', 20000) // ₹200 cart
+      couponService.validateCoupon('FLAT50', 'user123', 20000)
     ).rejects.toThrow(BusinessError);
   });
 
@@ -53,7 +53,7 @@ describe('Coupon Service', () => {
     Coupon.findOne.mockResolvedValue({
       code: 'EXPIRED',
       isActive: true,
-      expiresAt: new Date(Date.now() - 100000), // in the past
+      expiresAt: new Date(Date.now() - 100000),
       usedBy: [],
     });
 

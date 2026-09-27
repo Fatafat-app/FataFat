@@ -1,12 +1,5 @@
 'use strict';
 
-/**
- * admin.service.js — Admin panel business logic.
- *
- * Provides system-wide KPIs, user moderation, restaurant approvals/suspensions,
- * commission configuration, and audit trail logging.
- */
-
 const User = require('../users/user.model');
 const Restaurant = require('../restaurants/restaurant.model');
 const Order = require('../orders/order.model');
@@ -16,9 +9,6 @@ const { ORDER_STATUS, PAYMENT_STATUS } = require('../../common/constants/orderSt
 const { NotFoundError } = require('../../common/errors');
 const { getPagination, buildPaginationMeta } = require('../../common/utils/pagination');
 
-/**
- * Get platform-wide overview KPI metrics.
- */
 async function getDashboardOverview() {
   const [
     totalUsers,
@@ -61,15 +51,12 @@ async function getDashboardOverview() {
     orders: { active: activeOrders, total: platformStats.totalOrders },
     riders: { online: totalDeliveries },
     financials: {
-      grossMerchandiseValue: platformStats.totalRevenue, // in paise
+      grossMerchandiseValue: platformStats.totalRevenue,
       totalDeliveryFees: platformStats.totalDeliveryFees,
     },
   };
 }
 
-/**
- * Log an administrative audit action.
- */
 async function logAudit({ adminId, action, resource, resourceId, changes, ipAddress, userAgent }) {
   return AuditLog.create({
     admin: adminId,
@@ -82,9 +69,6 @@ async function logAudit({ adminId, action, resource, resourceId, changes, ipAddr
   });
 }
 
-/**
- * List all users with pagination and search.
- */
 async function listUsers(query) {
   const { page, limit, skip } = getPagination(query);
   const filter = {};
@@ -106,9 +90,6 @@ async function listUsers(query) {
   return { users, meta: buildPaginationMeta(total, page, limit) };
 }
 
-/**
- * Update user status / role (admin action).
- */
 async function updateUserStatus(adminId, targetUserId, { role, isActive }, meta = {}) {
   const user = await User.findById(targetUserId);
   if (!user) throw new NotFoundError('User not found');
@@ -131,9 +112,6 @@ async function updateUserStatus(adminId, targetUserId, { role, isActive }, meta 
   return user;
 }
 
-/**
- * Approve or toggle restaurant active state.
- */
 async function updateRestaurantStatus(adminId, restaurantId, { isActive, isVerified }, meta = {}) {
   const restaurant = await Restaurant.findById(restaurantId);
   if (!restaurant) throw new NotFoundError('Restaurant not found');
@@ -156,9 +134,6 @@ async function updateRestaurantStatus(adminId, restaurantId, { isActive, isVerif
   return restaurant;
 }
 
-/**
- * Get audit logs.
- */
 async function getAuditLogs(query) {
   const { page, limit, skip } = getPagination(query);
   const filter = {};

@@ -1,19 +1,13 @@
 'use strict';
 
-/**
- * restaurant.service.js — Restaurant business logic.
- */
-
 const Restaurant = require('./restaurant.model');
 const { NotFoundError, ForbiddenError, BusinessError } = require('../../common/errors');
 const { getPagination, buildPaginationMeta } = require('../../common/utils/pagination');
 const redis = require('../../config/redis');
 const logger = require('../../config/logger');
 
-const CACHE_TTL = 60; // 60 seconds for restaurant listing cache
+const CACHE_TTL = 60;
 const CACHE_PREFIX = 'restaurant:';
-
-// ─── Cache Helpers ──────────────────────────────────────────────
 
 async function getCached(key) {
   try {
@@ -42,23 +36,12 @@ async function invalidateCache(pattern) {
   }
 }
 
-// ─── Service Functions ──────────────────────────────────────────
-
-/**
- * Create a new restaurant.
- * @param {string} ownerId
- * @param {object} data
- */
 async function createRestaurant(ownerId, data) {
   const restaurant = await Restaurant.create({ ...data, owner: ownerId });
   await invalidateCache('list:*');
   return restaurant;
 }
 
-/**
- * Get a restaurant by ID.
- * Cached for CACHE_TTL seconds.
- */
 async function getRestaurantById(restaurantId) {
   const cacheKey = `${CACHE_PREFIX}${restaurantId}`;
   const cached = await getCached(cacheKey);
@@ -71,10 +54,6 @@ async function getRestaurantById(restaurantId) {
   return restaurant;
 }
 
-/**
- * Update restaurant details.
- * Only the owner or admin can update.
- */
 async function updateRestaurant(restaurantId, updates, requestingUser) {
   const restaurant = await Restaurant.findById(restaurantId);
   if (!restaurant) throw new NotFoundError('Restaurant not found');
@@ -86,7 +65,6 @@ async function updateRestaurant(restaurantId, updates, requestingUser) {
     throw new ForbiddenError('You do not have permission to update this restaurant');
   }
 
-  // Admin-only fields
   const adminFields = ['isActive', 'isApproved'];
   if (!isAdmin) {
     adminFields.forEach((field) => delete updates[field]);
@@ -101,16 +79,9 @@ async function updateRestaurant(restaurantId, updates, requestingUser) {
   return restaurant;
 }
 
-/**
- * Find restaurants near a coordinate.
- * Results are paginated.
- *
- * @param {{ lat: number, lng: number, radiusKm?: number }} location
- * @param {object} query - req.query for pagination/filters
- */
 async function findNearbyRestaurants({ lat, lng, radiusKm = 5 }, query) {
   const { page, limit, skip } = getPagination(query);
-  const maxDistance = radiusKm * 1000; // Convert km to metres
+  const maxDistance = radiusKm * 1000;
 
   const filter = {
     isActive: true,
@@ -142,10 +113,6 @@ async function findNearbyRestaurants({ lat, lng, radiusKm = 5 }, query) {
   };
 }
 
-/**
- * Toggle restaurant open/closed status.
- * Only the owner can toggle.
- */
 async function toggleOpenStatus(restaurantId, ownerId) {
   const restaurant = await Restaurant.findById(restaurantId);
   if (!restaurant) throw new NotFoundError('Restaurant not found');
@@ -165,9 +132,6 @@ async function toggleOpenStatus(restaurantId, ownerId) {
   return restaurant;
 }
 
-/**
- * Get all restaurants owned by a user.
- */
 async function getOwnerRestaurants(ownerId) {
   return Restaurant.find({ owner: ownerId });
 }

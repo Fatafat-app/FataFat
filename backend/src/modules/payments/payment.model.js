@@ -1,12 +1,5 @@
 'use strict';
 
-/**
- * payment.model.js — Mongoose schema for payment records.
- *
- * Each order has one payment record.
- * All amounts in paise.
- */
-
 const mongoose = require('mongoose');
 const { PAYMENT_STATUS } = require('../../common/constants/orderStatuses');
 
@@ -15,11 +8,10 @@ const paymentSchema = new mongoose.Schema(
     order: { type: mongoose.Schema.Types.ObjectId, ref: 'Order', required: true, unique: true },
     user: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
 
-    // Razorpay identifiers
     razorpayOrderId: { type: String, required: true, unique: true },
     razorpayPaymentId: { type: String, unique: true, sparse: true },
 
-    amount: { type: Number, required: true },        // Paise
+    amount: { type: Number, required: true },
     currency: { type: String, default: 'INR' },
 
     status: {
@@ -28,15 +20,12 @@ const paymentSchema = new mongoose.Schema(
       default: PAYMENT_STATUS.PENDING,
     },
 
-    // Idempotency key for payment creation
     idempotencyKey: { type: String, unique: true },
 
-    // Refund info (if applicable)
     razorpayRefundId: { type: String },
     refundAmount: { type: Number },
     refundedAt: { type: Date },
 
-    // Webhook event log for audit
     webhookEvents: [
       {
         event: String,

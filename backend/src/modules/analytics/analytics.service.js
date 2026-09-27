@@ -1,19 +1,9 @@
 'use strict';
 
-/**
- * analytics.service.js — Business intelligence and aggregation analytics.
- *
- * Provides revenue breakdown, top selling items, average order value (AOV),
- * and sales trends for restaurants and platform admins.
- */
-
 const mongoose = require('mongoose');
 const Order = require('../orders/order.model');
 const { PAYMENT_STATUS, ORDER_STATUS } = require('../../common/constants/orderStatuses');
 
-/**
- * Get revenue & sales performance analytics for a specific restaurant.
- */
 async function getRestaurantAnalytics(restaurantId, { days = 30 } = {}) {
   const sinceDate = new Date();
   sinceDate.setDate(sinceDate.getDate() - parseInt(days, 10));
@@ -21,7 +11,6 @@ async function getRestaurantAnalytics(restaurantId, { days = 30 } = {}) {
   const objectId = new mongoose.Types.ObjectId(restaurantId);
 
   const [salesTrend, summary, topItems] = await Promise.all([
-    // Daily revenue & order count
     Order.aggregate([
       {
         $match: {
@@ -41,7 +30,6 @@ async function getRestaurantAnalytics(restaurantId, { days = 30 } = {}) {
       { $sort: { _id: 1 } },
     ]),
 
-    // Total summary metrics
     Order.aggregate([
       {
         $match: {
@@ -61,7 +49,6 @@ async function getRestaurantAnalytics(restaurantId, { days = 30 } = {}) {
       },
     ]),
 
-    // Top selling items aggregation
     Order.aggregate([
       {
         $match: {
@@ -87,7 +74,7 @@ async function getRestaurantAnalytics(restaurantId, { days = 30 } = {}) {
 
   return {
     periodDays: days,
-    totalRevenue: stats.totalRevenue, // in paise
+    totalRevenue: stats.totalRevenue,
     totalOrders: stats.totalOrders,
     averageOrderValue: Math.round(stats.avgOrderValue || 0),
     salesTrend,
@@ -95,9 +82,6 @@ async function getRestaurantAnalytics(restaurantId, { days = 30 } = {}) {
   };
 }
 
-/**
- * Platform-wide analytics for admin.
- */
 async function getPlatformAnalytics({ days = 30 } = {}) {
   const sinceDate = new Date();
   sinceDate.setDate(sinceDate.getDate() - parseInt(days, 10));

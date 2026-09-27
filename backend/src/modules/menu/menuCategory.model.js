@@ -1,10 +1,5 @@
 'use strict';
 
-/**
- * menuCategory.model.js — Menu category schema.
- * Each restaurant has multiple categories (e.g. Starters, Main Course).
- */
-
 const mongoose = require('mongoose');
 
 const menuCategorySchema = new mongoose.Schema(

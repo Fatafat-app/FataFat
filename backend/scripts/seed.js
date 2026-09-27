@@ -1,19 +1,5 @@
 'use strict';
 
-/**
- * scripts/seed.js — Development database seeder.
- *
- * Populates MongoDB with demo data for testing without manual setup:
- * - Admin, Restaurant Owner, Delivery Partner, Customer accounts
- * - Restaurants with geo coordinates (e.g. Connaught Place, New Delhi)
- * - Menu categories & items with realistic pricing (in paise)
- * - Active Coupons
- * - Test Delivery Partner with vehicle details
- *
- * Usage:
- *   node scripts/seed.js
- */
-
 require('dotenv').config();
 const mongoose = require('mongoose');
 const bcrypt = require('bcryptjs');
@@ -43,7 +29,6 @@ async function seed() {
 
   console.log(' Cleared collections.');
 
-  // 1. Create Users
   console.log('👤 Seeding Users...');
   const passwordHash = await bcrypt.hash('Password@123', 12);
 
@@ -92,13 +77,12 @@ async function seed() {
         isDefault: true,
         location: {
           type: 'Point',
-          coordinates: [77.2195, 28.6328], // [lng, lat]
+          coordinates: [77.2195, 28.6328],
         },
       },
     ],
   });
 
-  // 2. Create Delivery Partner Profile
   console.log('🛵 Seeding Delivery Partner Profile...');
   await DeliveryPartner.create({
     user: riderUser._id,
@@ -118,7 +102,6 @@ async function seed() {
     },
   });
 
-  // 3. Create Restaurants
   console.log('🍕 Seeding Restaurants...');
   const restaurant1 = await Restaurant.create({
     owner: owner._id,
@@ -133,7 +116,7 @@ async function seed() {
     },
     location: {
       type: 'Point',
-      coordinates: [77.2197, 28.6329], // [lng, lat]
+      coordinates: [77.2197, 28.6329],
     },
     phone: '+919876543210',
     email: 'contact@pizzaparadise.com',
@@ -143,8 +126,8 @@ async function seed() {
     taxPercent: 5,
     deliveryInfo: {
       estimatedMinutes: 30,
-      deliveryFee: 4000, // ₹40.00
-      minOrderAmount: 19900, // ₹199.00
+      deliveryFee: 4000,
+      minOrderAmount: 19900,
       radiusKm: 10,
     },
     rating: {
@@ -186,7 +169,6 @@ async function seed() {
     },
   });
 
-  // 4. Create Menu Categories & Items
   console.log('🍔 Seeding Menu Categories & Items...');
   const catPizzas = await MenuCategory.create({
     restaurant: restaurant1._id,
@@ -213,7 +195,7 @@ async function seed() {
       category: catPizzas._id,
       name: 'Margherita Classica',
       description: 'Classic sourdough pizza topped with fresh mozzarella, basil, and extra virgin olive oil',
-      price: 34900, // ₹349.00
+      price: 34900,
       isVeg: true,
       isAvailable: true,
       isBestseller: true,
@@ -223,7 +205,7 @@ async function seed() {
       category: catPizzas._id,
       name: 'Fiery Pepperoni Feast',
       description: 'Imported artisanal smoked pepperoni, mozzarella, and chili flakes',
-      price: 49900, // ₹499.00
+      price: 49900,
       isVeg: false,
       isAvailable: true,
       isBestseller: true,
@@ -233,7 +215,7 @@ async function seed() {
       category: catPizzas._id,
       name: 'Farmhouse Veggie Supreme',
       description: 'Bell peppers, red onions, mushrooms, black olives, sweet corn',
-      price: 39900, // ₹399.00
+      price: 39900,
       isVeg: true,
       isAvailable: true,
     },
@@ -242,7 +224,7 @@ async function seed() {
       category: catSides._id,
       name: 'Cheesy Garlic Breadsticks',
       description: 'Warm breadsticks brushed with herb butter and melted mozzarella',
-      price: 18900, // ₹189.00
+      price: 18900,
       isVeg: true,
       isAvailable: true,
     },
@@ -251,13 +233,12 @@ async function seed() {
       category: catBeverages._id,
       name: 'Iced Lemon Mint Cooler',
       description: 'Refreshing cold beverage made with fresh mint and lemon extract',
-      price: 12900, // ₹129.00
+      price: 12900,
       isVeg: true,
       isAvailable: true,
     },
   ]);
 
-  // 5. Create Coupons
   console.log('🏷️ Seeding Coupons...');
   await Coupon.create([
     {
@@ -265,8 +246,8 @@ async function seed() {
       description: 'Get 50% off on your first order up to ₹100',
       discountType: 'percent',
       value: 50,
-      maxDiscount: 10000, // ₹100
-      minOrderAmount: 19900, // ₹199
+      maxDiscount: 10000,
+      minOrderAmount: 19900,
       expiresAt: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000),
       isActive: true,
     },
@@ -274,8 +255,8 @@ async function seed() {
       code: 'FLAT100',
       description: 'Flat ₹100 discount on orders above ₹499',
       discountType: 'flat',
-      value: 10000, // ₹100.00
-      minOrderAmount: 49900, // ₹499.00
+      value: 10000,
+      minOrderAmount: 49900,
       expiresAt: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000),
       isActive: true,
     },

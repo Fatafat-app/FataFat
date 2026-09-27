@@ -1,17 +1,10 @@
 'use strict';
 
-/**
- * support.service.js — Support ticket management logic.
- */
-
 const SupportTicket = require('./ticket.model');
 const { NotFoundError, BusinessError } = require('../../common/errors');
 const ERROR_CODES = require('../../common/constants/errorCodes');
 const { getPagination, buildPaginationMeta } = require('../../common/utils/pagination');
 
-/**
- * Open a new support ticket.
- */
 async function createTicket(userId, userRole, data) {
   const ticket = await SupportTicket.create({
     user: userId,
@@ -33,9 +26,6 @@ async function createTicket(userId, userRole, data) {
   return ticket;
 }
 
-/**
- * Add message / reply to existing ticket.
- */
 async function replyToTicket(ticketId, userId, userRole, { text, attachments = [] }) {
   const ticket = await SupportTicket.findById(ticketId);
   if (!ticket) throw new NotFoundError('Support ticket not found');
@@ -62,9 +52,6 @@ async function replyToTicket(ticketId, userId, userRole, { text, attachments = [
   return ticket;
 }
 
-/**
- * Get ticket details by ID.
- */
 async function getTicketById(ticketId, requestingUser) {
   const ticket = await SupportTicket.findById(ticketId)
     .populate('user', 'name phone email')
@@ -82,9 +69,6 @@ async function getTicketById(ticketId, requestingUser) {
   return ticket;
 }
 
-/**
- * List tickets (filtered by user or all for admin).
- */
 async function listTickets(requestingUser, query) {
   const { page, limit, skip } = getPagination(query);
   const filter = {};
@@ -109,9 +93,6 @@ async function listTickets(requestingUser, query) {
   return { tickets, meta: buildPaginationMeta(total, page, limit) };
 }
 
-/**
- * Update ticket status or assign agent.
- */
 async function updateTicketStatus(ticketId, { status, assignedTo }) {
   const ticket = await SupportTicket.findById(ticketId);
   if (!ticket) throw new NotFoundError('Support ticket not found');
