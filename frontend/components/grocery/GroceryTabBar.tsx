@@ -8,7 +8,7 @@ import {
   Animated,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { useRouter } from 'expo-router';
+import { useRouter, usePathname } from 'expo-router';
 import { GColors, GRadius, GFontSize } from '../../constants/GroceryTheme';
 import { useGroceryCartCount } from '../../store/grocery.store';
 
@@ -34,9 +34,22 @@ interface GroceryTabBarProps {
   onTabPress?: (tab: TabId) => void;
 }
 
-export function GroceryTabBar({ activeTab = 'home', onTabPress }: GroceryTabBarProps) {
+export function GroceryTabBar({ activeTab: propActiveTab, onTabPress }: GroceryTabBarProps) {
   const router = useRouter();
+  const pathname = usePathname();
   const groceryCartCount = useGroceryCartCount();
+
+  const getActiveTab = (): TabId => {
+    if (propActiveTab) return propActiveTab;
+    if (pathname === '/' || pathname === '/index' || pathname === '' || pathname === '/(tabs)') return 'home';
+    if (pathname.includes('/categories')) return 'categories';
+    if (pathname.includes('/cart')) return 'cart';
+    if (pathname.includes('/orders')) return 'orders';
+    if (pathname.includes('/profile')) return 'profile';
+    return 'home';
+  };
+
+  const activeTab = getActiveTab();
 
   const handlePress = (tab: TabItem) => {
     onTabPress?.(tab.id);

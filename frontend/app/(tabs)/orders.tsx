@@ -344,7 +344,7 @@ const styles = StyleSheet.create({
   headerTitle: { ...Typography.heading, fontSize: 22 },
   refreshButton: { padding: 6 },
   scrollContainer: { flex: 1 },
-  scrollContent: { paddingHorizontal: 16, paddingVertical: 14, paddingBottom: 110 },
+  scrollContent: { paddingHorizontal: 16, paddingVertical: 14, paddingBottom: 130 },
   activeCard: { backgroundColor: Colors.surface, borderRadius: 20, padding: 18, marginBottom: 18, borderWidth: 2, borderColor: '#FED7AA', shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.05, shadowRadius: 6, elevation: 3 },
   activeHeaderRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 },
   badgeRow: { flexDirection: 'row', alignItems: 'center' },

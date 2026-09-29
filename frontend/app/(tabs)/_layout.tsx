@@ -2,6 +2,7 @@ import { Tabs, Redirect } from 'expo-router';
 import { useAuthStore } from '../../store/auth.store';
 import { useGroceryStore } from '../../store/grocery.store';
 import { FoodTabBar } from '../../components/FoodTabBar';
+import { GroceryTabBar } from '../../components/grocery/GroceryTabBar';
 
 export default function TabsLayout() {
   const { isAuthenticated, isLoading } = useAuthStore();
@@ -30,8 +31,8 @@ export default function TabsLayout() {
         <Tabs.Screen name="saved"   options={{ href: null }} />
       </Tabs>
 
-      {/* Custom Food Tab Bar — shown only when food section is active */}
-      {activeSection === 'food' && <FoodTabBar />}
+      {/* Custom Tab Bar — Food or Grocery based on activeSection */}
+      {activeSection === 'food' ? <FoodTabBar /> : <GroceryTabBar />}
     </>
   );
 }

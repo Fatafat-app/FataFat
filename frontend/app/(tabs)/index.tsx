@@ -155,14 +155,72 @@ export default function HomeScreen() {
       {/* ============================================================ */}
       {activeSection === 'food' && (
         <View style={styles.foodViewWrapper}>
-          {isScrolled && (
-            <View style={[styles.stickySearchBar, { paddingTop: insets.top + 8 }]}>
-              <TouchableOpacity style={styles.stickySearchInner} onPress={() => router.push('/(tabs)/search')} activeOpacity={0.9}>
-                <Ionicons name="search" size={18} color="#9CA3AF" style={{ marginRight: 8 }} />
-                <Text style={styles.stickySearchText}>Search restaurants, cuisines...</Text>
+          {/* Top Warm Coral/Peach Gradient matching Grocery gradient style */}
+          <LinearGradient
+            colors={['#FFDEBF', '#FFEBD9', '#FFF6EF', '#FFFFFF']}
+            locations={[0, 0.3, 0.65, 1]}
+            style={[styles.foodTopGradient, { height: insets.top + 280 }]}
+          />
+
+          {/* Top Food Header — Same structure as Grocery */}
+          <View style={[styles.foodHeaderContainer, { paddingTop: insets.top + 6 }]}>
+            {/* 1. Mode Switcher on Top */}
+            <SectionSwitcher
+              activeSection={activeSection}
+              onSwitch={handleSectionSwitch}
+              style={{ marginBottom: 12 }}
+            />
+
+            {/* 2. Location Row + User Profile Avatar */}
+            <View style={styles.foodHeaderLocationRow}>
+              <TouchableOpacity
+                style={styles.foodLocationCol}
+                onPress={() => router.push('/address')}
+                activeOpacity={0.7}
+              >
+                <Text style={styles.foodDeliveringToLabel}>DELIVERING TO</Text>
+                <View style={styles.foodLocationInner}>
+                  <Ionicons name="location" size={17} color="#D94E1B" style={{ marginRight: 4 }} />
+                  <Text style={styles.foodLocationTitle} numberOfLines={1}>
+                    {locationTitle || selectedAddress?.type || selectedAddress?.label || 'Home'}
+                  </Text>
+                  {isDetectingLocation ? (
+                    <View style={{ marginLeft: 6 }}><ActivityIndicator size="small" color="#D94E1B" /></View>
+                  ) : (
+                    <Ionicons name="chevron-down" size={15} color="#D94E1B" style={{ marginLeft: 4 }} />
+                  )}
+                </View>
+                <Text style={styles.foodLocationSubtitle} numberOfLines={1}>
+                  {locationSubtitle || (selectedAddress ? `${selectedAddress.city}` : 'Detecting GPS...')}
+                </Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={styles.foodAvatarBtn}
+                onPress={() => router.push('/(tabs)/profile')}
+                activeOpacity={0.8}
+              >
+                {user?.avatar ? (
+                  <Image source={{ uri: user.avatar }} style={styles.foodAvatarImage} />
+                ) : (
+                  <Text style={styles.foodAvatarText}>
+                    {user?.name ? user.name.charAt(0).toUpperCase() : 'F'}
+                  </Text>
+                )}
               </TouchableOpacity>
             </View>
-          )}
+
+            {/* 3. Pill Search Bar (Same UI as Grocery Search) */}
+            <TouchableOpacity
+              style={styles.foodSearchPill}
+              onPress={() => router.push('/(tabs)/search')}
+              activeOpacity={0.85}
+            >
+              <Ionicons name="search-outline" size={18} color="#9CA3AF" style={{ marginRight: 10 }} />
+              <Text style={styles.foodSearchPlaceholder}>Search restaurants, cuisines or dishes...</Text>
+              <Ionicons name="mic-outline" size={19} color="#D94E1B" style={{ marginLeft: 'auto' }} />
+            </TouchableOpacity>
+          </View>
 
           <ScrollView
             showsVerticalScrollIndicator={false}
@@ -171,49 +229,6 @@ export default function HomeScreen() {
             onScroll={(e) => setScrollY(e.nativeEvent.contentOffset.y)}
             scrollEventThrottle={16}
           >
-            {/* Orange Food Header */}
-            <View style={[styles.headerContainer, { paddingTop: insets.top + 10 }]}>
-              <View style={styles.headerMainRow}>
-                <TouchableOpacity style={styles.locationContainer} onPress={detectCurrentLocation} activeOpacity={0.7}>
-                  <View style={styles.locationIconCircle}>
-                    <Ionicons name="location" size={18} color="#FF6000" />
-                  </View>
-                  <View style={styles.locationTextContainer}>
-                    <Text style={styles.locationDeliveryLabel}>DELIVERING TO</Text>
-                    <View style={styles.locationRowInner}>
-                      <Text style={styles.locationTitle} numberOfLines={1}>{locationTitle || 'Home'}</Text>
-                      {isDetectingLocation ? (
-                        <View style={{ marginLeft: 6 }}><ActivityIndicator size="small" color="#FFF" /></View>
-                      ) : (
-                        <Ionicons name="chevron-down" size={14} color="#FFF" style={{ marginLeft: 4 }} />
-                      )}
-                    </View>
-                    <Text style={styles.locationSubtitle} numberOfLines={1}>{locationSubtitle || 'Detecting location...'}</Text>
-                  </View>
-                </TouchableOpacity>
-
-                <TouchableOpacity style={styles.profileAvatar} onPress={() => router.push('/(tabs)/profile')} activeOpacity={0.8}>
-                  {user?.avatar ? (
-                    <Image source={{ uri: user.avatar }} style={styles.avatarImage} />
-                  ) : (
-                    <Text style={styles.profileAvatarText}>
-                      {user?.name ? user.name.charAt(0).toUpperCase() : 'F'}
-                    </Text>
-                  )}
-                </TouchableOpacity>
-              </View>
-
-              {/* Mode Switcher */}
-              <SectionSwitcher activeSection={activeSection} onSwitch={handleSectionSwitch} style={{ marginBottom: 16 }} />
-
-              {/* Food Search bar */}
-              <TouchableOpacity style={styles.searchRow} onPress={() => router.push('/(tabs)/search')} activeOpacity={0.9}>
-                <View style={styles.searchContainer} pointerEvents="none">
-                  <Ionicons name="search" size={20} color="#9CA3AF" style={styles.searchIcon} />
-                  <Text style={styles.searchText}>Search for restaurants, cuisines...</Text>
-                </View>
-              </TouchableOpacity>
-            </View>
 
             {/* BANNERS CAROUSEL */}
             <View style={styles.bannerWrapper}>
@@ -425,9 +440,6 @@ export default function HomeScreen() {
           <Animated.View style={styles.groceryFeedWrapper}>
             <GroceryHome />
           </Animated.View>
-
-          {/* 5-Tab Grocery Tab Bar */}
-          <GroceryTabBar />
         </View>
       )}
     </View>
@@ -544,45 +556,102 @@ const styles = StyleSheet.create({
   },
   stickySearchText: { fontFamily: STYLISH_FONT, color: '#9CA3AF', fontSize: 14, flex: 1 },
 
-  headerContainer: {
-    backgroundColor: '#FF6000',
-    paddingBottom: 24,
-    borderBottomLeftRadius: 28,
-    borderBottomRightRadius: 28,
-    marginBottom: 20,
-    shadowColor: '#D94E1B',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.25,
-    shadowRadius: 12,
-    elevation: 6,
-    borderBottomWidth: 1,
-    borderBottomColor: '#E05500',
+  foodViewWrapper: { flex: 1, backgroundColor: '#FFFFFF', position: 'relative' },
+  foodTopGradient: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    zIndex: 0,
   },
-  headerMainRow: {
+  foodHeaderContainer: {
+    backgroundColor: 'transparent',
+    paddingBottom: 4,
+    zIndex: 10,
+  },
+  foodHeaderLocationRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: 20,
-    marginBottom: 18,
+    justifyContent: 'space-between',
+    paddingHorizontal: 16,
+    marginBottom: 10,
   },
-  locationContainer: { flexDirection: 'row', alignItems: 'center', flex: 1, marginRight: 12 },
-  locationIconCircle: {
-    width: 32, height: 32, borderRadius: 16,
-    backgroundColor: '#FFF',
-    alignItems: 'center', justifyContent: 'center',
+  foodLocationCol: {
+    flex: 1,
+    marginRight: 12,
   },
-  locationTextContainer: { marginLeft: 10, flex: 1 },
-  locationDeliveryLabel: { fontFamily: BOLD_FONT, fontSize: 10, color: 'rgba(255, 255, 255, 0.85)', letterSpacing: 1.2, marginBottom: 2 },
-  locationRowInner: { flexDirection: 'row', alignItems: 'center' },
-  locationTitle: { fontFamily: BOLD_FONT, fontSize: 16, color: '#FFF' },
-  locationSubtitle: { fontFamily: STYLISH_FONT, fontSize: 12, color: 'rgba(255, 255, 255, 0.92)', marginTop: 2 },
-
-  profileAvatar: {
-    width: 44, height: 44, borderRadius: 22,
-    backgroundColor: '#FFF',
-    justifyContent: 'center', alignItems: 'center',
-    borderWidth: 2, borderColor: 'rgba(255, 255, 255, 0.4)',
+  foodDeliveringToLabel: {
+    fontSize: 11.5,
+    color: '#8C502E',
+    fontWeight: '600',
+    marginBottom: 2,
+    letterSpacing: 0.5,
   },
-  avatarImage: { width: '100%', height: '100%', borderRadius: 22 },
+  foodLocationInner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  foodLocationTitle: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: '#2D1808',
+    letterSpacing: -0.2,
+  },
+  foodLocationSubtitle: {
+    fontSize: 11.5,
+    color: '#6B4226',
+    fontWeight: '500',
+    marginTop: 1,
+  },
+  foodAvatarBtn: {
+    width: 38,
+    height: 38,
+    borderRadius: 19,
+    backgroundColor: '#FFFFFF',
+    borderWidth: 1.5,
+    borderColor: '#FFB98A',
+    alignItems: 'center',
+    justifyContent: 'center',
+    overflow: 'hidden',
+    shadowColor: '#D94E1B',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.12,
+    shadowRadius: 4,
+    elevation: 2,
+  },
+  foodAvatarImage: {
+    width: 38,
+    height: 38,
+    borderRadius: 19,
+  },
+  foodAvatarText: {
+    fontSize: 15,
+    fontWeight: '800',
+    color: '#D94E1B',
+  },
+  foodSearchPill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#FFFFFF',
+    borderRadius: 24,
+    borderWidth: 1,
+    borderColor: '#F3DEC8',
+    height: 44,
+    paddingHorizontal: 16,
+    marginHorizontal: 16,
+    marginBottom: 8,
+    shadowColor: '#D94E1B',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 4,
+    elevation: 2,
+  },
+  foodSearchPlaceholder: {
+    flex: 1,
+    fontSize: 13.5,
+    color: '#8C502E',
+    fontWeight: '400',
+  },
   profileAvatarText: { fontFamily: BOLD_FONT, fontSize: 18, color: '#FF6000' },
   headerCartBtn: {
     width: 44,
