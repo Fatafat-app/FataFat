@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
-import { View, Text, ScrollView, TouchableOpacity, Image, StyleSheet, Dimensions, NativeSyntheticEvent, NativeScrollEvent, RefreshControl } from 'react-native';
+import { View, Text, ScrollView, TouchableOpacity, Image, StyleSheet, Dimensions, NativeSyntheticEvent, NativeScrollEvent, RefreshControl, ImageBackground, Animated, Easing } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
@@ -37,6 +37,37 @@ export default function HomeScreen() {
   const bannerScrollRef = useRef<ScrollView>(null);
   const [scrollY, setScrollY] = useState(0);
   const isScrolled = scrollY > 80;
+
+  // Watermark Animation
+  const watermarkAnim = useRef(new Animated.Value(0)).current;
+
+  useEffect(() => {
+    Animated.loop(
+      Animated.sequence([
+        Animated.timing(watermarkAnim, {
+          toValue: 1,
+          duration: 3000,
+          useNativeDriver: true,
+          easing: Easing.inOut(Easing.ease),
+        }),
+        Animated.timing(watermarkAnim, {
+          toValue: 0,
+          duration: 3000,
+          useNativeDriver: true,
+          easing: Easing.inOut(Easing.ease),
+        })
+      ])
+    ).start();
+  }, []);
+
+  const watermarkScale = watermarkAnim.interpolate({
+    inputRange: [0, 1],
+    outputRange: [0.95, 1.05],
+  });
+  const watermarkOpacity = watermarkAnim.interpolate({
+    inputRange: [0, 1],
+    outputRange: [0.08, 0.16],
+  });
 
   const [categories, setCategories] = useState<any[]>([]);
   const [restaurants, setRestaurants] = useState<Restaurant[]>([]);
@@ -135,32 +166,24 @@ export default function HomeScreen() {
         scrollEventThrottle={16}
       >
         {/* HEADER */}
-        <View style={[styles.headerContainer, { paddingTop: insets.top + 10 }]}>
+        <ImageBackground source={require('../../assets/images/top image.jpeg')} style={[styles.headerContainer, { paddingTop: insets.top + 10 }]} imageStyle={{ resizeMode: 'cover' }}>
           <View style={styles.headerMainRow}>
             <TouchableOpacity style={styles.locationContainer} onPress={detectCurrentLocation} activeOpacity={0.7}>
               <View style={styles.locationIconCircle}>
-                <Ionicons name="location" size={18} color="#FF6000" />
+                <Ionicons name="location" size={18} color="#D97706" />
               </View>
               <View style={styles.locationTextContainer}>
                 <Text style={styles.locationDeliveryLabel}>DELIVERING TO</Text>
                 <View style={styles.locationRowInner}>
                   <Text style={styles.locationTitle} numberOfLines={1}>{locationTitle || 'Home'}</Text>
                   {isDetectingLocation ? (
-                    <View style={{ marginLeft: 6 }}><Loading size="small" color="#FFF" /></View>
+                    <View style={{ marginLeft: 6 }}><Loading size="small" color="#4B5563" /></View>
                   ) : (
-                    <Ionicons name="chevron-down" size={14} color="#FFF" style={{ marginLeft: 4 }} />
+                    <Ionicons name="chevron-down" size={14} color="#4B5563" style={{ marginLeft: 4 }} />
                   )}
                 </View>
                 <Text style={styles.locationSubtitle} numberOfLines={1}>{locationSubtitle || 'Detecting location...'}</Text>
               </View>
-            </TouchableOpacity>
-
-            <TouchableOpacity style={styles.profileAvatar} onPress={() => router.push('/(tabs)/profile')} activeOpacity={0.8}>
-              {user?.avatar ? (
-                <Image source={{ uri: user.avatar }} style={styles.avatarImage} />
-              ) : (
-                <Text style={styles.profileAvatarText}>{user?.name ? user.name.charAt(0).toUpperCase() : 'F'}</Text>
-              )}
             </TouchableOpacity>
           </View>
 
@@ -170,7 +193,7 @@ export default function HomeScreen() {
               <Text style={styles.searchText}>Search for restaurants, cuisines...</Text>
             </View>
           </TouchableOpacity>
-        </View>
+        </ImageBackground>
 
         {/* BANNERS CAROUSEL */}
         <View style={styles.bannerWrapper}>
@@ -319,21 +342,21 @@ const styles = StyleSheet.create({
     position: 'absolute',
     top: 0, left: 0, right: 0,
     zIndex: 100,
-    backgroundColor: '#FF6000',
+    backgroundColor: 'rgba(255,255,255,0.95)',
     paddingHorizontal: 16,
     paddingBottom: 12,
     borderBottomWidth: 1,
-    borderBottomColor: '#E05500',
+    borderBottomColor: '#F3F4F6',
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.12,
+    shadowOpacity: 0.05,
     shadowRadius: 8,
-    elevation: 10,
+    elevation: 4,
   },
   stickySearchInner: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#FFF',
+    backgroundColor: '#F3F4F6',
     borderRadius: 14,
     paddingHorizontal: 14,
     height: 46,
@@ -346,18 +369,11 @@ const styles = StyleSheet.create({
   stickySearchText: { fontFamily: STYLISH_FONT, color: '#9CA3AF', fontSize: 14, flex: 1 },
 
   headerContainer: {
-    backgroundColor: '#FF6000',
     paddingBottom: 24,
     borderBottomLeftRadius: 28,
     borderBottomRightRadius: 28,
     marginBottom: 20,
-    shadowColor: '#D94E1B',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.25,
-    shadowRadius: 12,
-    elevation: 6,
-    borderBottomWidth: 1,
-    borderBottomColor: '#E05500',
+    overflow: 'hidden',
   },
   headerMainRow: {
     flexDirection: 'row',
@@ -368,23 +384,16 @@ const styles = StyleSheet.create({
   locationContainer: { flexDirection: 'row', alignItems: 'center', flex: 1, marginRight: 12 },
   locationIconCircle: {
     width: 32, height: 32, borderRadius: 16,
-    backgroundColor: '#FFF',
+    backgroundColor: '#FDE68A',
     alignItems: 'center', justifyContent: 'center',
   },
   locationTextContainer: { marginLeft: 10, flex: 1 },
-  locationDeliveryLabel: { fontFamily: BOLD_FONT, fontSize: 10, color: 'rgba(255, 255, 255, 0.85)', letterSpacing: 1.2, marginBottom: 2 },
+  locationDeliveryLabel: { fontFamily: BOLD_FONT, fontSize: 10, color: '#6B7280', letterSpacing: 1.2, marginBottom: 2 },
   locationRowInner: { flexDirection: 'row', alignItems: 'center' },
-  locationTitle: { fontFamily: BOLD_FONT, fontSize: 16, color: '#FFF' },
-  locationSubtitle: { fontFamily: STYLISH_FONT, fontSize: 12, color: 'rgba(255, 255, 255, 0.92)', marginTop: 2 },
+  locationTitle: { fontFamily: BOLD_FONT, fontSize: 16, color: '#1F2937' },
+  locationSubtitle: { fontFamily: STYLISH_FONT, fontSize: 12, color: '#4B5563', marginTop: 2 },
+  headerWatermark: { position: 'absolute', top: -10, right: -15, width: 120, height: 120 },
 
-  profileAvatar: {
-    width: 44, height: 44, borderRadius: 22,
-    backgroundColor: '#FFF',
-    justifyContent: 'center', alignItems: 'center',
-    borderWidth: 2, borderColor: 'rgba(255, 255, 255, 0.4)',
-  },
-  avatarImage: { width: '100%', height: '100%', borderRadius: 22 },
-  profileAvatarText: { fontFamily: BOLD_FONT, fontSize: 18, color: '#FF6000' },
   headerCartBtn: {
     width: 44,
     height: 44,
