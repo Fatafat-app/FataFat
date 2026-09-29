@@ -18,9 +18,60 @@ import { useGroceryStore } from '../../store/grocery.store';
 
 const { width } = Dimensions.get('window');
 
+// --- Typewriter Component for Search Boxes ---
+const TypewriterText = ({ texts, style }: { texts: string[], style: any }) => {
+  const [text, setText] = useState('');
+  const [index, setIndex] = useState(0);
+  const [isDeleting, setIsDeleting] = useState(false);
+  const [typingSpeed, setTypingSpeed] = useState(100);
+
+  useEffect(() => {
+    let timer: NodeJS.Timeout;
+    const currentWord = texts[index];
+    
+    const handleTyping = () => {
+      if (isDeleting) {
+        setText(currentWord.substring(0, text.length - 1));
+        setTypingSpeed(30); // Faster delete
+      } else {
+        setText(currentWord.substring(0, text.length + 1));
+        setTypingSpeed(80); // Normal typing
+      }
+      
+      if (!isDeleting && text === currentWord) {
+        timer = setTimeout(() => setIsDeleting(true), 2000); // Pause at end of word
+      } else if (isDeleting && text === '') {
+        setIsDeleting(false);
+        setIndex((prev) => (prev + 1) % texts.length);
+        setTypingSpeed(400); // Pause before new word
+      } else {
+        timer = setTimeout(handleTyping, typingSpeed);
+      }
+    };
+    
+    timer = setTimeout(handleTyping, typingSpeed);
+    return () => clearTimeout(timer);
+  }, [text, isDeleting, index, texts, typingSpeed]);
+
+  return <Text style={style} numberOfLines={1}>{text}</Text>;
+};
+
 const formatDistance = (meters?: number) => {
   if (!meters) return '';
   return `${(meters / 1000).toFixed(1)} km`;
+};
+
+const getFallbackCategoryImage = (name: string) => {
+  if (!name) return 'https://images.unsplash.com/photo-1504674900247-0877df9cc836?w=300&q=80';
+  const lower = name.toLowerCase();
+  if (lower.includes('pizza')) return 'https://images.unsplash.com/photo-1565299624946-b28f40a0ae38?w=300&q=80';
+  if (lower.includes('burger')) return 'https://images.unsplash.com/photo-1568901346375-23c9450c58cd?w=300&q=80';
+  if (lower.includes('biryani')) return 'https://images.unsplash.com/photo-1633945274405-b6c8069047b0?w=300&q=80';
+  if (lower.includes('chinese') || lower.includes('noodles')) return 'https://images.unsplash.com/photo-1585032226651-759b368d7246?w=300&q=80';
+  if (lower.includes('dessert') || lower.includes('cake') || lower.includes('sweet')) return 'https://images.unsplash.com/photo-1563729784474-d77dbb933a9e?w=300&q=80';
+  if (lower.includes('healthy') || lower.includes('salad')) return 'https://images.unsplash.com/photo-1512621776951-a57141f2eefd?w=300&q=80';
+  if (lower.includes('roll') || lower.includes('wrap')) return 'https://images.unsplash.com/photo-1626700051175-6818013e1d4f?w=300&q=80';
+  return 'https://images.unsplash.com/photo-1504674900247-0877df9cc836?w=300&q=80';
 };
 
 const BANNERS = [
@@ -185,73 +236,7 @@ export default function HomeScreen() {
       {/* 1. FOOD DELIVERY SECTION                                      */}
       {/* ============================================================ */}
       {activeSection === 'food' && (
-        <View style={styles.foodViewWrapper}>
-          {/* Top Warm Coral/Peach Gradient matching Grocery gradient style */}
-          <LinearGradient
-            colors={['#FFDEBF', '#FFEBD9', '#FFF6EF', '#FFFFFF']}
-            locations={[0, 0.3, 0.65, 1]}
-            style={[styles.foodTopGradient, { height: insets.top + 280 }]}
-          />
-
-          {/* Top Food Header — Same structure as Grocery */}
-          <View style={[styles.foodHeaderContainer, { paddingTop: insets.top + 6 }]}>
-            {/* 1. Mode Switcher on Top */}
-            <SectionSwitcher
-              activeSection={activeSection}
-              onSwitch={handleSectionSwitch}
-              style={{ marginBottom: 12 }}
-            />
-
-            {/* 2. Location Row + User Profile Avatar */}
-            <View style={styles.foodHeaderLocationRow}>
-              <TouchableOpacity
-                style={styles.foodLocationCol}
-                onPress={() => router.push('/address')}
-                activeOpacity={0.7}
-              >
-                <Text style={styles.foodDeliveringToLabel}>DELIVERING TO</Text>
-                <View style={styles.foodLocationInner}>
-                  <Ionicons name="location" size={17} color="#D94E1B" style={{ marginRight: 4 }} />
-                  <Text style={styles.foodLocationTitle} numberOfLines={1}>
-                    {locationTitle || selectedAddress?.type || selectedAddress?.label || 'Home'}
-                  </Text>
-                  {isDetectingLocation ? (
-                    <View style={{ marginLeft: 6 }}><ActivityIndicator size="small" color="#D94E1B" /></View>
-                  ) : (
-                    <Ionicons name="chevron-down" size={15} color="#D94E1B" style={{ marginLeft: 4 }} />
-                  )}
-                </View>
-                <Text style={styles.foodLocationSubtitle} numberOfLines={1}>
-                  {locationSubtitle || (selectedAddress ? `${selectedAddress.city}` : 'Detecting GPS...')}
-                </Text>
-              </TouchableOpacity>
-
-              <TouchableOpacity
-                style={styles.foodAvatarBtn}
-                onPress={() => router.push('/(tabs)/profile')}
-                activeOpacity={0.8}
-              >
-                {user?.avatar ? (
-                  <Image source={{ uri: user.avatar }} style={styles.foodAvatarImage} />
-                ) : (
-                  <Text style={styles.foodAvatarText}>
-                    {user?.name ? user.name.charAt(0).toUpperCase() : 'F'}
-                  </Text>
-                )}
-              </TouchableOpacity>
-            </View>
-
-            {/* 3. Pill Search Bar (Same UI as Grocery Search) */}
-            <TouchableOpacity
-              style={styles.foodSearchPill}
-              onPress={() => router.push('/(tabs)/search')}
-              activeOpacity={0.85}
-            >
-              <Ionicons name="search-outline" size={18} color="#9CA3AF" style={{ marginRight: 10 }} />
-              <Text style={styles.foodSearchPlaceholder}>Search restaurants, cuisines or dishes...</Text>
-              <Ionicons name="mic-outline" size={19} color="#D94E1B" style={{ marginLeft: 'auto' }} />
-            </TouchableOpacity>
-          </View>
+        <View style={{ flex: 1 }}>
 
           <ScrollView
             showsVerticalScrollIndicator={false}
@@ -260,7 +245,7 @@ export default function HomeScreen() {
             onScroll={(e) => setScrollY(e.nativeEvent.contentOffset.y)}
             scrollEventThrottle={16}
           >
-<<<<<<< HEAD
+
             {/* FataFat Brand Orange Food Header with Gradient */}
             <LinearGradient 
               colors={['#D94E1B', '#FF7A3D', '#FFD1B3', '#FFFFFF']}
@@ -280,7 +265,10 @@ export default function HomeScreen() {
                     activeOpacity={0.7}
                   >
                     <Ionicons name="search" size={20} color="#9CA3AF" style={styles.searchIcon} />
-                    <Text style={styles.searchText} numberOfLines={1}>Search restaurants, cuisines...</Text>
+                    <TypewriterText 
+                      texts={['Search "Biryani"', 'Search "Pizza"', 'Search "Momos"', 'Search "Dosa"', 'Search "Burger"']} 
+                      style={styles.searchText} 
+                    />
                   </TouchableOpacity>
 
                   {/* Vertical Divider */}
@@ -307,8 +295,7 @@ export default function HomeScreen() {
                 </View>
               </View>
             </LinearGradient>
-=======
->>>>>>> b1e451a539ce84c2e3b96a92cd0177937284c928
+
 
             {/* BANNERS CAROUSEL */}
             <View style={styles.bannerWrapper}>
@@ -344,27 +331,43 @@ export default function HomeScreen() {
             {/* FOOD CATEGORIES */}
             {categories.length > 0 && (
               <View style={styles.categoriesSection}>
-                <Text style={styles.sectionTitle}>What's on your mind?</Text>
+                <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 20, marginBottom: 18 }}>
+                  <Text style={styles.sectionTitle}>What's on your mind?</Text>
+                  <TouchableOpacity activeOpacity={0.7}>
+                    <Text style={{ fontFamily: BOLD_FONT, color: '#D94E1B', fontSize: 13 }}>See All</Text>
+                  </TouchableOpacity>
+                </View>
                 <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.categoriesScroll} contentContainerStyle={styles.categoriesContent}>
-                  {categories.map((cat, idx) => (
-                    <TouchableOpacity
-                      key={cat._id || cat.id || idx}
-                      style={styles.categoryItem}
-                      onPress={() => router.push({ pathname: '/(tabs)/search', params: { q: cat.name } })}
-                    >
-                      <View style={styles.categoryImageContainer}>
-                        <Image source={{ uri: cat.image }} style={styles.categoryImage} />
-                      </View>
-                      <Text style={styles.categoryName}>{cat.name}</Text>
-                    </TouchableOpacity>
-                  ))}
+                  {categories.map((cat, idx) => {
+                    const fallbackImage = getFallbackCategoryImage(cat.name);
+                    const imageSource = cat.image && cat.image.startsWith('http') ? { uri: cat.image } : { uri: fallbackImage };
+                    
+                    return (
+                      <TouchableOpacity
+                        key={cat._id || cat.id || idx}
+                        style={styles.categoryItemWrapper}
+                        onPress={() => router.push({ pathname: '/(tabs)/search', params: { q: cat.name } })}
+                        activeOpacity={0.9}
+                      >
+                        <View style={styles.categoryItemInner}>
+                          <Image source={imageSource} style={styles.categoryImage} resizeMode="cover" />
+                          <LinearGradient
+                            colors={['transparent', 'rgba(0,0,0,0.6)', 'rgba(0,0,0,0.95)']}
+                            style={styles.categoryGradientOverlay}
+                          >
+                            <Text style={styles.categoryName} numberOfLines={2}>{cat.name}</Text>
+                          </LinearGradient>
+                        </View>
+                      </TouchableOpacity>
+                    );
+                  })}
                 </ScrollView>
               </View>
             )}
 
             {/* RESTAURANTS NEAR YOU */}
             <View style={[styles.sectionContainer, { paddingBottom: 110 }]}>
-              <Text style={styles.sectionTitle}>Restaurants Near You</Text>
+              <Text style={[styles.sectionTitle, { paddingHorizontal: 20, marginBottom: 16 }]}>Restaurants Near You</Text>
 
               {loading ? (
                 <View style={{ padding: 40, alignItems: 'center' }}>
@@ -473,46 +476,40 @@ export default function HomeScreen() {
               style={{ marginBottom: 12 }}
             />
 
-            {/* 2. Location Row + User Profile Avatar */}
-            <View style={styles.groceryHeaderLocationRow}>
-              <TouchableOpacity
-                style={styles.groceryLocationCol}
-                onPress={() => router.push('/address')}
-                activeOpacity={0.7}
-              >
-                <Text style={styles.groceryDeliveringToLabel}>DELIVERING TO</Text>
-                <View style={styles.groceryLocationInner}>
-                  <Ionicons name="location" size={17} color="#1E3D34" style={{ marginRight: 4 }} />
-                  <Text style={styles.groceryLocationTitle} numberOfLines={1}>
-                    {locationTitle || selectedAddress?.label || 'Home'}
-                  </Text>
-                  {isDetectingLocation ? (
-                    <View style={{ marginLeft: 6 }}><ActivityIndicator size="small" color="#1E3D34" /></View>
-                  ) : (
-                    <Ionicons name="chevron-down" size={15} color="#1E3D34" style={{ marginLeft: 4 }} />
-                  )}
-                </View>
-                <Text style={styles.groceryLocationSubtitle} numberOfLines={1}>
-                  {locationSubtitle || (selectedAddress ? `${selectedAddress.city}` : 'Detecting GPS...')}
-                </Text>
+            {/* Premium Stylish Grocery Search Box */}
+            <TouchableOpacity
+              style={{
+                flexDirection: 'row',
+                alignItems: 'center',
+                backgroundColor: '#FFFFFF',
+                borderRadius: 18,
+                paddingHorizontal: 16,
+                height: 56,
+                marginHorizontal: 16,
+                marginBottom: 12,
+                shadowColor: '#000',
+                shadowOffset: { width: 0, height: 6 },
+                shadowOpacity: 0.08,
+                shadowRadius: 16,
+                elevation: 4,
+                borderWidth: 1,
+                borderColor: 'rgba(220, 245, 124, 0.4)'
+              }}
+              onPress={() => router.push('/(tabs)/search')}
+              activeOpacity={0.9}
+            >
+              <Ionicons name="search" size={24} color="#4ADE80" style={{ marginRight: 12 }} />
+              <View style={{ flex: 1, justifyContent: 'center' }}>
+                <TypewriterText 
+                  texts={['Search "Milk"', 'Search "Bread"', 'Search "Eggs"', 'Search "Chips"', 'Search "Cold Drink"', 'Search "Atta"']} 
+                  style={{ fontFamily: BOLD_FONT, fontSize: 14, color: '#1F2937' }} 
+                />
+              </View>
+              <View style={{ width: 1, height: 28, backgroundColor: '#E5E7EB', marginHorizontal: 10 }} />
+              <TouchableOpacity style={{ width: 40, height: 40, borderRadius: 20, backgroundColor: '#F0FDF4', alignItems: 'center', justifyContent: 'center' }}>
+                <Ionicons name="mic" size={20} color="#22C55E" />
               </TouchableOpacity>
-              <TouchableOpacity
-                style={styles.groceryAvatarBtn}
-                onPress={() => router.push('/(tabs)/profile')}
-                activeOpacity={0.8}
-              >
-                {user?.avatar ? (
-                  <Image source={{ uri: user.avatar }} style={styles.groceryAvatarImage} />
-                ) : (
-                  <Text style={styles.groceryAvatarText}>
-                    {user?.name ? user.name.charAt(0).toUpperCase() : 'F'}
-                  </Text>
-                )}
-              </TouchableOpacity>
-            </View>
-
-            {/* 3. Pill Search Bar */}
-            <GrocerySearch onPress={() => router.push('/(tabs)/search')} />
+            </TouchableOpacity>
           </View>
 
           {/* Grocery Scrollable Content */}
@@ -635,22 +632,12 @@ const styles = StyleSheet.create({
   },
   stickySearchText: { fontFamily: STYLISH_FONT, color: '#9CA3AF', fontSize: 14, flex: 1 },
 
-<<<<<<< HEAD
   headerContainer: {
     paddingBottom: 24,
     borderBottomLeftRadius: 50,
     borderBottomRightRadius: 50,
     marginBottom: 20,
     overflow: 'hidden',
-=======
-  foodViewWrapper: { flex: 1, backgroundColor: '#FFFFFF', position: 'relative' },
-  foodTopGradient: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    zIndex: 0,
->>>>>>> b1e451a539ce84c2e3b96a92cd0177937284c928
   },
   foodHeaderContainer: {
     backgroundColor: 'transparent',
@@ -664,7 +651,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     marginBottom: 10,
   },
-<<<<<<< HEAD
   stylishLocationWrapper: {
     alignItems: 'flex-start',
     width: '100%',
@@ -714,86 +700,7 @@ const styles = StyleSheet.create({
     textShadowRadius: 2,
   },
   headerWatermark: { position: 'absolute', top: -10, right: -15, width: 120, height: 120 },
-
-=======
-  foodLocationCol: {
-    flex: 1,
-    marginRight: 12,
-  },
-  foodDeliveringToLabel: {
-    fontSize: 11.5,
-    color: '#8C502E',
-    fontWeight: '600',
-    marginBottom: 2,
-    letterSpacing: 0.5,
-  },
-  foodLocationInner: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  foodLocationTitle: {
-    fontSize: 16,
-    fontWeight: '700',
-    color: '#2D1808',
-    letterSpacing: -0.2,
-  },
-  foodLocationSubtitle: {
-    fontSize: 11.5,
-    color: '#6B4226',
-    fontWeight: '500',
-    marginTop: 1,
-  },
-  foodAvatarBtn: {
-    width: 38,
-    height: 38,
-    borderRadius: 19,
-    backgroundColor: '#FFFFFF',
-    borderWidth: 1.5,
-    borderColor: '#FFB98A',
-    alignItems: 'center',
-    justifyContent: 'center',
-    overflow: 'hidden',
-    shadowColor: '#D94E1B',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.12,
-    shadowRadius: 4,
-    elevation: 2,
-  },
-  foodAvatarImage: {
-    width: 38,
-    height: 38,
-    borderRadius: 19,
-  },
-  foodAvatarText: {
-    fontSize: 15,
-    fontWeight: '800',
-    color: '#D94E1B',
-  },
-  foodSearchPill: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#FFFFFF',
-    borderRadius: 24,
-    borderWidth: 1,
-    borderColor: '#F3DEC8',
-    height: 44,
-    paddingHorizontal: 16,
-    marginHorizontal: 16,
-    marginBottom: 8,
-    shadowColor: '#D94E1B',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.05,
-    shadowRadius: 4,
-    elevation: 2,
-  },
-  foodSearchPlaceholder: {
-    flex: 1,
-    fontSize: 13.5,
-    color: '#8C502E',
-    fontWeight: '400',
-  },
   profileAvatarText: { fontFamily: BOLD_FONT, fontSize: 18, color: '#FF6000' },
->>>>>>> b1e451a539ce84c2e3b96a92cd0177937284c928
   headerCartBtn: {
     width: 44,
     height: 44,
@@ -863,19 +770,46 @@ const styles = StyleSheet.create({
   dotsContainer: { flexDirection: 'row', justifyContent: 'center', marginTop: 14 },
   dot: { width: 6, height: 6, borderRadius: 3, backgroundColor: '#E5E7EB', marginHorizontal: 4 },
 
-  categoriesSection: { marginBottom: 24 },
-  sectionTitle: { fontFamily: BOLD_FONT, fontSize: 18, color: '#1F2937', paddingHorizontal: 20, marginBottom: 16 },
-  categoriesScroll: {},
+  categoriesSection: { marginBottom: 30, marginTop: 4 },
+  sectionTitle: { fontFamily: BOLD_FONT, fontSize: 18, color: '#1F2937' },
+  categoriesScroll: { paddingBottom: 16 },
   categoriesContent: { paddingHorizontal: 20 },
-  categoryItem: { alignItems: 'center', marginRight: 20 },
-  categoryImageContainer: {
-    width: 72, height: 72, borderRadius: 36,
-    overflow: 'hidden', marginBottom: 8,
-    backgroundColor: '#F9FAFB',
-    borderWidth: 1, borderColor: '#F3F4F6',
+  
+  categoryItemWrapper: {
+    marginRight: 16,
+    shadowColor: '#D94E1B',
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.15,
+    shadowRadius: 12,
+    elevation: 6,
+    backgroundColor: 'transparent',
   },
-  categoryImage: { width: '100%', height: '100%' },
-  categoryName: { fontFamily: BOLD_FONT, fontSize: 12, color: '#4B5563' },
+  categoryItemInner: {
+    width: 105, 
+    height: 140, // Much larger and taller size!
+    borderRadius: 24, // Unique ultra-rounded corners
+    overflow: 'hidden', 
+    backgroundColor: '#F3F4F6',
+  },
+  categoryImage: { width: '100%', height: '100%', position: 'absolute' },
+  categoryGradientOverlay: {
+    position: 'absolute',
+    bottom: 0, left: 0, right: 0,
+    height: '65%',
+    justifyContent: 'flex-end',
+    paddingHorizontal: 8,
+    paddingBottom: 14,
+  },
+  categoryName: { 
+    fontFamily: BOLD_FONT, 
+    fontSize: 14.5, 
+    color: '#FFFFFF', 
+    textAlign: 'center', 
+    letterSpacing: 0.5,
+    textShadowColor: 'rgba(0,0,0,0.4)',
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 4
+  },
 
   sectionContainer: {},
   restaurantsList: { paddingHorizontal: 20 },

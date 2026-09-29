@@ -9,6 +9,7 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter, usePathname } from 'expo-router';
+import { BOLD_FONT, STYLISH_FONT } from '../../constants/Theme';
 import { GColors, GRadius, GFontSize } from '../../constants/GroceryTheme';
 import { useGroceryCartCount } from '../../store/grocery.store';
 
@@ -157,7 +158,7 @@ const styles = StyleSheet.create({
   },
   label: {
     fontSize: GFontSize.labelSm,
-    fontWeight: '700',
+    fontFamily: BOLD_FONT,
     marginTop: 2,
     letterSpacing: 0.1,
   },
@@ -178,6 +179,6 @@ const styles = StyleSheet.create({
   badgeText: {
     color: GColors.primary,             // dark green on lime
     fontSize: 8,
-    fontWeight: '800',
+    fontFamily: BOLD_FONT,
   },
 });

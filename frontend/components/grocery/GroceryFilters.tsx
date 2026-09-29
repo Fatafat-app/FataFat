@@ -7,6 +7,7 @@ import {
   StyleSheet,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { BOLD_FONT, STYLISH_FONT } from '../../constants/Theme';
 import { GColors, GRadius, GSpacing, GFontSize } from '../../constants/GroceryTheme';
 
 export type FilterId = 'price' | 'popularity' | 'deals' | 'organic';
@@ -101,7 +102,7 @@ const styles = StyleSheet.create({
   },
   chipText: {
     fontSize: 13,
-    fontWeight: '600',
+    fontFamily: STYLISH_FONT,
   },
 });
 

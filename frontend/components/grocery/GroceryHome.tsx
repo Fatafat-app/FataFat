@@ -9,6 +9,7 @@ import {
   ActivityIndicator,
 } from 'react-native';
 
+import { BOLD_FONT, STYLISH_FONT } from '../../constants/Theme';
 import { GColors, GSpacing, GFontSize } from '../../constants/GroceryTheme';
 import { GroceryCategories } from './GroceryCategories';
 import { GroceryPromoBanner } from './GroceryPromoBanner';
@@ -304,7 +305,7 @@ const styles = StyleSheet.create({
     marginTop: 12,
     fontSize: 14,
     color: '#6B7280',
-    fontWeight: '500',
+    fontFamily: STYLISH_FONT,
   },
   errorContainer: {
     flex: 1,
@@ -315,7 +316,7 @@ const styles = StyleSheet.create({
   },
   errorTitle: {
     fontSize: 18,
-    fontWeight: '700',
+    fontFamily: BOLD_FONT,
     color: '#1E3D34',
     marginBottom: 6,
   },
@@ -333,7 +334,7 @@ const styles = StyleSheet.create({
   },
   retryText: {
     color: '#FFFFFF',
-    fontWeight: '700',
+    fontFamily: BOLD_FONT,
     fontSize: 13,
   },
   sectionHeaderRow: {
@@ -345,12 +346,12 @@ const styles = StyleSheet.create({
   },
   sectionTitle: {
     fontSize: GFontSize.headingMd,
-    fontWeight: '700',
+    fontFamily: BOLD_FONT,
     color: GColors.textPrimary,
   },
   seeAll: {
     fontSize: GFontSize.labelLg,
-    fontWeight: '600',
+    fontFamily: STYLISH_FONT,
     color: GColors.primary,
   },
 
@@ -387,6 +388,6 @@ const styles = StyleSheet.create({
   emptyText: {
     color: '#9CA3AF',
     fontSize: 14,
-    fontWeight: '500',
+    fontFamily: STYLISH_FONT,
   },
 });

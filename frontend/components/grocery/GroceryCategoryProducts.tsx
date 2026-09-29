@@ -14,6 +14,7 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter, useLocalSearchParams } from 'expo-router';
+import { BOLD_FONT, STYLISH_FONT } from '../../constants/Theme';
 import { GColors, GRadius, GSpacing, GShadow } from '../../constants/GroceryTheme';
 import { GroceryProduct } from '../../constants/GroceryData';
 import { groceryService, BackendGroceryCategory, BackendGroceryProduct } from '../../services/grocery.service';
@@ -77,8 +78,8 @@ export function GroceryCategoryProducts() {
           unit: p.unit,
           image:
             p.images && p.images.length > 0
-              ? p.images[0]
-              : 'https://images.pexels.com/photos/33783/olive-oil-salad-dressing-cooking-olive.jpg?auto=compress&cs=tinysrgb&w=400',
+              ? ( (!p.images[0] || p.images[0].includes('pexels')) ? getImageForName(p.name) : p.images[0] )
+              : 'https://images.unsplash.com/photo-1542838132-92c53300491e?w=400&q=80',
           images: p.images,
           badge: (p.badge as any) || undefined,
           discount: p.discount,
@@ -225,7 +226,7 @@ export function GroceryCategoryProducts() {
             onPress={() => setDiscountOnly((prev) => !prev)}
             activeOpacity={0.8}
           >
-            <Text style={[styles.filterChipText, discountOnly && { color: '#1E3D34', fontWeight: '700' }]}>
+            <Text style={[styles.filterChipText, discountOnly && { color: '#1E3D34', fontFamily: BOLD_FONT }]}>
               Discount
             </Text>
           </TouchableOpacity>
@@ -316,10 +317,10 @@ export function GroceryCategoryProducts() {
                   {/* Price & Add / Stepper */}
                   <View style={styles.priceRow}>
                     <View style={styles.priceBox}>
-                      <Text style={styles.priceText}>${product.price.toFixed(2)}</Text>
+                      <Text style={styles.priceText}>₹{product.price.toFixed(0)}</Text>
                       {product.originalPrice && (
                         <Text style={styles.originalPriceText}>
-                          ${product.originalPrice.toFixed(2)}
+                          ₹{product.originalPrice.toFixed(0)}
                         </Text>
                       )}
                     </View>
@@ -394,7 +395,7 @@ export function GroceryCategoryProducts() {
           </View>
 
           <View style={styles.cartPriceCol}>
-            <Text style={styles.cartPriceAmount}>${cartTotal.toFixed(2)}</Text>
+            <Text style={styles.cartPriceAmount}>₹{cartTotal.toFixed(0)}</Text>
             <Text style={styles.cartFreeDeliveryText}>plus free delivery</Text>
           </View>
 
@@ -442,7 +443,7 @@ const styles = StyleSheet.create({
   },
   categoryTitleText: {
     fontSize: 16.5,
-    fontWeight: '700',
+    fontFamily: BOLD_FONT,
     color: '#1E3D34',
   },
   headerSubtitle: {
@@ -484,7 +485,7 @@ const styles = StyleSheet.create({
   },
   deliveryBoldText: {
     fontSize: 11.5,
-    fontWeight: '700',
+    fontFamily: BOLD_FONT,
     color: '#D4F468',
   },
   deliveryDot: {
@@ -548,7 +549,7 @@ const styles = StyleSheet.create({
   },
   filterChipText: {
     fontSize: 11.5,
-    fontWeight: '600',
+    fontFamily: STYLISH_FONT,
     color: '#374151',
   },
   filterIconBtn: {
@@ -603,7 +604,7 @@ const styles = StyleSheet.create({
   },
   productBadgeText: {
     fontSize: 9.5,
-    fontWeight: '800',
+    fontFamily: BOLD_FONT,
   },
   cardWishlistBtn: {
     position: 'absolute',
@@ -630,7 +631,7 @@ const styles = StyleSheet.create({
   },
   ratingValue: {
     fontSize: 11,
-    fontWeight: '700',
+    fontFamily: BOLD_FONT,
     color: '#1E3D34',
   },
   ratingCount: {
@@ -639,7 +640,7 @@ const styles = StyleSheet.create({
   },
   productName: {
     fontSize: 13,
-    fontWeight: '700',
+    fontFamily: BOLD_FONT,
     color: '#1E3D34',
     lineHeight: 17,
     marginBottom: 2,
@@ -663,7 +664,7 @@ const styles = StyleSheet.create({
   },
   priceText: {
     fontSize: 14.5,
-    fontWeight: '800',
+    fontFamily: BOLD_FONT,
     color: '#1E3D34',
   },
   originalPriceText: {
@@ -683,7 +684,7 @@ const styles = StyleSheet.create({
   addCircleText: {
     color: '#FFFFFF',
     fontSize: 18,
-    fontWeight: '700',
+    fontFamily: BOLD_FONT,
     lineHeight: 20,
   },
 
@@ -707,12 +708,12 @@ const styles = StyleSheet.create({
   },
   stepBtnText: {
     fontSize: 14,
-    fontWeight: '700',
+    fontFamily: BOLD_FONT,
     color: '#1E3D34',
   },
   stepQtyText: {
     fontSize: 12,
-    fontWeight: '700',
+    fontFamily: BOLD_FONT,
     color: '#1E3D34',
     paddingHorizontal: 6,
   },
@@ -736,7 +737,7 @@ const styles = StyleSheet.create({
   },
   trustTitle: {
     fontSize: 12.5,
-    fontWeight: '700',
+    fontFamily: BOLD_FONT,
     color: '#1E3D34',
     marginBottom: 2,
   },
@@ -789,7 +790,7 @@ const styles = StyleSheet.create({
   cartCountPillText: {
     color: '#1E3D34',
     fontSize: 12,
-    fontWeight: '800',
+    fontFamily: BOLD_FONT,
   },
   cartPriceCol: {
     flex: 1,
@@ -797,7 +798,7 @@ const styles = StyleSheet.create({
   },
   cartPriceAmount: {
     fontSize: 15,
-    fontWeight: '800',
+    fontFamily: BOLD_FONT,
     color: '#FFFFFF',
   },
   cartFreeDeliveryText: {
@@ -811,6 +812,6 @@ const styles = StyleSheet.create({
   viewCartBtnText: {
     color: '#D4F468',
     fontSize: 13,
-    fontWeight: '700',
+    fontFamily: BOLD_FONT,
   },
 });

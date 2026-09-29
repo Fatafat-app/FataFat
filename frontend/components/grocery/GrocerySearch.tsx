@@ -1,3 +1,4 @@
+import { BOLD_FONT, STYLISH_FONT } from '../../constants/Theme';
 import React from 'react';
 import {
   View,

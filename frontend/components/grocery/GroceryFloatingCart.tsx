@@ -9,6 +9,7 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
+import { BOLD_FONT, STYLISH_FONT } from '../../constants/Theme';
 import { GColors, GRadius, GSpacing, GShadow, GFontSize } from '../../constants/GroceryTheme';
 import { useGroceryCartCount, useGroceryCartTotal } from '../../store/grocery.store';
 
@@ -43,7 +44,7 @@ export function GroceryFloatingCart() {
           <View style={styles.countBadge}>
             <Text style={styles.countText}>{count}</Text>
           </View>
-          <Text style={styles.totalText}>${total.toFixed(2)} Total</Text>
+          <Text style={styles.totalText}>₹{total.toFixed(0)} Total</Text>
         </View>
 
         {/* Right: View Cart */}
@@ -91,12 +92,12 @@ const styles = StyleSheet.create({
   countText: {
     color: GColors.primary,
     fontSize: GFontSize.labelSm,
-    fontWeight: '800',
+    fontFamily: BOLD_FONT,
   },
   totalText: {
     color: GColors.textWhite,
     fontSize: GFontSize.labelLg,
-    fontWeight: '700',
+    fontFamily: BOLD_FONT,
   },
   rightRow: {
     flexDirection: 'row',
@@ -106,6 +107,6 @@ const styles = StyleSheet.create({
   viewCartText: {
     color: GColors.textWhite,
     fontSize: GFontSize.labelLg,
-    fontWeight: '700',
+    fontFamily: BOLD_FONT,
   },
 });

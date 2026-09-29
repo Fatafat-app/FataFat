@@ -10,9 +10,58 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
+import { BOLD_FONT, STYLISH_FONT } from '../../constants/Theme';
 import { GColors, GRadius, GSpacing, GShadow, GFontSize } from '../../constants/GroceryTheme';
 import { GroceryProduct } from '../../constants/GroceryData';
 import { useGroceryStore } from '../../store/grocery.store';
+
+
+const fallbackImages = [
+  'https://images.unsplash.com/photo-1610832958506-aa56368176cf?w=400&q=80', // fruits
+  'https://images.unsplash.com/photo-1604803932791-72f3e82cc872?w=400&q=80', // meat
+  'https://images.unsplash.com/photo-1622483767028-3f66f32aef97?w=400&q=80', // drinks
+  'https://images.unsplash.com/photo-1599490659213-e2b9527bd087?w=400&q=80', // snacks
+  'https://images.unsplash.com/photo-1584820927498-cafe4c239369?w=400&q=80', // household
+  'https://images.unsplash.com/photo-1550583724-b2692b85b150?w=400&q=80', // dairy
+  'https://images.unsplash.com/photo-1509440159596-0249088772ff?w=400&q=80', // bakery
+  'https://images.unsplash.com/photo-1542838132-92c53300491e?w=400&q=80', // organic/veg
+  'https://images.unsplash.com/photo-1571508601891-ca5e7a713859?w=400&q=80', // bananas
+  'https://images.unsplash.com/photo-1573246123716-6b1782bfc492?w=400&q=80', // spinach
+  'https://images.unsplash.com/photo-1560806887-1e4cd0b6fac6?w=400&q=80', // apples
+  'https://images.unsplash.com/photo-1459411621453-7b03977f4bfc?w=400&q=80', // broccoli
+  'https://images.unsplash.com/photo-1592924357228-91a4daadcfea?w=400&q=80', // tomato
+  'https://images.unsplash.com/photo-1517594422361-5e18a412072f?w=400&q=80', // jam
+  'https://images.unsplash.com/photo-1618512496248-a07fe83aa8cb?w=400&q=80', // onion
+  'https://images.unsplash.com/photo-1563565375-f3fdfdbefa8a?w=400&q=80', // peppers
+  'https://images.unsplash.com/photo-1598128558393-70ff21433be0?w=400&q=80', // bread
+  'https://images.unsplash.com/photo-1587486913049-53fc88980cfc?w=400&q=80', // eggs
+  'https://images.unsplash.com/photo-1518977676601-b53f82aba655?w=400&q=80', // potatoes
+];
+
+const getImageForName = (name) => {
+  if (!name) return fallbackImages[0];
+  const lower = name.toLowerCase();
+  if (lower.includes('fruit') || lower.includes('berry')) return fallbackImages[0];
+  if (lower.includes('meat') || lower.includes('chicken') || lower.includes('beef')) return fallbackImages[1];
+  if (lower.includes('drink') || lower.includes('juice') || lower.includes('water')) return fallbackImages[2];
+  if (lower.includes('snack') || lower.includes('chip') || lower.includes('biscuit')) return fallbackImages[3];
+  if (lower.includes('house') || lower.includes('clean')) return fallbackImages[4];
+  if (lower.includes('dairy') || lower.includes('milk') || lower.includes('cheese')) return fallbackImages[5];
+  if (lower.includes('bake') || lower.includes('bread') || lower.includes('cake')) return fallbackImages[6];
+  if (lower.includes('banana')) return fallbackImages[8];
+  if (lower.includes('spinach') || lower.includes('leaf') || lower.includes('veg')) return fallbackImages[9];
+  if (lower.includes('apple')) return fallbackImages[10];
+  if (lower.includes('broccoli') || lower.includes('cabbage')) return fallbackImages[11];
+  if (lower.includes('tomato')) return fallbackImages[12];
+  if (lower.includes('jam') || lower.includes('preserve')) return fallbackImages[13];
+  if (lower.includes('onion')) return fallbackImages[14];
+  if (lower.includes('pepper') || lower.includes('capsicum')) return fallbackImages[15];
+  if (lower.includes('egg')) return fallbackImages[17];
+  if (lower.includes('potato')) return fallbackImages[18];
+  
+  const hash = (name.length + name.charCodeAt(0)) % fallbackImages.length;
+  return fallbackImages[hash];
+};
 
 const { width } = Dimensions.get('window');
 const CARD_WIDTH = (width - GSpacing.edgeMargin * 2 - GSpacing.md) / 2;
@@ -29,39 +78,32 @@ export function GroceryProductCard({ product, style }: GroceryProductCardProps) 
   const cartItem = cart.find((i) => (i.product._id || i.product.id) === prodId);
   const qty = cartItem?.quantity ?? 0;
   const isWishlisted = wishlist.includes(prodId);
+  
+  // Image error handling
+  const [imgError, setImgError] = useState(false);
+  const img = product.image || (product.images && product.images.length > 0 ? product.images[0] : null);
+  const imageUrl = imgError || !img || img.includes('pexels') ? getImageForName(product.name) : img;
 
-  // Stepper expand animation
-  const stepperWidth = useRef(new Animated.Value(36)).current;
-  const [stepperOpen, setStepperOpen] = useState(false);
+  // Stepper height animation for full-width button
+  const stepperHeight = useRef(new Animated.Value(0)).current;
+  const [stepperOpen, setStepperOpen] = useState(qty > 0);
 
   const openStepper = () => {
     addToCart(product);
     setStepperOpen(true);
-    Animated.spring(stepperWidth, {
-      toValue: 100,
-      tension: 80,
-      friction: 10,
-      useNativeDriver: false,
-    }).start();
   };
 
   const handleDecrement = () => {
     decrementQty(prodId);
     if (qty <= 1) {
       setStepperOpen(false);
-      Animated.spring(stepperWidth, {
-        toValue: 36,
-        tension: 80,
-        friction: 10,
-        useNativeDriver: false,
-      }).start();
     }
   };
 
   const getBadgeStyle = () => {
     switch (product.badge) {
-      case 'deal': return { bg: GColors.tertiary, text: 'Deal' };
-      case 'best_seller': return { bg: GColors.primary, text: 'Best Seller' };
+      case 'deal': return { bg: '#8B5CF6', text: 'Mega Deal' };
+      case 'best_seller': return { bg: '#F59E0B', text: 'Best Seller' };
       case 'organic': return { bg: '#10B981', text: 'Organic' };
       default: return null;
     }
@@ -79,42 +121,25 @@ export function GroceryProductCard({ product, style }: GroceryProductCardProps) 
 
   return (
     <TouchableOpacity
-      style={[styles.card, GShadow.level1, style]}
+      style={[styles.card, style]}
       onPress={handleCardPress}
       activeOpacity={0.9}
     >
       {/* Image container */}
       <View style={styles.imageContainer}>
-        <Image
-          source={{
-            uri:
-              product.image ||
-              product.images?.[0] ||
-              'https://images.pexels.com/photos/102104/pexels-photo-102104.jpeg?auto=compress&cs=tinysrgb&w=400',
-          }}
-          style={styles.image}
-          resizeMode="cover"
-        />
+        <View style={styles.imageWrapper}>
+          <Image
+            source={{ uri: imageUrl }}
+            style={styles.image}
+            resizeMode="cover"
+            onError={() => setImgError(true)}
+          />
+        </View>
 
         {/* Discount badge */}
         {product.discount && (
           <View style={styles.discountBadge}>
             <Text style={styles.discountText}>{product.discount}</Text>
-          </View>
-        )}
-
-        {/* Named badge */}
-        {badge && !product.discount && (
-          <View style={[styles.namedBadge, { backgroundColor: badge.bg }]}>
-            <Text style={styles.namedBadgeText}>{badge.text}</Text>
-          </View>
-        )}
-
-        {/* Rating */}
-        {product.rating && (
-          <View style={styles.ratingBadge}>
-            <Ionicons name="star" size={10} color="#FCD34D" />
-            <Text style={styles.ratingText}>{product.rating}</Text>
           </View>
         )}
 
@@ -127,52 +152,49 @@ export function GroceryProductCard({ product, style }: GroceryProductCardProps) 
         >
           <Ionicons
             name={isWishlisted ? 'heart' : 'heart-outline'}
-            size={16}
-            color={isWishlisted ? GColors.wishlistActive : GColors.textMuted}
+            size={18}
+            color={isWishlisted ? '#EF4444' : '#D1D5DB'}
           />
         </TouchableOpacity>
+        {/* Floating Add Button Overlay (Instamart Style) - REMOVED */}
+
       </View>
 
       {/* Details */}
       <View style={styles.details}>
+        <View style={styles.timeTag}>
+          <Ionicons name="time" size={10} color="#16A34A" />
+          <Text style={styles.timeTagText}>8 mins</Text>
+        </View>
+
         <Text style={styles.name} numberOfLines={2}>{product.name}</Text>
         <Text style={styles.unit}>{product.unit}</Text>
 
         {/* Price row */}
         <View style={styles.priceRow}>
-          <View>
-            <Text style={styles.price}>${product.price.toFixed(2)}</Text>
-            {product.originalPrice && (
-              <Text style={styles.originalPrice}>${product.originalPrice.toFixed(2)}</Text>
-            )}
-          </View>
+          <Text style={styles.price}>₹{product.price.toFixed(0)}</Text>
+          {product.originalPrice && (
+            <Text style={styles.originalPrice}>₹{product.originalPrice.toFixed(0)}</Text>
+          )}
+        </View>
 
-          {/* Add / Stepper button */}
-          <Animated.View style={[styles.stepperContainer, { width: stepperWidth }]}>
-            {stepperOpen && qty > 0 ? (
-              <View style={styles.stepper}>
-                <TouchableOpacity
-                  style={styles.stepBtn}
-                  onPress={handleDecrement}
-                  hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}
-                >
-                  <Text style={styles.stepBtnText}>−</Text>
-                </TouchableOpacity>
-                <Text style={styles.qtyText}>{qty}</Text>
-                <TouchableOpacity
-                  style={[styles.stepBtn, styles.stepBtnActive]}
-                  onPress={() => incrementQty(product.id)}
-                  hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}
-                >
-                  <Text style={[styles.stepBtnText, { color: GColors.primary }]}>+</Text>
-                </TouchableOpacity>
-              </View>
-            ) : (
-              <TouchableOpacity style={styles.addBtn} onPress={openStepper} activeOpacity={0.85}>
-                <Text style={styles.addBtnText}>+</Text>
+        {/* Full-width Add/Stepper Button */}
+        <View style={{ marginTop: 12 }}>
+          {stepperOpen && qty > 0 ? (
+            <View style={styles.fullWidthStepper}>
+              <TouchableOpacity style={styles.fullStepBtn} onPress={handleDecrement} hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}>
+                <Text style={styles.fullStepBtnText}>−</Text>
               </TouchableOpacity>
-            )}
-          </Animated.View>
+              <Text style={styles.fullQtyText}>{qty}</Text>
+              <TouchableOpacity style={styles.fullStepBtn} onPress={() => incrementQty(product.id)} hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}>
+                <Text style={styles.fullStepBtnText}>+</Text>
+              </TouchableOpacity>
+            </View>
+          ) : (
+            <TouchableOpacity style={styles.fullWidthAddBtn} onPress={openStepper} activeOpacity={0.85}>
+              <Text style={styles.fullWidthAddText}>ADD TO CART</Text>
+            </TouchableOpacity>
+          )}
         </View>
       </View>
     </TouchableOpacity>
@@ -181,16 +203,43 @@ export function GroceryProductCard({ product, style }: GroceryProductCardProps) 
 
 const styles = StyleSheet.create({
   card: {
-    backgroundColor: GColors.card,
-    borderRadius: GRadius.xl,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 16,
+    borderWidth: 1.5,
+    borderColor: '#F0F4EF',
     overflow: 'hidden',
     width: CARD_WIDTH,
+    marginBottom: 16,
+    shadowColor: '#1E3D34',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.04,
+    shadowRadius: 8,
+    elevation: 2,
   },
   imageContainer: {
     width: '100%',
-    height: 130,
-    backgroundColor: '#F5F5F5',
+    height: 125,
+    backgroundColor: '#F9FAFB',
     position: 'relative',
+    padding: 16,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderBottomWidth: 1,
+    borderBottomColor: '#F0F4EF',
+  },
+  imageWrapper: {
+    width: 90,
+    height: 90,
+    borderRadius: 45, // Circular shape
+    backgroundColor: '#FFFFFF',
+    overflow: 'hidden',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 4,
+    elevation: 2,
+    borderWidth: 1,
+    borderColor: '#F0F4EF',
   },
   image: {
     width: '100%',
@@ -200,136 +249,117 @@ const styles = StyleSheet.create({
     position: 'absolute',
     top: 8,
     left: 8,
-    backgroundColor: GColors.tertiary,
-    borderRadius: GRadius.md,
-    paddingHorizontal: 8,
+    backgroundColor: '#3B82F6', 
+    borderRadius: 6,
+    paddingHorizontal: 6,
     paddingVertical: 3,
   },
   discountText: {
     color: '#FFF',
-    fontSize: GFontSize.labelSm,
-    fontWeight: '700',
-  },
-  namedBadge: {
-    position: 'absolute',
-    top: 8,
-    left: 8,
-    borderRadius: GRadius.md,
-    paddingHorizontal: 8,
-    paddingVertical: 3,
-  },
-  namedBadgeText: {
-    color: '#FFF',
-    fontSize: GFontSize.labelSm,
-    fontWeight: '700',
-  },
-  ratingBadge: {
-    position: 'absolute',
-    bottom: 8,
-    left: 8,
-    backgroundColor: 'rgba(0,0,0,0.5)',
-    borderRadius: GRadius.full,
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 6,
-    paddingVertical: 3,
-    gap: 2,
-  },
-  ratingText: {
-    color: '#FFF',
-    fontSize: 10,
-    fontWeight: '700',
+    fontSize: 9,
+    fontFamily: BOLD_FONT,
+    letterSpacing: 0.5,
   },
   wishlistBtn: {
     position: 'absolute',
-    top: 8,
-    right: 8,
-    width: 28,
-    height: 28,
-    borderRadius: GRadius.full,
-    backgroundColor: 'rgba(255,255,255,0.9)',
+    top: 6,
+    right: 6,
+    padding: 4,
+  },
+  
+  // Full Width Bottom Button Styles
+  fullWidthAddBtn: {
+    width: '100%',
+    height: 36,
+    borderRadius: 8,
+    backgroundColor: '#F0FDF4',
+    borderWidth: 1,
+    borderColor: '#22C55E',
+    flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
   },
+  fullWidthAddText: {
+    color: '#16A34A',
+    fontSize: 12,
+    fontFamily: BOLD_FONT,
+  },
+  fullWidthStepper: {
+    width: '100%',
+    height: 36,
+    borderRadius: 8,
+    backgroundColor: '#16A34A',
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 8,
+  },
+  fullStepBtn: {
+    width: 32,
+    height: 36,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  fullStepBtnText: {
+    fontSize: 18,
+    fontFamily: BOLD_FONT,
+    color: '#FFFFFF',
+  },
+  fullQtyText: {
+    fontSize: 14,
+    fontFamily: BOLD_FONT,
+    color: '#FFFFFF',
+  },
+
   details: {
-    padding: 10,
+    padding: 12,
+    paddingTop: 12,
+  },
+  timeTag: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#F0FDF4',
+    alignSelf: 'flex-start',
+    paddingHorizontal: 6,
+    paddingVertical: 3,
+    borderRadius: 6,
+    marginBottom: 6,
+  },
+  timeTagText: {
+    fontSize: 9,
+    fontFamily: BOLD_FONT,
+    color: '#16A34A',
+    marginLeft: 4,
   },
   name: {
-    fontSize: GFontSize.bodyMd,
-    fontWeight: '700',
-    color: GColors.textPrimary,
-    marginBottom: 2,
-    lineHeight: 19,
+    fontSize: 13,
+    fontFamily: BOLD_FONT,
+    color: '#1F2937',
+    marginBottom: 4,
+    lineHeight: 18,
+    height: 36, // Force exactly 2 lines height
   },
   unit: {
-    fontSize: GFontSize.bodySm,
-    fontWeight: '400',
-    color: GColors.textMuted,
+    fontSize: 11,
+    fontFamily: STYLISH_FONT,
+    color: '#6B7280',
     marginBottom: 8,
+    height: 14, // Force exact 1 line height
   },
   priceRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'space-between',
   },
   price: {
-    fontSize: GFontSize.labelLg,
-    fontWeight: '700',
-    color: GColors.primary,
+    fontSize: 15,
+    fontFamily: BOLD_FONT,
+    color: '#1F2937',
+    marginRight: 6,
   },
   originalPrice: {
-    fontSize: GFontSize.bodySm,
-    fontWeight: '400',
-    color: GColors.textStrikethrough,
+    fontSize: 12,
+    fontFamily: STYLISH_FONT,
+    color: '#9CA3AF',
     textDecorationLine: 'line-through',
-  },
-  stepperContainer: {
-    height: 36,
-    overflow: 'hidden',
-  },
-  addBtn: {
-    width: 36,
-    height: 36,
-    borderRadius: GRadius.full,
-    backgroundColor: GColors.primary,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  addBtnText: {
-    color: GColors.textWhite,
-    fontSize: 20,
-    fontWeight: '700',
-    lineHeight: 22,
-  },
-  stepper: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: GColors.stepperBg,
-    borderRadius: GRadius.full,
-    height: 36,
-    paddingHorizontal: 4,
-    justifyContent: 'space-between',
-    flex: 1,
-  },
-  stepBtn: {
-    width: 28,
-    height: 28,
-    borderRadius: GRadius.full,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  stepBtnActive: {
-    backgroundColor: GColors.accent,
-  },
-  stepBtnText: {
-    fontSize: 16,
-    fontWeight: '700',
-    color: GColors.textPrimary,
-    lineHeight: 18,
-  },
-  qtyText: {
-    fontSize: GFontSize.bodyMd,
-    fontWeight: '700',
-    color: GColors.textPrimary,
   },
 });

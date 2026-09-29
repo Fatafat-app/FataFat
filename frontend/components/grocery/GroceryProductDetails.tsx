@@ -13,10 +13,60 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter, useLocalSearchParams } from 'expo-router';
+import { BOLD_FONT, STYLISH_FONT } from '../../constants/Theme';
 import { GColors, GRadius, GSpacing, GShadow } from '../../constants/GroceryTheme';
 import { GroceryProduct } from '../../constants/GroceryData';
 import { groceryService, BackendGroceryProduct } from '../../services/grocery.service';
 import { useGroceryStore } from '../../store/grocery.store';
+
+
+const fallbackImages = [
+  'https://images.unsplash.com/photo-1610832958506-aa56368176cf?w=400&q=80', // fruits
+  'https://images.unsplash.com/photo-1604803932791-72f3e82cc872?w=400&q=80', // meat
+  'https://images.unsplash.com/photo-1622483767028-3f66f32aef97?w=400&q=80', // drinks
+  'https://images.unsplash.com/photo-1599490659213-e2b9527bd087?w=400&q=80', // snacks
+  'https://images.unsplash.com/photo-1584820927498-cafe4c239369?w=400&q=80', // household
+  'https://images.unsplash.com/photo-1550583724-b2692b85b150?w=400&q=80', // dairy
+  'https://images.unsplash.com/photo-1509440159596-0249088772ff?w=400&q=80', // bakery
+  'https://images.unsplash.com/photo-1542838132-92c53300491e?w=400&q=80', // organic/veg
+  'https://images.unsplash.com/photo-1571508601891-ca5e7a713859?w=400&q=80', // bananas
+  'https://images.unsplash.com/photo-1573246123716-6b1782bfc492?w=400&q=80', // spinach
+  'https://images.unsplash.com/photo-1560806887-1e4cd0b6fac6?w=400&q=80', // apples
+  'https://images.unsplash.com/photo-1459411621453-7b03977f4bfc?w=400&q=80', // broccoli
+  'https://images.unsplash.com/photo-1592924357228-91a4daadcfea?w=400&q=80', // tomato
+  'https://images.unsplash.com/photo-1517594422361-5e18a412072f?w=400&q=80', // jam
+  'https://images.unsplash.com/photo-1618512496248-a07fe83aa8cb?w=400&q=80', // onion
+  'https://images.unsplash.com/photo-1563565375-f3fdfdbefa8a?w=400&q=80', // peppers
+  'https://images.unsplash.com/photo-1598128558393-70ff21433be0?w=400&q=80', // bread
+  'https://images.unsplash.com/photo-1587486913049-53fc88980cfc?w=400&q=80', // eggs
+  'https://images.unsplash.com/photo-1518977676601-b53f82aba655?w=400&q=80', // potatoes
+];
+
+const getImageForName = (name) => {
+  if (!name) return fallbackImages[0];
+  const lower = name.toLowerCase();
+  if (lower.includes('fruit') || lower.includes('berry')) return fallbackImages[0];
+  if (lower.includes('meat') || lower.includes('chicken') || lower.includes('beef')) return fallbackImages[1];
+  if (lower.includes('drink') || lower.includes('juice') || lower.includes('water')) return fallbackImages[2];
+  if (lower.includes('snack') || lower.includes('chip') || lower.includes('biscuit')) return fallbackImages[3];
+  if (lower.includes('house') || lower.includes('clean')) return fallbackImages[4];
+  if (lower.includes('dairy') || lower.includes('milk') || lower.includes('cheese')) return fallbackImages[5];
+  if (lower.includes('bake') || lower.includes('bread') || lower.includes('cake')) return fallbackImages[6];
+  if (lower.includes('banana')) return fallbackImages[8];
+  if (lower.includes('spinach') || lower.includes('leaf')) return fallbackImages[9];
+  if (lower.includes('apple')) return fallbackImages[10];
+  if (lower.includes('broccoli') || lower.includes('cabbage')) return fallbackImages[11];
+  if (lower.includes('tomato')) return fallbackImages[12];
+  if (lower.includes('jam') || lower.includes('preserve')) return fallbackImages[13];
+  if (lower.includes('onion')) return fallbackImages[14];
+  if (lower.includes('pepper') || lower.includes('capsicum')) return fallbackImages[15];
+  if (lower.includes('egg')) return fallbackImages[17];
+  if (lower.includes('potato')) return fallbackImages[18];
+  
+  // deterministic fallback based on string length and first char
+  const hash = (name.length + name.charCodeAt(0)) % fallbackImages.length;
+  return fallbackImages[hash];
+};
 
 const { width } = Dimensions.get('window');
 
@@ -58,10 +108,7 @@ export function GroceryProductDetails() {
             price: p.price,
             originalPrice: p.originalPrice,
             unit: p.unit,
-            image:
-              p.images && p.images.length > 0
-                ? p.images[0]
-                : 'https://images.pexels.com/photos/1414110/pexels-photo-1414110.jpeg?auto=compress&cs=tinysrgb&w=300',
+            image: (!p.images || !p.images[0] || p.images[0].includes('pexels')) ? getImageForName(p.name) : p.images[0],
             rating: p.rating,
           }));
         setRelatedProducts(otherProds);
@@ -107,7 +154,7 @@ export function GroceryProductDetails() {
         price: product.price,
         originalPrice: product.originalPrice,
         unit: product.unit,
-        image: product.images?.[0] || 'https://images.pexels.com/photos/3296279/pexels-photo-3296279.jpeg?auto=compress&cs=tinysrgb&w=800',
+        image: product.images?.[0] || 'https://images.unsplash.com/photo-1542838132-92c53300491e?w=400&q=80',
         rating: product.rating,
       };
 
@@ -137,16 +184,16 @@ export function GroceryProductDetails() {
     'Rich in protein and omega-3, this premium cut is not only nutritious but also delicious. Perfect for grilling, pan-searing, or baking with herbs and citrus.';
   const mainImage =
     product?.images && product.images.length > 0
-      ? product.images[0]
-      : 'https://images.pexels.com/photos/3296279/pexels-photo-3296279.jpeg?auto=compress&cs=tinysrgb&w=800';
+      ? ( (!product.images || !product.images[0] || product.images[0].includes('pexels')) ? getImageForName(product.name) : product.images[0] )
+      : 'https://images.unsplash.com/photo-1542838132-92c53300491e?w=400&q=80';
 
   const highlights = product?.highlights && product.highlights.length > 0
     ? product.highlights
     : [
-        { label: 'High protein', type: 'lime', icon: 'barbell-outline' },
-        { label: 'Omega-3 rich', type: 'blue', icon: 'water-outline' },
-        { label: 'Organic', type: 'grey', icon: 'leaf-outline' },
-      ];
+      { label: 'High protein', type: 'lime', icon: 'barbell-outline' },
+      { label: 'Omega-3 rich', type: 'blue', icon: 'water-outline' },
+      { label: 'Organic', type: 'grey', icon: 'leaf-outline' },
+    ];
 
   const totalItemPrice = price * qty;
 
@@ -199,7 +246,7 @@ export function GroceryProductDetails() {
           </View>
 
           <View style={{ alignItems: 'flex-end' }}>
-            <Text style={styles.priceText}>${price.toFixed(2)}</Text>
+            <Text style={styles.priceText}>₹{price.toFixed(0)}</Text>
             <Text style={styles.unitText}>{unit}</Text>
           </View>
         </View>
@@ -281,7 +328,7 @@ export function GroceryProductDetails() {
                     {rel.name}
                   </Text>
                   <Text style={styles.relatedPrice}>
-                    ${rel.price.toFixed(2)}
+                    ₹{rel.price.toFixed(0)}
                     <Text style={styles.relatedPriceUnit}>{rel.unit || '/each'}</Text>
                   </Text>
                 </View>
@@ -314,7 +361,7 @@ export function GroceryProductDetails() {
           <Ionicons name="bag-outline" size={18} color="#FFFFFF" style={{ marginRight: 8 }} />
           <Text style={styles.addToCartBtnText}>Add to Cart</Text>
           <Text style={styles.addToCartDot}>•</Text>
-          <Text style={styles.addToCartPrice}>${totalItemPrice.toFixed(2)}</Text>
+          <Text style={styles.addToCartPrice}>₹{totalItemPrice.toFixed(0)}</Text>
         </TouchableOpacity>
       </View>
     </View>
@@ -349,7 +396,7 @@ const styles = StyleSheet.create({
   },
   headerTitle: {
     fontSize: 17.5,
-    fontWeight: '700',
+    fontFamily: BOLD_FONT,
     color: '#1E3D34',
   },
 
@@ -394,7 +441,7 @@ const styles = StyleSheet.create({
   },
   ratingText: {
     fontSize: 12,
-    fontWeight: '700',
+    fontFamily: BOLD_FONT,
     color: '#1E3D34',
   },
 
@@ -407,7 +454,7 @@ const styles = StyleSheet.create({
   },
   productTitle: {
     fontSize: 22,
-    fontWeight: '800',
+    fontFamily: BOLD_FONT,
     color: '#1E3D34',
     letterSpacing: -0.3,
     marginBottom: 4,
@@ -415,11 +462,11 @@ const styles = StyleSheet.create({
   weightSubtitle: {
     fontSize: 13,
     color: '#6B7280',
-    fontWeight: '500',
+    fontFamily: STYLISH_FONT,
   },
   priceText: {
     fontSize: 22,
-    fontWeight: '800',
+    fontFamily: BOLD_FONT,
     color: '#1E3D34',
   },
   unitText: {
@@ -444,7 +491,7 @@ const styles = StyleSheet.create({
   },
   deliveryValue: {
     fontSize: 12.5,
-    fontWeight: '700',
+    fontFamily: BOLD_FONT,
     color: '#1E3D34',
   },
 
@@ -465,7 +512,7 @@ const styles = StyleSheet.create({
   },
   highlightText: {
     fontSize: 12,
-    fontWeight: '700',
+    fontFamily: BOLD_FONT,
   },
 
   // Section Blocks
@@ -474,7 +521,7 @@ const styles = StyleSheet.create({
   },
   sectionHeading: {
     fontSize: 17,
-    fontWeight: '800',
+    fontFamily: BOLD_FONT,
     color: '#1E3D34',
     marginBottom: 8,
   },
@@ -493,7 +540,7 @@ const styles = StyleSheet.create({
   },
   seeAllText: {
     fontSize: 13,
-    fontWeight: '600',
+    fontFamily: STYLISH_FONT,
     color: '#1E3D34',
   },
   relatedGrid: {
@@ -535,13 +582,13 @@ const styles = StyleSheet.create({
   },
   relatedName: {
     fontSize: 13,
-    fontWeight: '700',
+    fontFamily: BOLD_FONT,
     color: '#1E3D34',
     marginBottom: 2,
   },
   relatedPrice: {
     fontSize: 13,
-    fontWeight: '700',
+    fontFamily: BOLD_FONT,
     color: '#1E3D34',
   },
   relatedPriceUnit: {
@@ -585,12 +632,12 @@ const styles = StyleSheet.create({
   },
   stepperMinusText: {
     fontSize: 18,
-    fontWeight: '700',
+    fontFamily: BOLD_FONT,
     color: '#1E3D34',
   },
   stepperQtyText: {
     fontSize: 15,
-    fontWeight: '800',
+    fontFamily: BOLD_FONT,
     color: '#1E3D34',
     paddingHorizontal: 10,
   },
@@ -604,7 +651,7 @@ const styles = StyleSheet.create({
   },
   stepperPlusText: {
     fontSize: 18,
-    fontWeight: '800',
+    fontFamily: BOLD_FONT,
     color: '#1E3D34',
   },
 
@@ -620,7 +667,7 @@ const styles = StyleSheet.create({
   },
   addToCartBtnText: {
     fontSize: 14.5,
-    fontWeight: '700',
+    fontFamily: BOLD_FONT,
     color: '#FFFFFF',
   },
   addToCartDot: {
@@ -630,7 +677,7 @@ const styles = StyleSheet.create({
   },
   addToCartPrice: {
     fontSize: 14.5,
-    fontWeight: '800',
+    fontFamily: BOLD_FONT,
     color: '#FFFFFF',
   },
 });

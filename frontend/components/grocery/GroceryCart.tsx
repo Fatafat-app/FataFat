@@ -14,6 +14,7 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
+import { BOLD_FONT, STYLISH_FONT } from '../../constants/Theme';
 import { GColors, GRadius, GSpacing, GShadow } from '../../constants/GroceryTheme';
 import { useGroceryStore, useGroceryCartCount, useGroceryCartTotal } from '../../store/grocery.store';
 import { useLocationStore } from '../../store/location.store';
@@ -59,12 +60,12 @@ export function GroceryCart() {
   const cartCount = useGroceryCartCount();
   const itemTotal = useGroceryCartTotal();
 
-  const isFreeDelivery = itemTotal >= 10;
-  const deliveryFee = itemTotal > 0 ? (isFreeDelivery ? 0 : 1.50) : 0;
+  const isFreeDelivery = itemTotal >= 300;
+  const deliveryFee = itemTotal > 0 ? (isFreeDelivery ? 0 : 35) : 0;
   const couponDiscount = appliedCoupon ? appliedCoupon.discount : 0;
   const finalToPay = Math.max(0, itemTotal + deliveryFee - couponDiscount);
 
-  const freeDeliveryThreshold = 10;
+  const freeDeliveryThreshold = 300;
   const neededForFree = Math.max(0, freeDeliveryThreshold - itemTotal);
   const progressPercent = Math.min(100, Math.round((itemTotal / freeDeliveryThreshold) * 100));
 
@@ -83,11 +84,11 @@ export function GroceryCart() {
     if (!code) return;
 
     if (code === 'FRESH40' || code === 'FRESH30') {
-      applyCoupon(code, 2.0);
+      applyCoupon(code, 40);
       setShowPromoInput(false);
       setPromoInput('');
     } else if (code === 'ORGANIC20') {
-      applyCoupon(code, 1.5);
+      applyCoupon(code, 20);
       setShowPromoInput(false);
       setPromoInput('');
     } else {
@@ -99,7 +100,7 @@ export function GroceryCart() {
     if (cart.length === 0) return;
     Alert.alert(
       'Order Placed Successfully! 🎉',
-      `Your grocery order of $${finalToPay.toFixed(2)} has been placed for ${
+      `Your grocery order of ₹${finalToPay.toFixed(0)} has been placed for ${
         selectedAddress?.line1 || locationTitle || 'your delivery address'
       }. Fast Lane 25-35 mins delivery started!`,
       [
@@ -250,11 +251,11 @@ export function GroceryCart() {
                       <Text style={styles.itemUnit}>{unit}</Text>
                       <View style={styles.priceContainer}>
                         <Text style={styles.itemPrice}>
-                          ${(product.price * item.quantity).toFixed(2)}
+                          ₹{(product.price * item.quantity).toFixed(0)}
                         </Text>
                         {originalPrice && (
                           <Text style={styles.itemOriginalPrice}>
-                            ${(originalPrice * item.quantity).toFixed(2)}
+                            ₹{(originalPrice * item.quantity).toFixed(0)}
                           </Text>
                         )}
                       </View>
@@ -299,7 +300,7 @@ export function GroceryCart() {
                     </View>
                   </View>
                   <Text style={styles.couponDiscountSubtitle}>
-                    Enjoy -${appliedCoupon.discount.toFixed(2)} off order
+                    Enjoy -₹{appliedCoupon.discount.toFixed(0)} off order
                   </Text>
                 </View>
                 <TouchableOpacity onPress={removeCoupon} activeOpacity={0.7} style={styles.couponCloseBtn}>
@@ -338,18 +339,18 @@ export function GroceryCart() {
 
               <View style={styles.billRow}>
                 <Text style={styles.billLabel}>Item Total</Text>
-                <Text style={styles.billValue}>${itemTotal.toFixed(2)}</Text>
+                <Text style={styles.billValue}>₹{itemTotal.toFixed(0)}</Text>
               </View>
 
               <View style={styles.billRow}>
                 <View style={{ flexDirection: 'row', alignItems: 'center' }}>
                   <Text style={styles.billLabel}>Delivery Fee</Text>
                   <View style={styles.freeOverBadge}>
-                    <Text style={styles.freeOverText}>Free over $10</Text>
+                    <Text style={styles.freeOverText}>Free over ₹300</Text>
                   </View>
                 </View>
                 <Text style={styles.billValue}>
-                  {isFreeDelivery ? 'FREE' : `$${deliveryFee.toFixed(2)}`}
+                  {isFreeDelivery ? 'FREE' : `₹${deliveryFee.toFixed(0)}`}
                 </Text>
               </View>
 
@@ -359,7 +360,7 @@ export function GroceryCart() {
                     Promo Discount ({appliedCoupon?.code})
                   </Text>
                   <Text style={styles.billDiscountValue}>
-                    -${couponDiscount.toFixed(2)}
+                    -₹{couponDiscount.toFixed(0)}
                   </Text>
                 </View>
               )}
@@ -371,7 +372,7 @@ export function GroceryCart() {
                   <Text style={styles.toPayHeading}>To Pay</Text>
                   <Text style={styles.toPaySubtitle}>Inclusive of all local taxes</Text>
                 </View>
-                <Text style={styles.toPayAmount}>${finalToPay.toFixed(2)}</Text>
+                <Text style={styles.toPayAmount}>₹{finalToPay.toFixed(0)}</Text>
               </View>
             </View>
 
@@ -380,7 +381,7 @@ export function GroceryCart() {
               <View style={styles.freeDeliveryBanner}>
                 <Ionicons name="leaf" size={16} color="#657917" style={{ marginRight: 8 }} />
                 <Text style={styles.freeDeliveryBannerText}>
-                  Add <Text style={{ fontWeight: '800' }}>${neededForFree.toFixed(2)}</Text> more for Free Delivery
+                  Add <Text style={{ fontFamily: BOLD_FONT }}>₹{neededForFree.toFixed(0)}</Text> more for Free Delivery
                 </Text>
                 <Text style={styles.freeDeliveryPercentText}>{progressPercent}%</Text>
               </View>
@@ -397,7 +398,7 @@ export function GroceryCart() {
         <View style={styles.bottomBar}>
           <View>
             <Text style={styles.totalAmountLabel}>Total Amount</Text>
-            <Text style={styles.totalAmountPrice}>${finalToPay.toFixed(2)}</Text>
+            <Text style={styles.totalAmountPrice}>₹{finalToPay.toFixed(0)}</Text>
           </View>
 
           <TouchableOpacity style={styles.checkoutBtn} onPress={handleCheckout} activeOpacity={0.9}>
@@ -441,7 +442,7 @@ const styles = StyleSheet.create({
   },
   headerTitleText: {
     fontSize: 18,
-    fontWeight: '800',
+    fontFamily: BOLD_FONT,
     color: '#1E3D34',
   },
   headerItemBadge: {
@@ -452,7 +453,7 @@ const styles = StyleSheet.create({
   },
   headerItemBadgeText: {
     fontSize: 11,
-    fontWeight: '800',
+    fontFamily: BOLD_FONT,
     color: '#1E3D34',
   },
 
@@ -497,11 +498,11 @@ const styles = StyleSheet.create({
   deliveringToLabel: {
     fontSize: 11.5,
     color: '#6B7280',
-    fontWeight: '500',
+    fontFamily: STYLISH_FONT,
   },
   cityText: {
     fontSize: 14.5,
-    fontWeight: '800',
+    fontFamily: BOLD_FONT,
     color: '#1E3D34',
     marginBottom: 1,
   },
@@ -511,7 +512,7 @@ const styles = StyleSheet.create({
   },
   changeLinkText: {
     fontSize: 13,
-    fontWeight: '700',
+    fontFamily: BOLD_FONT,
     color: '#1E3D34',
   },
 
@@ -527,12 +528,12 @@ const styles = StyleSheet.create({
   },
   instantDeliveryText: {
     fontSize: 12.5,
-    fontWeight: '600',
+    fontFamily: STYLISH_FONT,
     color: '#1E3D34',
     flex: 1,
   },
   instantDeliveryTime: {
-    fontWeight: '800',
+    fontFamily: BOLD_FONT,
   },
   fastLaneBadge: {
     backgroundColor: '#EBF9C5',
@@ -542,7 +543,7 @@ const styles = StyleSheet.create({
   },
   fastLaneText: {
     fontSize: 10.5,
-    fontWeight: '800',
+    fontFamily: BOLD_FONT,
     color: '#1E3D34',
   },
 
@@ -564,7 +565,7 @@ const styles = StyleSheet.create({
   },
   emptyTitle: {
     fontSize: 18,
-    fontWeight: '800',
+    fontFamily: BOLD_FONT,
     color: '#1E3D34',
     marginBottom: 6,
   },
@@ -585,7 +586,7 @@ const styles = StyleSheet.create({
   },
   exploreBtnText: {
     fontSize: 13.5,
-    fontWeight: '800',
+    fontFamily: BOLD_FONT,
     color: '#1E3D34',
   },
 
@@ -598,13 +599,13 @@ const styles = StyleSheet.create({
   },
   sectionTitle: {
     fontSize: 16,
-    fontWeight: '800',
+    fontFamily: BOLD_FONT,
     color: '#1E3D34',
   },
   coldChainText: {
     fontSize: 11.5,
     color: '#6B7280',
-    fontWeight: '500',
+    fontFamily: STYLISH_FONT,
   },
 
   // Cart Items
@@ -641,7 +642,7 @@ const styles = StyleSheet.create({
   },
   itemName: {
     fontSize: 14,
-    fontWeight: '700',
+    fontFamily: BOLD_FONT,
     color: '#1E3D34',
     marginBottom: 2,
   },
@@ -657,7 +658,7 @@ const styles = StyleSheet.create({
   },
   itemPrice: {
     fontSize: 14.5,
-    fontWeight: '800',
+    fontFamily: BOLD_FONT,
     color: '#1E3D34',
   },
   itemOriginalPrice: {
@@ -683,12 +684,12 @@ const styles = StyleSheet.create({
   },
   stepperMinusText: {
     fontSize: 16,
-    fontWeight: '700',
+    fontFamily: BOLD_FONT,
     color: '#1E3D34',
   },
   stepperQtyText: {
     fontSize: 13,
-    fontWeight: '800',
+    fontFamily: BOLD_FONT,
     color: '#1E3D34',
     paddingHorizontal: 8,
   },
@@ -702,7 +703,7 @@ const styles = StyleSheet.create({
   },
   stepperPlusText: {
     fontSize: 15,
-    fontWeight: '800',
+    fontFamily: BOLD_FONT,
     color: '#1E3D34',
   },
 
@@ -731,7 +732,7 @@ const styles = StyleSheet.create({
   },
   applyCouponText: {
     fontSize: 13,
-    fontWeight: '600',
+    fontFamily: STYLISH_FONT,
     color: '#1E3D34',
   },
   couponIconBox: {
@@ -754,7 +755,7 @@ const styles = StyleSheet.create({
   },
   couponCodeText: {
     fontSize: 13.5,
-    fontWeight: '800',
+    fontFamily: BOLD_FONT,
     color: '#1E3D34',
   },
   couponAppliedBadge: {
@@ -765,7 +766,7 @@ const styles = StyleSheet.create({
   },
   couponAppliedBadgeText: {
     fontSize: 9.5,
-    fontWeight: '800',
+    fontFamily: BOLD_FONT,
     color: '#1E3D34',
   },
   couponDiscountSubtitle: {
@@ -791,7 +792,7 @@ const styles = StyleSheet.create({
   promoTextInput: {
     flex: 1,
     fontSize: 13,
-    fontWeight: '700',
+    fontFamily: BOLD_FONT,
     color: '#1E3D34',
   },
   applyBtn: {
@@ -803,7 +804,7 @@ const styles = StyleSheet.create({
   applyBtnText: {
     color: '#FFFFFF',
     fontSize: 12,
-    fontWeight: '700',
+    fontFamily: BOLD_FONT,
   },
 
   // Bill Summary
@@ -817,7 +818,7 @@ const styles = StyleSheet.create({
   },
   billHeading: {
     fontSize: 16,
-    fontWeight: '800',
+    fontFamily: BOLD_FONT,
     color: '#1E3D34',
     marginBottom: 12,
   },
@@ -840,22 +841,22 @@ const styles = StyleSheet.create({
   },
   freeOverText: {
     fontSize: 10,
-    fontWeight: '700',
+    fontFamily: BOLD_FONT,
     color: '#657917',
   },
   billValue: {
     fontSize: 14,
-    fontWeight: '700',
+    fontFamily: BOLD_FONT,
     color: '#1E3D34',
   },
   billDiscountLabel: {
     fontSize: 13.5,
-    fontWeight: '600',
+    fontFamily: STYLISH_FONT,
     color: '#657917',
   },
   billDiscountValue: {
     fontSize: 14,
-    fontWeight: '800',
+    fontFamily: BOLD_FONT,
     color: '#657917',
   },
   billDivider: {
@@ -870,7 +871,7 @@ const styles = StyleSheet.create({
   },
   toPayHeading: {
     fontSize: 17,
-    fontWeight: '800',
+    fontFamily: BOLD_FONT,
     color: '#1E3D34',
   },
   toPaySubtitle: {
@@ -880,7 +881,7 @@ const styles = StyleSheet.create({
   },
   toPayAmount: {
     fontSize: 22,
-    fontWeight: '800',
+    fontFamily: BOLD_FONT,
     color: '#1E3D34',
   },
 
@@ -901,7 +902,7 @@ const styles = StyleSheet.create({
   },
   freeDeliveryPercentText: {
     fontSize: 12,
-    fontWeight: '800',
+    fontFamily: BOLD_FONT,
     color: '#657917',
   },
 
@@ -929,11 +930,11 @@ const styles = StyleSheet.create({
   totalAmountLabel: {
     fontSize: 11,
     color: '#6B7280',
-    fontWeight: '500',
+    fontFamily: STYLISH_FONT,
   },
   totalAmountPrice: {
     fontSize: 22,
-    fontWeight: '800',
+    fontFamily: BOLD_FONT,
     color: '#1E3D34',
   },
   checkoutBtn: {
@@ -947,6 +948,6 @@ const styles = StyleSheet.create({
   checkoutBtnText: {
     color: '#FFFFFF',
     fontSize: 14.5,
-    fontWeight: '700',
+    fontFamily: BOLD_FONT,
   },
 });

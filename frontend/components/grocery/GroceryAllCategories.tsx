@@ -15,11 +15,74 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
+import { BOLD_FONT, STYLISH_FONT } from '../../constants/Theme';
 import { GColors, GRadius, GSpacing, GShadow } from '../../constants/GroceryTheme';
 import { GroceryCategory } from '../../constants/GroceryData';
 import { groceryService } from '../../services/grocery.service';
 import { useGroceryCartCount, useGroceryCartTotal } from '../../store/grocery.store';
 import { GroceryTabBar } from './GroceryTabBar';
+
+
+const fallbackImages = [
+  'https://images.unsplash.com/photo-1610832958506-aa56368176cf?w=400&q=80', // fruits
+  'https://images.unsplash.com/photo-1604803932791-72f3e82cc872?w=400&q=80', // meat
+  'https://images.unsplash.com/photo-1622483767028-3f66f32aef97?w=400&q=80', // drinks
+  'https://images.unsplash.com/photo-1599490659213-e2b9527bd087?w=400&q=80', // snacks
+  'https://images.unsplash.com/photo-1584820927498-cafe4c239369?w=400&q=80', // household
+  'https://images.unsplash.com/photo-1550583724-b2692b85b150?w=400&q=80', // dairy
+  'https://images.unsplash.com/photo-1509440159596-0249088772ff?w=400&q=80', // bakery
+  'https://images.unsplash.com/photo-1542838132-92c53300491e?w=400&q=80', // organic/veg
+  'https://images.unsplash.com/photo-1571508601891-ca5e7a713859?w=400&q=80', // bananas
+  'https://images.unsplash.com/photo-1573246123716-6b1782bfc492?w=400&q=80', // spinach
+  'https://images.unsplash.com/photo-1560806887-1e4cd0b6fac6?w=400&q=80', // apples
+  'https://images.unsplash.com/photo-1459411621453-7b03977f4bfc?w=400&q=80', // broccoli
+  'https://images.unsplash.com/photo-1592924357228-91a4daadcfea?w=400&q=80', // tomato
+  'https://images.unsplash.com/photo-1517594422361-5e18a412072f?w=400&q=80', // jam
+  'https://images.unsplash.com/photo-1618512496248-a07fe83aa8cb?w=400&q=80', // onion
+  'https://images.unsplash.com/photo-1563565375-f3fdfdbefa8a?w=400&q=80', // peppers
+  'https://images.unsplash.com/photo-1598128558393-70ff21433be0?w=400&q=80', // bread
+  'https://images.unsplash.com/photo-1587486913049-53fc88980cfc?w=400&q=80', // eggs
+  'https://images.unsplash.com/photo-1518977676601-b53f82aba655?w=400&q=80', // potatoes
+];
+
+const getImageForName = (name) => {
+  if (!name) return fallbackImages[0];
+  const lower = name.toLowerCase();
+  if (lower.includes('fruit') || lower.includes('berry')) return fallbackImages[0];
+  if (lower.includes('meat') || lower.includes('chicken') || lower.includes('beef')) return fallbackImages[1];
+  if (lower.includes('drink') || lower.includes('juice') || lower.includes('water')) return fallbackImages[2];
+  if (lower.includes('snack') || lower.includes('chip') || lower.includes('biscuit')) return fallbackImages[3];
+  if (lower.includes('house') || lower.includes('clean')) return fallbackImages[4];
+  if (lower.includes('dairy') || lower.includes('milk') || lower.includes('cheese')) return fallbackImages[5];
+  if (lower.includes('bake') || lower.includes('bread') || lower.includes('cake')) return fallbackImages[6];
+  if (lower.includes('banana')) return fallbackImages[8];
+  if (lower.includes('spinach') || lower.includes('leaf')) return fallbackImages[9];
+  if (lower.includes('apple')) return fallbackImages[10];
+  if (lower.includes('broccoli') || lower.includes('cabbage')) return fallbackImages[11];
+  if (lower.includes('tomato')) return fallbackImages[12];
+  if (lower.includes('jam') || lower.includes('preserve')) return fallbackImages[13];
+  if (lower.includes('onion')) return fallbackImages[14];
+  if (lower.includes('pepper') || lower.includes('capsicum')) return fallbackImages[15];
+  if (lower.includes('egg')) return fallbackImages[17];
+  if (lower.includes('potato')) return fallbackImages[18];
+  
+  // deterministic fallback based on string length and first char
+  const hash = (name.length + name.charCodeAt(0)) % fallbackImages.length;
+  return fallbackImages[hash];
+};
+
+
+const LOCAL_CATEGORIES = [
+  { id: '1', name: 'Fresh Vegetables', slug: 'fresh-vegetables', emoji: '🥦', image: 'https://images.unsplash.com/photo-1542838132-92c53300491e?w=300&q=80', bg: '#F0FDF4', subtitle: 'Farm fresh daily', badge: 'FRESH', badgeType: 'lime', itemCount: '50+ items' },
+  { id: '2', name: 'Fresh Fruits', slug: 'fresh-fruits', emoji: '🍎', image: 'https://images.unsplash.com/photo-1610832958506-aa56368176cf?w=300&q=80', bg: '#FFF7ED', subtitle: 'Seasonal & exotic', badge: 'POPULAR', badgeType: 'lime', itemCount: '40+ items' },
+  { id: '3', name: 'Dairy & Eggs', slug: 'dairy-eggs', emoji: '🥛', image: 'https://images.unsplash.com/photo-1550583724-b2692b85b150?w=300&q=80', bg: '#EFF6FF', subtitle: 'Daily essentials', badge: 'TOP OFFER', badgeType: 'lime', itemCount: '30+ items' },
+  { id: '4', name: 'Atta, Rice & Dal', slug: 'atta-rice-dal', emoji: '🌾', image: 'https://images.unsplash.com/photo-1536304993881-ff6e9eefa2a6?w=300&q=80', bg: '#FEF9C3', subtitle: 'Kitchen staples', badge: 'VALUE', badgeType: 'lime', itemCount: '60+ items' },
+  { id: '5', name: 'Oil & Masala', slug: 'oil-masala', emoji: '🫙', image: 'https://images.unsplash.com/photo-1599490659213-e2b9527bd087?w=300&q=80', bg: '#FFF7ED', subtitle: 'Spices & condiments', badge: 'DEALS', badgeType: 'pink', itemCount: '80+ items' },
+  { id: '6', name: 'Snacks & Drinks', slug: 'snacks-drinks', emoji: '🥤', image: 'https://images.unsplash.com/photo-1622483767028-3f66f32aef97?w=300&q=80', bg: '#F0F9FF', subtitle: 'Munch any time', badge: 'HOT', badgeType: 'pink', itemCount: '70+ items' },
+  { id: '7', name: 'Personal Care', slug: 'personal-care', emoji: '🧴', image: 'https://images.unsplash.com/photo-1584820927498-cafe4c239369?w=300&q=80', bg: '#F9F0FF', subtitle: 'Stay fresh & clean', badge: 'NEW', badgeType: 'grey', itemCount: '45+ items' },
+  { id: '8', name: 'Household Items', slug: 'household', emoji: '🧹', image: 'https://images.unsplash.com/photo-1584820927498-cafe4c239369?w=300&q=80', bg: '#F0FDF4', subtitle: 'Home & kitchen', badge: 'TOP OFFER', badgeType: 'lime', itemCount: '55+ items' },
+  { id: '9', name: 'Breakfast & Bread', slug: 'breakfast-bread', emoji: '🍞', image: 'https://images.unsplash.com/photo-1598128558393-70ff21433be0?w=300&q=80', bg: '#FFFBEB', subtitle: 'Morning essentials', badge: 'POPULAR', badgeType: 'lime', itemCount: '35+ items' },
+];
 
 const { width } = Dimensions.get('window');
 const CARD_WIDTH = (width - 16 * 2 - 12) / 2;
@@ -35,8 +98,8 @@ export function GroceryAllCategories({ onBack, onSelectCategory }: GroceryAllCat
   const cartCount = useGroceryCartCount();
   const cartTotal = useGroceryCartTotal();
 
-  const [categories, setCategories] = useState<GroceryCategory[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [categories, setCategories] = useState<GroceryCategory[]>(LOCAL_CATEGORIES as any);
+  const [loading, setLoading] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [activeCategorySlug, setActiveCategorySlug] = useState<string | null>(null);
@@ -51,7 +114,7 @@ export function GroceryAllCategories({ onBack, onSelectCategory }: GroceryAllCat
           name: c.name,
           slug: c.slug,
           emoji: c.emoji || '🛒',
-          image: c.image,
+          image: (!c.image || c.image.includes('pexels')) ? getImageForName(c.name) : c.image,
           bg: c.bg || '#F3F7F2',
           subtitle: c.subtitle || 'Essential daily staples',
           badge: c.badge || 'TOP OFFER',
@@ -59,9 +122,13 @@ export function GroceryAllCategories({ onBack, onSelectCategory }: GroceryAllCat
           itemCount: c.itemCount || '50+ items',
         }));
         setCategories(mapped);
+      } else {
+        // Backend has no categories seeded — use local curated list
+        setCategories(LOCAL_CATEGORIES as any);
       }
     } catch (_err) {
-      // Handle error
+      // On error, show local categories
+      setCategories(LOCAL_CATEGORIES as any);
     } finally {
       setLoading(false);
     }
@@ -278,7 +345,7 @@ export function GroceryAllCategories({ onBack, onSelectCategory }: GroceryAllCat
 
           <View style={styles.cartPriceInfo}>
             <Text style={styles.cartTotalLabel}>CART TOTAL</Text>
-            <Text style={styles.cartTotalAmount}>${cartTotal.toFixed(2)}</Text>
+            <Text style={styles.cartTotalAmount}>₹{cartTotal.toFixed(0)}</Text>
           </View>
 
           <View style={styles.viewCartBtn}>
@@ -318,7 +385,7 @@ const styles = StyleSheet.create({
   },
   headerTitle: {
     fontSize: 18,
-    fontWeight: '700',
+    fontFamily: BOLD_FONT,
     color: '#1E3D34',
   },
   headerCartBadge: {
@@ -336,7 +403,7 @@ const styles = StyleSheet.create({
   headerCartBadgeText: {
     color: '#1E3D34',
     fontSize: 9,
-    fontWeight: '800',
+    fontFamily: BOLD_FONT,
   },
   scroll: {
     flex: 1,
@@ -416,18 +483,18 @@ const styles = StyleSheet.create({
   todayOnlyText: {
     color: '#1E3D34',
     fontSize: 9.5,
-    fontWeight: '800',
+    fontFamily: BOLD_FONT,
     letterSpacing: 0.2,
   },
   limitedDealText: {
     color: '#E5E7EB',
     fontSize: 11.5,
-    fontWeight: '600',
+    fontFamily: STYLISH_FONT,
   },
   promoHeadline: {
     color: '#FFFFFF',
     fontSize: 13.5,
-    fontWeight: '700',
+    fontFamily: BOLD_FONT,
     lineHeight: 18,
   },
 
@@ -440,12 +507,12 @@ const styles = StyleSheet.create({
   },
   sectionTitle: {
     fontSize: 16,
-    fontWeight: '700',
+    fontFamily: BOLD_FONT,
     color: '#1E3D34',
   },
   categoriesCount: {
     fontSize: 12,
-    fontWeight: '500',
+    fontFamily: STYLISH_FONT,
     color: '#6B7280',
   },
 
@@ -486,25 +553,23 @@ const styles = StyleSheet.create({
   },
   cardBadgeText: {
     fontSize: 9.5,
-    fontWeight: '800',
+    fontFamily: BOLD_FONT,
     letterSpacing: 0.2,
   },
   imageOval: {
     width: '100%',
-    height: 94,
-    borderRadius: 47,
+    height: 104, borderRadius: 16,
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: 8,
     overflow: 'hidden',
   },
   cardImage: {
-    width: 80,
-    height: 80,
+    width: "100%", height: "100%", borderRadius: 16,
   },
   categoryName: {
     fontSize: 13.5,
-    fontWeight: '700',
+    fontFamily: BOLD_FONT,
     color: '#1E3D34',
     marginBottom: 2,
   },
@@ -523,7 +588,7 @@ const styles = StyleSheet.create({
   },
   itemCountText: {
     fontSize: 11.5,
-    fontWeight: '700',
+    fontFamily: BOLD_FONT,
     color: '#1E3D34',
   },
   arrowCircle: {
@@ -572,7 +637,7 @@ const styles = StyleSheet.create({
   cartCountCircleText: {
     color: '#1E3D34',
     fontSize: 14,
-    fontWeight: '800',
+    fontFamily: BOLD_FONT,
   },
   cartPriceInfo: {
     flex: 1,
@@ -580,13 +645,13 @@ const styles = StyleSheet.create({
   },
   cartTotalLabel: {
     fontSize: 9.5,
-    fontWeight: '700',
+    fontFamily: BOLD_FONT,
     color: '#A7C4B8',
     letterSpacing: 0.5,
   },
   cartTotalAmount: {
     fontSize: 15,
-    fontWeight: '800',
+    fontFamily: BOLD_FONT,
     color: '#FFFFFF',
   },
   viewCartBtn: {
@@ -600,6 +665,6 @@ const styles = StyleSheet.create({
   viewCartBtnText: {
     color: '#1E3D34',
     fontSize: 12.5,
-    fontWeight: '700',
+    fontFamily: BOLD_FONT,
   },
 });
