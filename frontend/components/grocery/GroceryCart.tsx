@@ -9,6 +9,7 @@ import {
   Dimensions,
   Alert,
   TextInput,
+  Platform,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
@@ -387,13 +388,13 @@ export function GroceryCart() {
           </>
         )}
 
-        {/* Bottom spacer for sticky bar */}
-        <View style={{ height: 110 }} />
+        {/* Bottom spacer for sticky bar and tabbar */}
+        <View style={{ height: 160 }} />
       </ScrollView>
 
       {/* Bottom Sticky Checkout Bar (Only when items exist) */}
       {cart.length > 0 && (
-        <View style={[styles.bottomBar, { paddingBottom: Math.max(insets.bottom, 12) }]}>
+        <View style={styles.bottomBar}>
           <View>
             <Text style={styles.totalAmountLabel}>Total Amount</Text>
             <Text style={styles.totalAmountPrice}>${finalToPay.toFixed(2)}</Text>
@@ -904,25 +905,26 @@ const styles = StyleSheet.create({
     color: '#657917',
   },
 
-  // Bottom Sticky Bar
+  // Bottom Sticky Floating Checkout Bar
   bottomBar: {
     position: 'absolute',
-    bottom: 0,
-    left: 0,
-    right: 0,
+    bottom: Platform.OS === 'ios' ? 96 : 88,
+    left: 16,
+    right: 16,
     backgroundColor: '#FFFFFF',
-    borderTopWidth: 1,
-    borderTopColor: '#F3F4F6',
+    borderRadius: 22,
+    borderWidth: 1.5,
+    borderColor: '#E8ECE6',
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingHorizontal: 16,
-    paddingTop: 12,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: -4 },
-    shadowOpacity: 0.05,
-    shadowRadius: 8,
-    elevation: 10,
+    paddingHorizontal: 18,
+    paddingVertical: 12,
+    shadowColor: '#1E3D34',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.12,
+    shadowRadius: 10,
+    elevation: 8,
   },
   totalAmountLabel: {
     fontSize: 11,
