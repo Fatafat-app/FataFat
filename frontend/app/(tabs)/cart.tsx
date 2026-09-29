@@ -25,8 +25,22 @@ import { formatPaise } from '../../utils/formatters';
 import { Address, PaymentMethod } from '../../types';
 import { Typography, Colors } from '../../constants/Theme';
 import { EmptyState } from '../../components/ui/EmptyState';
+import { useGroceryStore } from '../../store/grocery.store';
+import { GroceryCart } from '../../components/grocery/GroceryCart';
 
 export default function CartScreen() {
+  const activeSection = useGroceryStore((state) => state.activeSection);
+  const groceryCart = useGroceryStore((state) => state.cart);
+  const foodItems = useCartStore((state) => state.items);
+
+  if (activeSection === 'grocery' || (groceryCart.length > 0 && foodItems.length === 0)) {
+    return <GroceryCart />;
+  }
+
+  return <FoodCartContent />;
+}
+
+function FoodCartContent() {
   const {
     restaurant,
     items,

@@ -17,11 +17,13 @@ const adminRoutes = require('../modules/admin/admin.routes');
 const analyticsRoutes = require('../modules/analytics/analytics.routes');
 const supportRoutes = require('../modules/support/support.routes');
 const notificationRoutes = require('../modules/notifications/notification.routes');
+const groceryRoutes = require('../modules/grocery/grocery.routes');
 
 const router = Router();
 
 router.use('/auth', authRoutes);
 router.use('/users', userRoutes);
+router.use('/grocery', groceryRoutes);
 
 router.use('/restaurants', restaurantRoutes);
 router.use('/restaurants/:restaurantId/menu', menuRoutes);
