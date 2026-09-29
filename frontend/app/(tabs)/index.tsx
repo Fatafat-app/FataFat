@@ -1,9 +1,5 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
-<<<<<<< HEAD
-import { View, Text, ScrollView, TouchableOpacity, Image, StyleSheet, Dimensions, NativeSyntheticEvent, NativeScrollEvent, RefreshControl, ImageBackground, Animated, Easing } from 'react-native';
-=======
-import { View, Text, ScrollView, TouchableOpacity, Image, StyleSheet, Dimensions, NativeSyntheticEvent, NativeScrollEvent, RefreshControl, Animated, Easing, ActivityIndicator } from 'react-native';
->>>>>>> ba09c6c00c6e599a037f02f12b433d46eafc644b
+import { View, Text, ScrollView, TouchableOpacity, Image, StyleSheet, Dimensions, NativeSyntheticEvent, NativeScrollEvent, RefreshControl, ImageBackground, Animated, Easing, ActivityIndicator } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -40,13 +36,13 @@ export default function HomeScreen() {
   const router = useRouter();
   const user = useAuthStore((state) => state.user);
   const cartCount = useCartStore((state) => state.items.reduce((s, i) => s + i.quantity, 0));
-  const { locationTitle, locationSubtitle, isDetectingLocation, detectCurrentLocation, currentLocation } = useLocationStore();
+  const { locationTitle, locationSubtitle, isDetectingLocation, detectCurrentLocation, currentLocation, selectedAddress } = useLocationStore();
   const insets = useSafeAreaInsets();
   const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
   // Section switcher — food is default on app open
   const { activeSection, setSection } = useGroceryStore();
-  const foodTranslate    = useRef(new Animated.Value(0)).current;
+  const foodTranslate = useRef(new Animated.Value(0)).current;
   const groceryTranslate = useRef(new Animated.Value(SCREEN_WIDTH)).current;
   const [headerHeight, setHeaderHeight] = useState(0);
 
@@ -206,49 +202,52 @@ export default function HomeScreen() {
             onScroll={(e) => setScrollY(e.nativeEvent.contentOffset.y)}
             scrollEventThrottle={16}
           >
-            {/* Orange Food Header */}
-            <View style={[styles.headerContainer, { paddingTop: insets.top + 10 }]}>
-              <View style={styles.headerMainRow}>
-                <TouchableOpacity style={styles.locationContainer} onPress={detectCurrentLocation} activeOpacity={0.7}>
-                  <View style={styles.locationIconCircle}>
-                    <Ionicons name="location" size={18} color="#FF6000" />
-                  </View>
-                  <View style={styles.locationTextContainer}>
-                    <Text style={styles.locationDeliveryLabel}>DELIVERING TO</Text>
-                    <View style={styles.locationRowInner}>
-                      <Text style={styles.locationTitle} numberOfLines={1}>{locationTitle || 'Home'}</Text>
-                      {isDetectingLocation ? (
-                        <View style={{ marginLeft: 6 }}><ActivityIndicator size="small" color="#FFF" /></View>
-                      ) : (
-                        <Ionicons name="chevron-down" size={14} color="#FFF" style={{ marginLeft: 4 }} />
-                      )}
-                    </View>
-                    <Text style={styles.locationSubtitle} numberOfLines={1}>{locationSubtitle || 'Detecting location...'}</Text>
-                  </View>
-                </TouchableOpacity>
-
-                <TouchableOpacity style={styles.profileAvatar} onPress={() => router.push('/(tabs)/profile')} activeOpacity={0.8}>
-                  {user?.avatar ? (
-                    <Image source={{ uri: user.avatar }} style={styles.avatarImage} />
-                  ) : (
-                    <Text style={styles.profileAvatarText}>
-                      {user?.name ? user.name.charAt(0).toUpperCase() : 'F'}
-                    </Text>
-                  )}
-                </TouchableOpacity>
-              </View>
-
+            {/* FataFat Brand Orange Food Header with Gradient */}
+            <LinearGradient 
+              colors={['#D94E1B', '#FF7A3D', '#FFD1B3', '#FFFFFF']}
+              locations={[0, 0.4, 0.8, 1]}
+              style={[styles.headerContainer, { paddingTop: insets.top + 10 }]}
+            >
               {/* Mode Switcher */}
               <SectionSwitcher activeSection={activeSection} onSwitch={handleSectionSwitch} style={{ marginBottom: 16 }} />
 
-              {/* Food Search bar */}
-              <TouchableOpacity style={styles.searchRow} onPress={() => router.push('/(tabs)/search')} activeOpacity={0.9}>
-                <View style={styles.searchContainer} pointerEvents="none">
-                  <Ionicons name="search" size={20} color="#9CA3AF" style={styles.searchIcon} />
-                  <Text style={styles.searchText}>Search for restaurants, cuisines...</Text>
+              {/* Clean Search Bar with Integrated Location */}
+              <View style={styles.searchRow}>
+                <View style={styles.searchContainer}>
+                  {/* Left: Search Action */}
+                  <TouchableOpacity 
+                    style={{ flex: 1, flexDirection: 'row', alignItems: 'center' }} 
+                    onPress={() => router.push('/(tabs)/search')}
+                    activeOpacity={0.7}
+                  >
+                    <Ionicons name="search" size={20} color="#9CA3AF" style={styles.searchIcon} />
+                    <Text style={styles.searchText} numberOfLines={1}>Search restaurants, cuisines...</Text>
+                  </TouchableOpacity>
+
+                  {/* Vertical Divider */}
+                  <View style={{ width: 1, height: 28, backgroundColor: '#E5E7EB', marginHorizontal: 10 }} />
+
+                  {/* Right: Location Action */}
+                  <TouchableOpacity 
+                    style={{ flexDirection: 'row', alignItems: 'center', paddingLeft: 4 }}
+                    onPress={() => router.push('/address')}
+                    activeOpacity={0.7}
+                  >
+                    <View style={{ alignItems: 'flex-end', marginRight: 6 }}>
+                      <Text style={{ fontFamily: BOLD_FONT, fontSize: 10, color: '#D94E1B', marginBottom: 1 }}>
+                        {selectedAddress?.label?.toUpperCase() || 'HOME'} ⌵
+                      </Text>
+                      <Text style={{ fontFamily: STYLISH_FONT, fontSize: 10, color: '#6B7280', maxWidth: 65 }} numberOfLines={1}>
+                        {locationTitle || (selectedAddress ? selectedAddress.city : 'Detecting...')}
+                      </Text>
+                    </View>
+                    <View style={{ width: 30, height: 30, borderRadius: 15, backgroundColor: 'rgba(217, 78, 27, 0.1)', alignItems: 'center', justifyContent: 'center' }}>
+                      <Ionicons name="location" size={16} color="#D94E1B" />
+                    </View>
+                  </TouchableOpacity>
                 </View>
-              </TouchableOpacity>
-            </View>
+              </View>
+            </LinearGradient>
 
             {/* BANNERS CAROUSEL */}
             <View style={styles.bannerWrapper}>
@@ -308,7 +307,7 @@ export default function HomeScreen() {
 
               {loading ? (
                 <View style={{ padding: 40, alignItems: 'center' }}>
-                  <Loading size="large" color={Colors.primary} />
+                  <Loading />
                 </View>
               ) : fetchError ? (
                 <View style={styles.emptyState}>
@@ -389,112 +388,6 @@ export default function HomeScreen() {
         </View>
       )}
 
-<<<<<<< HEAD
-      <ScrollView
-        showsVerticalScrollIndicator={false}
-        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={[Colors.primary]} tintColor={Colors.primary} />}
-        bounces={false}
-        onScroll={(e) => setScrollY(e.nativeEvent.contentOffset.y)}
-        scrollEventThrottle={16}
-      >
-        {/* HEADER */}
-        <ImageBackground source={require('../../assets/images/top image.jpeg')} style={[styles.headerContainer, { paddingTop: insets.top + 10 }]} imageStyle={{ resizeMode: 'cover' }}>
-          <View style={styles.headerMainRow}>
-            <TouchableOpacity style={styles.locationContainer} onPress={detectCurrentLocation} activeOpacity={0.7}>
-              <View style={styles.locationIconCircle}>
-                <Ionicons name="location" size={18} color="#D97706" />
-              </View>
-              <View style={styles.locationTextContainer}>
-                <Text style={styles.locationDeliveryLabel}>DELIVERING TO</Text>
-                <View style={styles.locationRowInner}>
-                  <Text style={styles.locationTitle} numberOfLines={1}>{locationTitle || 'Home'}</Text>
-                  {isDetectingLocation ? (
-                    <View style={{ marginLeft: 6 }}><Loading size="small" color="#4B5563" /></View>
-                  ) : (
-                    <Ionicons name="chevron-down" size={14} color="#4B5563" style={{ marginLeft: 4 }} />
-                  )}
-                </View>
-                <Text style={styles.locationSubtitle} numberOfLines={1}>{locationSubtitle || 'Detecting location...'}</Text>
-              </View>
-            </TouchableOpacity>
-          </View>
-
-          <TouchableOpacity style={styles.searchRow} onPress={() => router.push('/(tabs)/search')} activeOpacity={0.9}>
-            <View style={styles.searchContainer} pointerEvents="none">
-              <Ionicons name="search" size={20} color="#9CA3AF" style={styles.searchIcon} />
-              <Text style={styles.searchText}>Search for restaurants, cuisines...</Text>
-            </View>
-          </TouchableOpacity>
-        </ImageBackground>
-
-        {/* BANNERS CAROUSEL */}
-        <View style={styles.bannerWrapper}>
-          <ScrollView
-            ref={bannerScrollRef}
-            horizontal
-            showsHorizontalScrollIndicator={false}
-            onScroll={handleBannerScroll}
-            scrollEventThrottle={16}
-            pagingEnabled
-            snapToInterval={width}
-            decelerationRate="fast"
-            snapToAlignment="center"
-          >
-            {BANNERS.map((banner) => (
-              <View key={banner.id} style={[styles.bannerContainer, { backgroundColor: banner.bgColor }]}>
-                <View style={styles.bannerTextContent}>
-                  <Text style={styles.bannerTitle}>{banner.title}</Text>
-                  <Text style={[styles.bannerSubtitle, { color: banner.textColor }]}>{banner.subtitle}</Text>
-                  <Text style={styles.bannerDesc}>{banner.desc}</Text>
-                </View>
-                <Image source={{ uri: banner.image }} style={styles.bannerImage} resizeMode="cover" />
-              </View>
-            ))}
-          </ScrollView>
-          <View style={styles.dotsContainer}>
-            {BANNERS.map((_, i) => (
-              <View key={i} style={[styles.dot, i === activeBanner && { backgroundColor: Colors.primary, width: 14 }]} />
-            ))}
-          </View>
-        </View>
-
-        {/* FOOD CATEGORIES */}
-        {categories.length > 0 && (
-          <View style={styles.categoriesSection}>
-            <Text style={styles.sectionTitle}>What's on your mind?</Text>
-            <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.categoriesScroll} contentContainerStyle={styles.categoriesContent}>
-              {categories.map((cat, idx) => (
-                <TouchableOpacity
-                  key={cat._id || cat.id || idx}
-                  style={styles.categoryItem}
-                  onPress={() => router.push({ pathname: '/(tabs)/search', params: { q: cat.name } })}
-                >
-                  <View style={styles.categoryImageContainer}>
-                    <Image source={{ uri: cat.image }} style={styles.categoryImage} />
-                  </View>
-                  <Text style={styles.categoryName}>{cat.name}</Text>
-                </TouchableOpacity>
-              ))}
-            </ScrollView>
-          </View>
-        )}
-
-        {/* RESTAURANTS NEAR YOU */}
-        <View style={[styles.sectionContainer, { paddingBottom: 100 }]}>
-          <Text style={styles.sectionTitle}>Restaurants Near You</Text>
-
-          {loading ? (
-            <View style={{ padding: 40, alignItems: 'center' }}>
-              <Loading size="large" color={Colors.primary} />
-            </View>
-          ) : fetchError ? (
-            <View style={styles.emptyState}>
-              <Ionicons name="wifi-outline" size={48} color="#D1D5DB" />
-              <Text style={styles.emptyTitle}>Could not load restaurants</Text>
-              <Text style={styles.emptySubtitle}>Check your internet connection and pull down to refresh.</Text>
-              <TouchableOpacity style={styles.retryBtn} onPress={fetchRestaurants}>
-                <Text style={styles.retryBtnText}>Retry</Text>
-=======
       {/* ============================================================ */}
       {/* 2. GROCERY SECTION (Light / White Design from Reference)     */}
       {/* ============================================================ */}
@@ -530,7 +423,7 @@ export default function HomeScreen() {
                 <View style={styles.groceryLocationInner}>
                   <Ionicons name="location" size={17} color="#1E3D34" style={{ marginRight: 4 }} />
                   <Text style={styles.groceryLocationTitle} numberOfLines={1}>
-                    {locationTitle || selectedAddress?.type || selectedAddress?.label || 'Home'}
+                    {locationTitle || selectedAddress?.label || 'Home'}
                   </Text>
                   {isDetectingLocation ? (
                     <View style={{ marginLeft: 6 }}><ActivityIndicator size="small" color="#1E3D34" /></View>
@@ -542,7 +435,6 @@ export default function HomeScreen() {
                   {locationSubtitle || (selectedAddress ? `${selectedAddress.city}` : 'Detecting GPS...')}
                 </Text>
               </TouchableOpacity>
-
               <TouchableOpacity
                 style={styles.groceryAvatarBtn}
                 onPress={() => router.push('/(tabs)/profile')}
@@ -555,7 +447,6 @@ export default function HomeScreen() {
                     {user?.name ? user.name.charAt(0).toUpperCase() : 'F'}
                   </Text>
                 )}
->>>>>>> ba09c6c00c6e599a037f02f12b433d46eafc644b
               </TouchableOpacity>
             </View>
 
@@ -688,8 +579,8 @@ const styles = StyleSheet.create({
 
   headerContainer: {
     paddingBottom: 24,
-    borderBottomLeftRadius: 28,
-    borderBottomRightRadius: 28,
+    borderBottomLeftRadius: 50,
+    borderBottomRightRadius: 50,
     marginBottom: 20,
     overflow: 'hidden',
   },
@@ -699,17 +590,54 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     marginBottom: 18,
   },
-  locationContainer: { flexDirection: 'row', alignItems: 'center', flex: 1, marginRight: 12 },
-  locationIconCircle: {
-    width: 32, height: 32, borderRadius: 16,
-    backgroundColor: '#FDE68A',
-    alignItems: 'center', justifyContent: 'center',
+  stylishLocationWrapper: {
+    alignItems: 'flex-start',
+    width: '100%',
   },
-  locationTextContainer: { marginLeft: 10, flex: 1 },
-  locationDeliveryLabel: { fontFamily: BOLD_FONT, fontSize: 10, color: '#6B7280', letterSpacing: 1.2, marginBottom: 2 },
-  locationRowInner: { flexDirection: 'row', alignItems: 'center' },
-  locationTitle: { fontFamily: BOLD_FONT, fontSize: 16, color: '#1F2937' },
-  locationSubtitle: { fontFamily: STYLISH_FONT, fontSize: 12, color: '#4B5563', marginTop: 2 },
+  locationPill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#FFFFFF',
+    paddingVertical: 7,
+    paddingHorizontal: 10,
+    borderRadius: 30,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.15,
+    shadowRadius: 8,
+    elevation: 4,
+    marginBottom: 6,
+  },
+  pillIconBg: {
+    backgroundColor: '#D94E1B',
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: 8,
+  },
+  pillLabelText: {
+    fontFamily: STYLISH_FONT,
+    fontSize: 12,
+    color: '#6B7280',
+    marginRight: 4,
+  },
+  pillTitleText: {
+    fontFamily: BOLD_FONT,
+    fontSize: 15,
+    color: '#D94E1B',
+    maxWidth: 140,
+  },
+  stylishSubtitle: {
+    fontFamily: STYLISH_FONT,
+    fontSize: 12,
+    color: 'rgba(255,255,255,0.95)',
+    paddingHorizontal: 4,
+    textShadowColor: 'rgba(0,0,0,0.1)',
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 2,
+  },
   headerWatermark: { position: 'absolute', top: -10, right: -15, width: 120, height: 120 },
 
   headerCartBtn: {
