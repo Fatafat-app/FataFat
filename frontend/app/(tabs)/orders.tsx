@@ -219,11 +219,16 @@ export default function OrdersScreen() {
           />
         ) : (
           orders.map((order) => {
+            const isGroceryOrder = (order as any).orderType === 'grocery' || (order as any).isGrocery || !(order as any).restaurant;
             const restName =
               (order as any).restaurant?.name ||
               (typeof order.restaurantId === 'object' && order.restaurantId !== null ? order.restaurantId.name : null) ||
-              'Partner Restaurant';
-            const restImage = (order as any).restaurant?.coverImage || 'https://images.pexels.com/photos/262978/pexels-photo-262978.jpeg';
+              (isGroceryOrder ? 'Ftafat Fresh Grocery Mart' : 'Partner Restaurant');
+            const restImage =
+              (order as any).restaurant?.coverImage ||
+              (isGroceryOrder
+                ? 'https://images.pexels.com/photos/102104/pexels-photo-102104.jpeg?auto=compress&cs=tinysrgb&w=300'
+                : 'https://images.pexels.com/photos/262978/pexels-photo-262978.jpeg');
 
             const isDelivered = order.status === 'DELIVERED';
             const isCancelled = order.status === 'CANCELLED';
@@ -307,7 +312,16 @@ export default function OrdersScreen() {
                         <Text style={styles.rateText}>Rate</Text>
                       </TouchableOpacity>
                     )}
-                    <TouchableOpacity style={styles.reorderBtn} onPress={() => router.push(`/restaurant/${(order as any).restaurant?._id || order.restaurantId}`)}>
+                    <TouchableOpacity
+                      style={styles.reorderBtn}
+                      onPress={() => {
+                        if (isGroceryOrder) {
+                          router.push('/(tabs)');
+                        } else {
+                          router.push(`/restaurant/${(order as any).restaurant?._id || order.restaurantId}`);
+                        }
+                      }}
+                    >
                       <Ionicons name="refresh" size={14} color={Colors.white} />
                       <Text style={styles.reorderText}>Reorder</Text>
                     </TouchableOpacity>

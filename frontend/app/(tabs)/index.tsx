@@ -1,7 +1,8 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
-import { View, Text, ScrollView, TouchableOpacity, Image, StyleSheet, Dimensions, NativeSyntheticEvent, NativeScrollEvent, RefreshControl } from 'react-native';
+import { View, Text, ScrollView, TouchableOpacity, Image, StyleSheet, Dimensions, NativeSyntheticEvent, NativeScrollEvent, RefreshControl, Animated, Easing, ActivityIndicator } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
+import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
 import { useAuthStore, useLocationStore } from '../../store';
 import { useCartStore } from '../../store/cart.store';
@@ -9,6 +10,11 @@ import { restaurantService } from '../../services/restaurant.service';
 import { Restaurant } from '../../types';
 import { Loading } from '../../components/ui/Loading';
 import { Typography, BOLD_FONT, STYLISH_FONT, Colors } from '../../constants/Theme';
+import { SectionSwitcher } from '../../components/SectionSwitcher';
+import { GrocerySearch } from '../../components/grocery/GrocerySearch';
+import { GroceryHome } from '../../components/grocery/GroceryHome';
+import { GroceryTabBar } from '../../components/grocery/GroceryTabBar';
+import { useGroceryStore } from '../../store/grocery.store';
 
 const { width } = Dimensions.get('window');
 
@@ -32,6 +38,32 @@ export default function HomeScreen() {
   const cartCount = useCartStore((state) => state.items.reduce((s, i) => s + i.quantity, 0));
   const { locationTitle, locationSubtitle, isDetectingLocation, detectCurrentLocation, currentLocation } = useLocationStore();
   const insets = useSafeAreaInsets();
+  const { width: SCREEN_WIDTH } = Dimensions.get('window');
+
+  // Section switcher — food is default on app open
+  const { activeSection, setSection } = useGroceryStore();
+  const foodTranslate    = useRef(new Animated.Value(0)).current;
+  const groceryTranslate = useRef(new Animated.Value(SCREEN_WIDTH)).current;
+  const [headerHeight, setHeaderHeight] = useState(0);
+
+  const handleSectionSwitch = (section: 'food' | 'grocery') => {
+    if (section === activeSection) return;
+    setSection(section);
+    Animated.parallel([
+      Animated.timing(foodTranslate, {
+        toValue: section === 'grocery' ? -SCREEN_WIDTH : 0,
+        duration: 300,
+        easing: Easing.out(Easing.cubic),
+        useNativeDriver: true,
+      }),
+      Animated.timing(groceryTranslate, {
+        toValue: section === 'grocery' ? 0 : SCREEN_WIDTH,
+        duration: 300,
+        easing: Easing.out(Easing.cubic),
+        useNativeDriver: true,
+      }),
+    ]).start();
+  };
 
   const [activeBanner, setActiveBanner] = useState(0);
   const bannerScrollRef = useRef<ScrollView>(null);
@@ -118,202 +150,369 @@ export default function HomeScreen() {
 
   return (
     <View style={styles.container}>
-      {isScrolled && (
-        <View style={[styles.stickySearchBar, { paddingTop: insets.top + 8 }]}>
-          <TouchableOpacity style={styles.stickySearchInner} onPress={() => router.push('/(tabs)/search')} activeOpacity={0.9}>
-            <Ionicons name="search" size={18} color="#9CA3AF" style={{ marginRight: 8 }} />
-            <Text style={styles.stickySearchText}>Search restaurants, cuisines...</Text>
-          </TouchableOpacity>
+      {/* ============================================================ */}
+      {/* 1. FOOD DELIVERY SECTION                                      */}
+      {/* ============================================================ */}
+      {activeSection === 'food' && (
+        <View style={styles.foodViewWrapper}>
+          {isScrolled && (
+            <View style={[styles.stickySearchBar, { paddingTop: insets.top + 8 }]}>
+              <TouchableOpacity style={styles.stickySearchInner} onPress={() => router.push('/(tabs)/search')} activeOpacity={0.9}>
+                <Ionicons name="search" size={18} color="#9CA3AF" style={{ marginRight: 8 }} />
+                <Text style={styles.stickySearchText}>Search restaurants, cuisines...</Text>
+              </TouchableOpacity>
+            </View>
+          )}
+
+          <ScrollView
+            showsVerticalScrollIndicator={false}
+            refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={[Colors.primary]} tintColor={Colors.primary} />}
+            bounces={false}
+            onScroll={(e) => setScrollY(e.nativeEvent.contentOffset.y)}
+            scrollEventThrottle={16}
+          >
+            {/* Orange Food Header */}
+            <View style={[styles.headerContainer, { paddingTop: insets.top + 10 }]}>
+              <View style={styles.headerMainRow}>
+                <TouchableOpacity style={styles.locationContainer} onPress={detectCurrentLocation} activeOpacity={0.7}>
+                  <View style={styles.locationIconCircle}>
+                    <Ionicons name="location" size={18} color="#FF6000" />
+                  </View>
+                  <View style={styles.locationTextContainer}>
+                    <Text style={styles.locationDeliveryLabel}>DELIVERING TO</Text>
+                    <View style={styles.locationRowInner}>
+                      <Text style={styles.locationTitle} numberOfLines={1}>{locationTitle || 'Home'}</Text>
+                      {isDetectingLocation ? (
+                        <View style={{ marginLeft: 6 }}><ActivityIndicator size="small" color="#FFF" /></View>
+                      ) : (
+                        <Ionicons name="chevron-down" size={14} color="#FFF" style={{ marginLeft: 4 }} />
+                      )}
+                    </View>
+                    <Text style={styles.locationSubtitle} numberOfLines={1}>{locationSubtitle || 'Detecting location...'}</Text>
+                  </View>
+                </TouchableOpacity>
+
+                <TouchableOpacity style={styles.profileAvatar} onPress={() => router.push('/(tabs)/profile')} activeOpacity={0.8}>
+                  {user?.avatar ? (
+                    <Image source={{ uri: user.avatar }} style={styles.avatarImage} />
+                  ) : (
+                    <Text style={styles.profileAvatarText}>
+                      {user?.name ? user.name.charAt(0).toUpperCase() : 'F'}
+                    </Text>
+                  )}
+                </TouchableOpacity>
+              </View>
+
+              {/* Mode Switcher */}
+              <SectionSwitcher activeSection={activeSection} onSwitch={handleSectionSwitch} style={{ marginBottom: 16 }} />
+
+              {/* Food Search bar */}
+              <TouchableOpacity style={styles.searchRow} onPress={() => router.push('/(tabs)/search')} activeOpacity={0.9}>
+                <View style={styles.searchContainer} pointerEvents="none">
+                  <Ionicons name="search" size={20} color="#9CA3AF" style={styles.searchIcon} />
+                  <Text style={styles.searchText}>Search for restaurants, cuisines...</Text>
+                </View>
+              </TouchableOpacity>
+            </View>
+
+            {/* BANNERS CAROUSEL */}
+            <View style={styles.bannerWrapper}>
+              <ScrollView
+                ref={bannerScrollRef}
+                horizontal
+                showsHorizontalScrollIndicator={false}
+                onScroll={handleBannerScroll}
+                scrollEventThrottle={16}
+                pagingEnabled
+                snapToInterval={width}
+                decelerationRate="fast"
+                snapToAlignment="center"
+              >
+                {BANNERS.map((banner) => (
+                  <View key={banner.id} style={[styles.bannerContainer, { backgroundColor: banner.bgColor }]}>
+                    <View style={styles.bannerTextContent}>
+                      <Text style={styles.bannerTitle}>{banner.title}</Text>
+                      <Text style={[styles.bannerSubtitle, { color: banner.textColor }]}>{banner.subtitle}</Text>
+                      <Text style={styles.bannerDesc}>{banner.desc}</Text>
+                    </View>
+                    <Image source={{ uri: banner.image }} style={styles.bannerImage} resizeMode="cover" />
+                  </View>
+                ))}
+              </ScrollView>
+              <View style={styles.dotsContainer}>
+                {BANNERS.map((_, i) => (
+                  <View key={i} style={[styles.dot, i === activeBanner && { backgroundColor: Colors.primary, width: 14 }]} />
+                ))}
+              </View>
+            </View>
+
+            {/* FOOD CATEGORIES */}
+            {categories.length > 0 && (
+              <View style={styles.categoriesSection}>
+                <Text style={styles.sectionTitle}>What's on your mind?</Text>
+                <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.categoriesScroll} contentContainerStyle={styles.categoriesContent}>
+                  {categories.map((cat, idx) => (
+                    <TouchableOpacity
+                      key={cat._id || cat.id || idx}
+                      style={styles.categoryItem}
+                      onPress={() => router.push({ pathname: '/(tabs)/search', params: { q: cat.name } })}
+                    >
+                      <View style={styles.categoryImageContainer}>
+                        <Image source={{ uri: cat.image }} style={styles.categoryImage} />
+                      </View>
+                      <Text style={styles.categoryName}>{cat.name}</Text>
+                    </TouchableOpacity>
+                  ))}
+                </ScrollView>
+              </View>
+            )}
+
+            {/* RESTAURANTS NEAR YOU */}
+            <View style={[styles.sectionContainer, { paddingBottom: 110 }]}>
+              <Text style={styles.sectionTitle}>Restaurants Near You</Text>
+
+              {loading ? (
+                <View style={{ padding: 40, alignItems: 'center' }}>
+                  <Loading size="large" color={Colors.primary} />
+                </View>
+              ) : fetchError ? (
+                <View style={styles.emptyState}>
+                  <Ionicons name="wifi-outline" size={48} color="#D1D5DB" />
+                  <Text style={styles.emptyTitle}>Could not load restaurants</Text>
+                  <Text style={styles.emptySubtitle}>Check your internet connection and pull down to refresh.</Text>
+                  <TouchableOpacity style={styles.retryBtn} onPress={fetchRestaurants}>
+                    <Text style={styles.retryBtnText}>Retry</Text>
+                  </TouchableOpacity>
+                </View>
+              ) : restaurants.length === 0 ? (
+                <View style={styles.emptyState}>
+                  <Ionicons name="storefront-outline" size={48} color="#D1D5DB" />
+                  <Text style={styles.emptyTitle}>No Restaurants Nearby</Text>
+                  <Text style={styles.emptySubtitle}>We're expanding to your area soon! Try changing your location.</Text>
+                  <TouchableOpacity style={styles.retryBtn} onPress={detectCurrentLocation}>
+                    <Text style={styles.retryBtnText}>Change Location</Text>
+                  </TouchableOpacity>
+                </View>
+              ) : (
+                <View style={styles.restaurantsList}>
+                  {restaurants.map((r) => (
+                    <TouchableOpacity
+                      key={r._id}
+                      style={styles.restaurantCard}
+                      onPress={() => router.push(`/restaurant/${r._id}`)}
+                      activeOpacity={0.95}
+                    >
+                      <View style={styles.cardImageContainer}>
+                        <Image
+                          source={{ uri: r.images?.[0] || 'https://images.pexels.com/photos/260922/pexels-photo-260922.jpeg' }}
+                          style={styles.cardImage}
+                        />
+                        <View style={styles.deliveryBadge}>
+                          <Ionicons name="time" size={12} color="#FFF" />
+                          <Text style={styles.deliveryBadgeText}>{r.estimatedDeliveryTime || 30} min</Text>
+                        </View>
+                        {!r.isOpen && (
+                          <View style={styles.closedOverlay}>
+                            <Text style={styles.closedText}>CLOSED</Text>
+                          </View>
+                        )}
+                      </View>
+                      <View style={styles.cardDetails}>
+                        <View style={styles.cardHeaderRow}>
+                          <Text style={styles.cardName} numberOfLines={1}>{r.name}</Text>
+                          <View style={styles.ratingBox}>
+                            <Text style={styles.ratingText}>{r.rating?.average?.toFixed(1) || '4.0'}</Text>
+                            <Ionicons name="star" size={10} color="#FFF" />
+                          </View>
+                        </View>
+                        <View style={styles.cardSubRow}>
+                          <Text style={styles.cardCuisines} numberOfLines={1}>{r.cuisines?.join(', ') || 'Various Cuisines'}</Text>
+                          {!!formatDistance(r.distance) && (
+                            <Text style={styles.cardDistance}>{formatDistance(r.distance)}</Text>
+                          )}
+                        </View>
+                        {r.pricing?.deliveryCharge === 0 ? (
+                          <View style={styles.promoRow}>
+                            <Ionicons name="flame" size={14} color="#D94E1B" />
+                            <Text style={styles.promoText}>Free Delivery</Text>
+                          </View>
+                        ) : (
+                          <View style={styles.promoRow}>
+                            <Ionicons name="bicycle-outline" size={14} color="#6B7280" />
+                            <Text style={[styles.promoText, { color: '#6B7280' }]}>
+                              Delivery ₹{r.pricing?.deliveryCharge ? Math.round(r.pricing.deliveryCharge / 100) : 0}
+                            </Text>
+                          </View>
+                        )}
+                      </View>
+                    </TouchableOpacity>
+                  ))}
+                </View>
+              )}
+            </View>
+          </ScrollView>
         </View>
       )}
 
-      <ScrollView
-        showsVerticalScrollIndicator={false}
-        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={[Colors.primary]} tintColor={Colors.primary} />}
-        bounces={false}
-        onScroll={(e) => setScrollY(e.nativeEvent.contentOffset.y)}
-        scrollEventThrottle={16}
-      >
-        {/* HEADER */}
-        <View style={[styles.headerContainer, { paddingTop: insets.top + 10 }]}>
-          <View style={styles.headerMainRow}>
-            <TouchableOpacity style={styles.locationContainer} onPress={detectCurrentLocation} activeOpacity={0.7}>
-              <View style={styles.locationIconCircle}>
-                <Ionicons name="location" size={18} color="#FF6000" />
-              </View>
-              <View style={styles.locationTextContainer}>
-                <Text style={styles.locationDeliveryLabel}>DELIVERING TO</Text>
-                <View style={styles.locationRowInner}>
-                  <Text style={styles.locationTitle} numberOfLines={1}>{locationTitle || 'Home'}</Text>
+      {/* ============================================================ */}
+      {/* 2. GROCERY SECTION (Light / White Design from Reference)     */}
+      {/* ============================================================ */}
+      {/* ============================================================ */}
+      {/* 2. GROCERY SECTION (Yellowish-Greenish Gradient Top Design)  */}
+      {/* ============================================================ */}
+      {activeSection === 'grocery' && (
+        <View style={styles.groceryMainWrapper}>
+          {/* Top Yellowish-Greenish Gradient matching reference image */}
+          <LinearGradient
+            colors={['#DCF57C', '#EAF9AD', '#F5FCDE', '#FFFFFF']}
+            locations={[0, 0.3, 0.65, 1]}
+            style={[styles.groceryTopGradient, { height: insets.top + 280 }]}
+          />
+
+          {/* Top Grocery Header */}
+          <View style={[styles.groceryHeaderContainer, { paddingTop: insets.top + 6 }]}>
+            {/* 1. Mode Switcher */}
+            <SectionSwitcher
+              activeSection={activeSection}
+              onSwitch={handleSectionSwitch}
+              style={{ marginBottom: 12 }}
+            />
+
+            {/* 2. Location Row + User Profile Avatar */}
+            <View style={styles.groceryHeaderLocationRow}>
+              <TouchableOpacity
+                style={styles.groceryLocationCol}
+                onPress={() => router.push('/address')}
+                activeOpacity={0.7}
+              >
+                <Text style={styles.groceryDeliveringToLabel}>DELIVERING TO</Text>
+                <View style={styles.groceryLocationInner}>
+                  <Ionicons name="location" size={17} color="#1E3D34" style={{ marginRight: 4 }} />
+                  <Text style={styles.groceryLocationTitle} numberOfLines={1}>
+                    {locationTitle || selectedAddress?.type || selectedAddress?.label || 'Home'}
+                  </Text>
                   {isDetectingLocation ? (
-                    <View style={{ marginLeft: 6 }}><Loading size="small" color="#FFF" /></View>
+                    <View style={{ marginLeft: 6 }}><ActivityIndicator size="small" color="#1E3D34" /></View>
                   ) : (
-                    <Ionicons name="chevron-down" size={14} color="#FFF" style={{ marginLeft: 4 }} />
+                    <Ionicons name="chevron-down" size={15} color="#1E3D34" style={{ marginLeft: 4 }} />
                   )}
                 </View>
-                <Text style={styles.locationSubtitle} numberOfLines={1}>{locationSubtitle || 'Detecting location...'}</Text>
-              </View>
-            </TouchableOpacity>
+                <Text style={styles.groceryLocationSubtitle} numberOfLines={1}>
+                  {locationSubtitle || (selectedAddress ? `${selectedAddress.city}` : 'Detecting GPS...')}
+                </Text>
+              </TouchableOpacity>
 
-            <TouchableOpacity style={styles.profileAvatar} onPress={() => router.push('/(tabs)/profile')} activeOpacity={0.8}>
-              {user?.avatar ? (
-                <Image source={{ uri: user.avatar }} style={styles.avatarImage} />
-              ) : (
-                <Text style={styles.profileAvatarText}>{user?.name ? user.name.charAt(0).toUpperCase() : 'F'}</Text>
-              )}
-            </TouchableOpacity>
-          </View>
-
-          <TouchableOpacity style={styles.searchRow} onPress={() => router.push('/(tabs)/search')} activeOpacity={0.9}>
-            <View style={styles.searchContainer} pointerEvents="none">
-              <Ionicons name="search" size={20} color="#9CA3AF" style={styles.searchIcon} />
-              <Text style={styles.searchText}>Search for restaurants, cuisines...</Text>
-            </View>
-          </TouchableOpacity>
-        </View>
-
-        {/* BANNERS CAROUSEL */}
-        <View style={styles.bannerWrapper}>
-          <ScrollView
-            ref={bannerScrollRef}
-            horizontal
-            showsHorizontalScrollIndicator={false}
-            onScroll={handleBannerScroll}
-            scrollEventThrottle={16}
-            pagingEnabled
-            snapToInterval={width}
-            decelerationRate="fast"
-            snapToAlignment="center"
-          >
-            {BANNERS.map((banner) => (
-              <View key={banner.id} style={[styles.bannerContainer, { backgroundColor: banner.bgColor }]}>
-                <View style={styles.bannerTextContent}>
-                  <Text style={styles.bannerTitle}>{banner.title}</Text>
-                  <Text style={[styles.bannerSubtitle, { color: banner.textColor }]}>{banner.subtitle}</Text>
-                  <Text style={styles.bannerDesc}>{banner.desc}</Text>
-                </View>
-                <Image source={{ uri: banner.image }} style={styles.bannerImage} resizeMode="cover" />
-              </View>
-            ))}
-          </ScrollView>
-          <View style={styles.dotsContainer}>
-            {BANNERS.map((_, i) => (
-              <View key={i} style={[styles.dot, i === activeBanner && { backgroundColor: Colors.primary, width: 14 }]} />
-            ))}
-          </View>
-        </View>
-
-        {/* FOOD CATEGORIES */}
-        {categories.length > 0 && (
-          <View style={styles.categoriesSection}>
-            <Text style={styles.sectionTitle}>What's on your mind?</Text>
-            <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.categoriesScroll} contentContainerStyle={styles.categoriesContent}>
-              {categories.map((cat, idx) => (
-                <TouchableOpacity
-                  key={cat._id || cat.id || idx}
-                  style={styles.categoryItem}
-                  onPress={() => router.push({ pathname: '/(tabs)/search', params: { q: cat.name } })}
-                >
-                  <View style={styles.categoryImageContainer}>
-                    <Image source={{ uri: cat.image }} style={styles.categoryImage} />
-                  </View>
-                  <Text style={styles.categoryName}>{cat.name}</Text>
-                </TouchableOpacity>
-              ))}
-            </ScrollView>
-          </View>
-        )}
-
-        {/* RESTAURANTS NEAR YOU */}
-        <View style={[styles.sectionContainer, { paddingBottom: 100 }]}>
-          <Text style={styles.sectionTitle}>Restaurants Near You</Text>
-
-          {loading ? (
-            <View style={{ padding: 40, alignItems: 'center' }}>
-              <Loading size="large" color={Colors.primary} />
-            </View>
-          ) : fetchError ? (
-            <View style={styles.emptyState}>
-              <Ionicons name="wifi-outline" size={48} color="#D1D5DB" />
-              <Text style={styles.emptyTitle}>Could not load restaurants</Text>
-              <Text style={styles.emptySubtitle}>Check your internet connection and pull down to refresh.</Text>
-              <TouchableOpacity style={styles.retryBtn} onPress={fetchRestaurants}>
-                <Text style={styles.retryBtnText}>Retry</Text>
+              <TouchableOpacity
+                style={styles.groceryAvatarBtn}
+                onPress={() => router.push('/(tabs)/profile')}
+                activeOpacity={0.8}
+              >
+                {user?.avatar ? (
+                  <Image source={{ uri: user.avatar }} style={styles.groceryAvatarImage} />
+                ) : (
+                  <Text style={styles.groceryAvatarText}>
+                    {user?.name ? user.name.charAt(0).toUpperCase() : 'F'}
+                  </Text>
+                )}
               </TouchableOpacity>
             </View>
-          ) : restaurants.length === 0 ? (
-            <View style={styles.emptyState}>
-              <Ionicons name="storefront-outline" size={48} color="#D1D5DB" />
-              <Text style={styles.emptyTitle}>No Restaurants Nearby</Text>
-              <Text style={styles.emptySubtitle}>We're expanding to your area soon! Try changing your location.</Text>
-              <TouchableOpacity style={styles.retryBtn} onPress={detectCurrentLocation}>
-                <Text style={styles.retryBtnText}>Change Location</Text>
-              </TouchableOpacity>
-            </View>
-          ) : (
-            <View style={styles.restaurantsList}>
-              {restaurants.map((r) => (
-                <TouchableOpacity
-                  key={r._id}
-                  style={styles.restaurantCard}
-                  onPress={() => router.push(`/restaurant/${r._id}`)}
-                  activeOpacity={0.95}
-                >
-                  <View style={styles.cardImageContainer}>
-                    <Image
-                      source={{ uri: r.images?.[0] || 'https://images.pexels.com/photos/260922/pexels-photo-260922.jpeg' }}
-                      style={styles.cardImage}
-                    />
-                    <View style={styles.deliveryBadge}>
-                      <Ionicons name="time" size={12} color="#FFF" />
-                      <Text style={styles.deliveryBadgeText}>{r.estimatedDeliveryTime || 30} min</Text>
-                    </View>
-                    {!r.isOpen && (
-                      <View style={styles.closedOverlay}>
-                        <Text style={styles.closedText}>CLOSED</Text>
-                      </View>
-                    )}
-                  </View>
-                  <View style={styles.cardDetails}>
-                    <View style={styles.cardHeaderRow}>
-                      <Text style={styles.cardName} numberOfLines={1}>{r.name}</Text>
-                      <View style={styles.ratingBox}>
-                        <Text style={styles.ratingText}>{r.rating?.average?.toFixed(1) || '4.0'}</Text>
-                        <Ionicons name="star" size={10} color="#FFF" />
-                      </View>
-                    </View>
-                    <View style={styles.cardSubRow}>
-                      <Text style={styles.cardCuisines} numberOfLines={1}>{r.cuisines?.join(', ') || 'Various Cuisines'}</Text>
-                      {!!formatDistance(r.distance) && (
-                        <Text style={styles.cardDistance}>{formatDistance(r.distance)}</Text>
-                      )}
-                    </View>
-                    {r.pricing?.deliveryCharge === 0 ? (
-                      <View style={styles.promoRow}>
-                        <Ionicons name="flame" size={14} color="#D94E1B" />
-                        <Text style={styles.promoText}>Free Delivery</Text>
-                      </View>
-                    ) : (
-                      <View style={styles.promoRow}>
-                        <Ionicons name="bicycle-outline" size={14} color="#6B7280" />
-                        <Text style={[styles.promoText, { color: '#6B7280' }]}>
-                          Delivery ₹{r.pricing?.deliveryCharge ? Math.round(r.pricing.deliveryCharge / 100) : 0}
-                        </Text>
-                      </View>
-                    )}
-                  </View>
-                </TouchableOpacity>
-              ))}
-            </View>
-          )}
+
+            {/* 3. Pill Search Bar */}
+            <GrocerySearch onPress={() => router.push('/(tabs)/search')} />
+          </View>
+
+          {/* Grocery Scrollable Content */}
+          <Animated.View style={styles.groceryFeedWrapper}>
+            <GroceryHome />
+          </Animated.View>
+
+          {/* 5-Tab Grocery Tab Bar */}
+          <GroceryTabBar />
         </View>
-      </ScrollView>
+      )}
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#FFFFFF' },
+  container: { flex: 1, backgroundColor: '#FFFFFF', overflow: 'hidden' },
+  foodViewWrapper: { flex: 1 },
+  groceryMainWrapper: { flex: 1, backgroundColor: '#FFFFFF', position: 'relative' },
+  groceryTopGradient: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    zIndex: 0,
+  },
+  groceryFeedWrapper: { flex: 1, zIndex: 1 },
+
+  // Grocery Top Header — Matching screenshot
+  groceryHeaderContainer: {
+    backgroundColor: 'transparent',
+    paddingBottom: 4,
+    zIndex: 10,
+  },
+  groceryHeaderLocationRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 16,
+    marginBottom: 10,
+  },
+  groceryLocationCol: {
+    flex: 1,
+    marginRight: 12,
+  },
+  groceryDeliveringToLabel: {
+    fontSize: 11.5,
+    color: '#6C7D76',
+    fontWeight: '500',
+    marginBottom: 2,
+  },
+  groceryLocationInner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  groceryLocationTitle: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: '#1E3D34',
+    letterSpacing: -0.2,
+  },
+  groceryLocationSubtitle: {
+    fontSize: 11.5,
+    color: '#4B5563',
+    fontWeight: '500',
+    marginTop: 1,
+  },
+  groceryAvatarBtn: {
+    width: 38,
+    height: 38,
+    borderRadius: 19,
+    backgroundColor: '#FFFFFF',
+    borderWidth: 1.5,
+    borderColor: '#D4F468',
+    alignItems: 'center',
+    justifyContent: 'center',
+    overflow: 'hidden',
+    shadowColor: '#1E3D34',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.08,
+    shadowRadius: 4,
+    elevation: 2,
+  },
+  groceryAvatarImage: {
+    width: 38,
+    height: 38,
+    borderRadius: 19,
+  },
+  groceryAvatarText: {
+    fontSize: 15,
+    fontWeight: '800',
+    color: '#1E3D34',
+  },
+
 
   stickySearchBar: {
     position: 'absolute',

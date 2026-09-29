@@ -262,6 +262,9 @@ async function seed() {
     },
   ]);
 
+  const { seedGroceryData } = require('./seedGrocery');
+  await seedGroceryData();
+
   console.log('\n🎉 Database Seed Completed Successfully!');
   console.log('----------------------------------------------------');
   console.log('Demo Credentials (Password for all: Password@123):');
