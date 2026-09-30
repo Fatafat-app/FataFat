@@ -199,6 +199,10 @@ export function GroceryHome() {
           />
         }
       >
+
+        {/* Promo Banner */}
+        {banners.length > 0 && <GroceryPromoBanner banners={banners} />}
+
         {/* Categories Carousel */}
         {categories.length > 0 && (
           <GroceryCategories
@@ -208,8 +212,8 @@ export function GroceryHome() {
           />
         )}
 
-        {/* Promo Banner */}
-        {banners.length > 0 && <GroceryPromoBanner banners={banners} />}
+
+
 
         {/* Filters */}
         <GroceryFilters

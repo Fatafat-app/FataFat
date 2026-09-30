@@ -13,7 +13,7 @@ import { GColors, GRadius, GShadow } from '../constants/GroceryTheme';
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
 const GROCERY_COLOR = '#1E3D34'; // Deep Forest Pine
-const FOOD_COLOR = '#FF6000';    // Vibrant Orange
+const FOOD_COLOR = '#D94E1B';    // Deep Brand Orange
 
 interface SectionSwitcherProps {
   activeSection: 'food' | 'grocery';
@@ -74,8 +74,8 @@ export function SectionSwitcher({ activeSection, onSwitch, style }: SectionSwitc
         activeOpacity={0.85}
       >
         <Ionicons
-          name="restaurant"
-          size={14}
+          name="fast-food"
+          size={16}
           color={isFood ? '#FFFFFF' : '#4B5563'}
           style={styles.icon}
         />
@@ -107,15 +107,20 @@ export function SectionSwitcher({ activeSection, onSwitch, style }: SectionSwitc
 const styles = StyleSheet.create({
   container: {
     flexDirection: 'row',
-    backgroundColor: 'rgba(255, 255, 255, 0.72)',
+    backgroundColor: '#FFFFFF',
     borderRadius: GRadius.full,
     padding: 4,
     marginHorizontal: 16,
     position: 'relative',
-    height: 44,
+    height: 48,
     alignItems: 'center',
     borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.85)',
+    borderColor: '#FFE4D6',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 8,
+    elevation: 2,
   },
   indicator: {
     position: 'absolute',
@@ -123,6 +128,11 @@ const styles = StyleSheet.create({
     bottom: 4,
     borderRadius: GRadius.full,
     zIndex: 0,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.15,
+    shadowRadius: 4,
+    elevation: 3,
   },
   segment: {
     flex: 1,
@@ -138,7 +148,7 @@ const styles = StyleSheet.create({
   segmentText: {
     fontSize: 13,
     fontWeight: '700',
-    letterSpacing: 0.1,
+    letterSpacing: 0.2,
   },
 });
 
