@@ -1,25 +1,13 @@
 'use strict';
 
 const { Server } = require('socket.io');
-const { createAdapter } = require('@socket.io/redis-adapter');
-const Redis = require('ioredis');
 const env = require('./env');
 const logger = require('./logger');
+const redisConfig = require('./redis');
 
 let io = null;
 
 function initSocket(httpServer) {
-  const redisOptions = {
-    host: env.redis.host,
-    port: env.redis.port,
-    password: env.redis.password,
-    maxRetriesPerRequest: null,
-    enableReadyCheck: false,
-  };
-
-  const pubClient = new Redis(redisOptions);
-  const subClient = pubClient.duplicate();
-
   io = new Server(httpServer, {
     cors: {
       origin: env.cors.allowedOrigins,
@@ -29,8 +17,32 @@ function initSocket(httpServer) {
     transports: ['websocket', 'polling'],
   });
 
-  io.adapter(createAdapter(pubClient, subClient));
-  logger.info('[Socket.IO] Initialised with Redis adapter');
+  if (!redisConfig._isMock) {
+    try {
+      const { createAdapter } = require('@socket.io/redis-adapter');
+      const Redis = require('ioredis');
+      const redisOptions = {
+        host: env.redis.host,
+        port: env.redis.port,
+        password: env.redis.password || undefined,
+        maxRetriesPerRequest: null,
+        enableReadyCheck: false,
+        retryStrategy: () => null // no retries, fail fast
+      };
+      const pubClient = new Redis(redisOptions);
+      const subClient = pubClient.duplicate();
+      
+      pubClient.on('error', () => {});
+      subClient.on('error', () => {});
+
+      io.adapter(createAdapter(pubClient, subClient));
+      logger.info('[Socket.IO] Initialised with Redis adapter');
+    } catch (e) {
+      logger.warn('[Socket.IO] Redis adapter failed, falling back to memory adapter');
+    }
+  } else {
+    logger.info('[Socket.IO] Initialised with default memory adapter (Redis unavailable)');
+  }
 
   return io;
 }

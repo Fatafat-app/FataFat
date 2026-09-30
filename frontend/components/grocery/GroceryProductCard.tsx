@@ -58,7 +58,7 @@ const getImageForName = (name) => {
   if (lower.includes('pepper') || lower.includes('capsicum')) return fallbackImages[15];
   if (lower.includes('egg')) return fallbackImages[17];
   if (lower.includes('potato')) return fallbackImages[18];
-  
+
   const hash = (name.length + name.charCodeAt(0)) % fallbackImages.length;
   return fallbackImages[hash];
 };
@@ -78,7 +78,7 @@ export function GroceryProductCard({ product, style }: GroceryProductCardProps) 
   const cartItem = cart.find((i) => (i.product._id || i.product.id) === prodId);
   const qty = cartItem?.quantity ?? 0;
   const isWishlisted = wishlist.includes(prodId);
-  
+
   // Image error handling
   const [imgError, setImgError] = useState(false);
   const img = product.image || (product.images && product.images.length > 0 ? product.images[0] : null);
@@ -127,14 +127,12 @@ export function GroceryProductCard({ product, style }: GroceryProductCardProps) 
     >
       {/* Image container */}
       <View style={styles.imageContainer}>
-        <View style={styles.imageWrapper}>
-          <Image
-            source={{ uri: imageUrl }}
-            style={styles.image}
-            resizeMode="cover"
-            onError={() => setImgError(true)}
-          />
-        </View>
+        <Image
+          source={{ uri: imageUrl }}
+          style={styles.image}
+          resizeMode="cover"
+          onError={() => setImgError(true)}
+        />
 
         {/* Discount badge */}
         {product.discount && (
@@ -152,19 +150,17 @@ export function GroceryProductCard({ product, style }: GroceryProductCardProps) 
         >
           <Ionicons
             name={isWishlisted ? 'heart' : 'heart-outline'}
-            size={18}
-            color={isWishlisted ? '#EF4444' : '#D1D5DB'}
+            size={16}
+            color={isWishlisted ? '#EF4444' : '#9CA3AF'}
           />
         </TouchableOpacity>
-        {/* Floating Add Button Overlay (Instamart Style) - REMOVED */}
-
       </View>
 
       {/* Details */}
       <View style={styles.details}>
         <View style={styles.timeTag}>
-          <Ionicons name="time" size={10} color="#16A34A" />
-          <Text style={styles.timeTagText}>8 mins</Text>
+          <Ionicons name="time-outline" size={10} color="#6B7280" />
+          <Text style={styles.timeTagText}>8 MINS</Text>
         </View>
 
         <Text style={styles.name} numberOfLines={2}>{product.name}</Text>
@@ -178,7 +174,7 @@ export function GroceryProductCard({ product, style }: GroceryProductCardProps) 
           )}
         </View>
 
-        {/* Full-width Add/Stepper Button */}
+        {/* Bottom Add/Stepper Button */}
         <View style={{ marginTop: 12 }}>
           {stepperOpen && qty > 0 ? (
             <View style={styles.fullWidthStepper}>
@@ -192,7 +188,7 @@ export function GroceryProductCard({ product, style }: GroceryProductCardProps) 
             </View>
           ) : (
             <TouchableOpacity style={styles.fullWidthAddBtn} onPress={openStepper} activeOpacity={0.85}>
-              <Text style={styles.fullWidthAddText}>ADD TO CART</Text>
+              <Text style={styles.fullWidthAddText}>ADD</Text>
             </TouchableOpacity>
           )}
         </View>
@@ -205,54 +201,43 @@ const styles = StyleSheet.create({
   card: {
     backgroundColor: '#FFFFFF',
     borderRadius: 16,
-    borderWidth: 1.5,
-    borderColor: '#F0F4EF',
-    overflow: 'hidden',
     width: CARD_WIDTH,
     marginBottom: 16,
-    shadowColor: '#1E3D34',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.04,
+    // Soft shadow like Instamart
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.06,
     shadowRadius: 8,
-    elevation: 2,
+    elevation: 3,
   },
   imageContainer: {
     width: '100%',
-    height: 125,
-    backgroundColor: '#F9FAFB',
+    height: 120,
+    backgroundColor: '#FFFFFF', // Clean white background
+    borderTopLeftRadius: 16,
+    borderTopRightRadius: 16,
     position: 'relative',
-    padding: 16,
     alignItems: 'center',
     justifyContent: 'center',
     borderBottomWidth: 1,
-    borderBottomColor: '#F0F4EF',
-  },
-  imageWrapper: {
-    width: 90,
-    height: 90,
-    borderRadius: 45, // Circular shape
-    backgroundColor: '#FFFFFF',
-    overflow: 'hidden',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.05,
-    shadowRadius: 4,
-    elevation: 2,
-    borderWidth: 1,
-    borderColor: '#F0F4EF',
+    borderBottomColor: '#F3F4F6',
+    padding: 10, // Margin around the landscape image
   },
   image: {
     width: '100%',
-    height: '100%',
+    height: 100, // Fixed height to enforce landscape ratio (approx 140x100 = 1.4 landscape)
+    borderRadius: 10, // Rounded corners on the image itself
+    backgroundColor: '#F9FAFB', // Slight background if image is transparent
   },
   discountBadge: {
     position: 'absolute',
-    top: 8,
+    top: 0,
     left: 8,
     backgroundColor: '#3B82F6', 
-    borderRadius: 6,
+    borderBottomLeftRadius: 4,
+    borderBottomRightRadius: 4,
     paddingHorizontal: 6,
-    paddingVertical: 3,
+    paddingVertical: 4,
   },
   discountText: {
     color: '#FFF',
@@ -262,9 +247,16 @@ const styles = StyleSheet.create({
   },
   wishlistBtn: {
     position: 'absolute',
-    top: 6,
-    right: 6,
+    top: 8,
+    right: 8,
     padding: 4,
+    backgroundColor: 'rgba(255,255,255,0.8)',
+    borderRadius: 12,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.1,
+    shadowRadius: 2,
+    elevation: 2,
   },
   
   // Full Width Bottom Button Styles
@@ -272,23 +264,24 @@ const styles = StyleSheet.create({
     width: '100%',
     height: 36,
     borderRadius: 8,
-    backgroundColor: '#F0FDF4',
+    backgroundColor: '#F0FDF4', // Light green tint
     borderWidth: 1,
-    borderColor: '#22C55E',
+    borderColor: '#22C55E', // Standard green border
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
   },
   fullWidthAddText: {
-    color: '#16A34A',
-    fontSize: 12,
+    color: '#16A34A', // Darker green for text
+    fontSize: 13,
     fontFamily: BOLD_FONT,
+    letterSpacing: 0.5,
   },
   fullWidthStepper: {
     width: '100%',
     height: 36,
     borderRadius: 8,
-    backgroundColor: '#16A34A',
+    backgroundColor: '#16A34A', // Solid green when items are added
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
@@ -313,29 +306,29 @@ const styles = StyleSheet.create({
 
   details: {
     padding: 12,
-    paddingTop: 12,
+    paddingTop: 12, // Restored normal padding since button is no longer overlapping
   },
   timeTag: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#F0FDF4',
+    backgroundColor: '#F3F4F6',
     alignSelf: 'flex-start',
     paddingHorizontal: 6,
     paddingVertical: 3,
-    borderRadius: 6,
+    borderRadius: 4,
     marginBottom: 6,
   },
   timeTagText: {
-    fontSize: 9,
+    fontSize: 8,
     fontFamily: BOLD_FONT,
-    color: '#16A34A',
+    color: '#4B5563',
     marginLeft: 4,
   },
   name: {
     fontSize: 13,
     fontFamily: BOLD_FONT,
     color: '#1F2937',
-    marginBottom: 4,
+    marginBottom: 2,
     lineHeight: 18,
     height: 36, // Force exactly 2 lines height
   },
@@ -343,21 +336,21 @@ const styles = StyleSheet.create({
     fontSize: 11,
     fontFamily: STYLISH_FONT,
     color: '#6B7280',
-    marginBottom: 8,
-    height: 14, // Force exact 1 line height
+    marginBottom: 10,
+    height: 14,
   },
   priceRow: {
     flexDirection: 'row',
     alignItems: 'center',
   },
   price: {
-    fontSize: 15,
+    fontSize: 14,
     fontFamily: BOLD_FONT,
-    color: '#1F2937',
+    color: '#111827',
     marginRight: 6,
   },
   originalPrice: {
-    fontSize: 12,
+    fontSize: 11,
     fontFamily: STYLISH_FONT,
     color: '#9CA3AF',
     textDecorationLine: 'line-through',

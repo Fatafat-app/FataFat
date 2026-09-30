@@ -272,6 +272,47 @@ export function GroceryHome() {
           </View>
         )}
 
+        {/* EXTRA SECTIONS for Homepage */}
+        {!selectedCategory && (!activeFilter || activeFilter === 'popularity') && trending.length > 0 && (
+          <View style={{ marginTop: 24 }}>
+            {/* Explore New Arrivals */}
+            <SectionHeader title="Explore New Arrivals" />
+            <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              contentContainerStyle={{ paddingHorizontal: 16, gap: 12, paddingBottom: 24 }}
+            >
+              {[...trending].reverse().slice(0, 6).map((product) => (
+                <GroceryProductCard key={`new-${product.id || product._id}`} product={product} />
+              ))}
+            </ScrollView>
+
+            {/* Daily Needs */}
+            <SectionHeader title="Daily Needs" />
+            <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              contentContainerStyle={{ paddingHorizontal: 16, gap: 12, paddingBottom: 24 }}
+            >
+              {[...trending].slice(1, 7).map((product) => (
+                <GroceryProductCard key={`daily-${product.id || product._id}`} product={product} />
+              ))}
+            </ScrollView>
+
+            {/* Snacks & Munchies */}
+            <SectionHeader title="Snacks & Munchies" />
+            <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              contentContainerStyle={{ paddingHorizontal: 16, gap: 12, paddingBottom: 24 }}
+            >
+              {[...trending].reverse().slice(2, 8).map((product) => (
+                <GroceryProductCard key={`snacks-${product.id || product._id}`} product={product} />
+              ))}
+            </ScrollView>
+          </View>
+        )}
+
         {/* Bottom padding for floating cart + tab bar */}
         <View style={{ height: 140 }} />
       </ScrollView>

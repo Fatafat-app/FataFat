@@ -279,48 +279,25 @@ export function GroceryAllCategories({ onBack, onSelectCategory }: GroceryAllCat
                   }}
                   activeOpacity={0.85}
                 >
-                  {/* Top Row: Badge + Chevron */}
-                  <View style={styles.cardTopRow}>
-                    {renderBadge(cat.badge, cat.badgeType)}
-                    <Ionicons name="chevron-forward" size={14} color="#9CA3AF" />
-                  </View>
-
-                  {/* Centered Image in Oval / Circle container */}
-                  <View style={[styles.imageOval, { backgroundColor: cat.bg || '#F3F7F2' }]}>
+                  
+                  {/* Landscape Image Container */}
+                  <View style={styles.imageOval}>
                     {cat.image ? (
                       <Image
                         source={{ uri: cat.image }}
                         style={styles.cardImage}
-                        resizeMode="contain"
+                        resizeMode="cover"
                       />
                     ) : (
                       <Text style={{ fontSize: 36 }}>{cat.emoji || '🛒'}</Text>
                     )}
                   </View>
 
+                  <View style={styles.details}>
                   {/* Title & Subtitle */}
                   <Text style={styles.categoryName} numberOfLines={1}>
                     {cat.name}
                   </Text>
-                  <Text style={styles.categorySubtitle} numberOfLines={1}>
-                    {cat.subtitle || 'Everyday fresh quality'}
-                  </Text>
-
-                  {/* Bottom Row: Item Count + Arrow Button */}
-                  <View style={styles.cardBottomRow}>
-                    <Text style={styles.itemCountText}>{cat.itemCount || '50+ items'}</Text>
-                    <View
-                      style={[
-                        styles.arrowCircle,
-                        isSelected && { backgroundColor: '#1E3D34' },
-                      ]}
-                    >
-                      <Ionicons
-                        name="arrow-forward"
-                        size={14}
-                        color={isSelected ? '#FFFFFF' : '#1E3D34'}
-                      />
-                    </View>
                   </View>
                 </TouchableOpacity>
               );
@@ -525,18 +502,18 @@ const styles = StyleSheet.create({
   categoryCard: {
     width: CARD_WIDTH,
     backgroundColor: '#FFFFFF',
-    borderRadius: 20,
+    borderRadius: 12,
     borderWidth: 1,
-    borderColor: '#E8ECE6',
-    padding: 12,
-    shadowColor: '#1E3D34',
+    borderColor: '#E5E7EB',
+    shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.04,
-    shadowRadius: 8,
-    elevation: 2,
+    shadowRadius: 4,
+    elevation: 1,
+    overflow: 'hidden'
   },
   categoryCardSelected: {
-    borderColor: '#1E3D34',
+    borderColor: '#16A34A',
     borderWidth: 1.5,
   },
   cardTopRow: {
@@ -558,20 +535,32 @@ const styles = StyleSheet.create({
   },
   imageOval: {
     width: '100%',
-    height: 104, borderRadius: 16,
+    height: 120, // Match product card height
+    backgroundColor: '#FFFFFF',
+    borderTopLeftRadius: 12,
+    borderTopRightRadius: 12,
     alignItems: 'center',
     justifyContent: 'center',
-    marginBottom: 8,
-    overflow: 'hidden',
+    borderBottomWidth: 1,
+    borderBottomColor: '#F3F4F6',
+    padding: 10,
   },
   cardImage: {
-    width: "100%", height: "100%", borderRadius: 16,
+    width: '100%',
+    height: 100, // Match product image landscape height
+    borderRadius: 10,
+    backgroundColor: '#F9FAFB',
+  },
+  details: {
+    padding: 10,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   categoryName: {
-    fontSize: 13.5,
+    fontSize: 13,
     fontFamily: BOLD_FONT,
-    color: '#1E3D34',
-    marginBottom: 2,
+    color: '#1E293B',
+    textAlign: 'center',
   },
   categorySubtitle: {
     fontSize: 11,

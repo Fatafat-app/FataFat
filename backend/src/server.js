@@ -67,6 +67,12 @@ async function boot() {
 }
 
 function bootWorkers() {
+  const redis = require('./config/redis');
+  if (redis._isMock) {
+    logger.warn('[Workers] Redis is running in mock mode. Background workers will NOT be started.');
+    return;
+  }
+
   try {
     require('./jobs/notification.worker');
     require('./jobs/analytics.worker');

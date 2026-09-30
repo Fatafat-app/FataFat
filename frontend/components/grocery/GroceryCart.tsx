@@ -10,7 +10,7 @@ import {
   Alert,
   TextInput,
   Platform,
-} from 'react-native';
+ Modal,} from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
@@ -71,6 +71,7 @@ export function GroceryCart() {
 
   const [promoInput, setPromoInput] = useState('');
   const [showPromoInput, setShowPromoInput] = useState(false);
+  const [selectedItemForDetails, setSelectedItemForDetails] = useState<any>(null);
 
   const handleClearCart = () => {
     Alert.alert('Clear Cart', 'Are you sure you want to remove all items from your cart?', [
@@ -126,159 +127,82 @@ export function GroceryCart() {
     : (locationSubtitle || 'Tap to select delivery address');
 
   return (
-    <View style={styles.root}>
-      {/* Top Header */}
-      <View style={[styles.header, { paddingTop: insets.top + 6 }]}>
-        <TouchableOpacity style={styles.headerCircleBtn} onPress={() => router.back()} activeOpacity={0.7}>
-          <Ionicons name="arrow-back" size={20} color="#1E3D34" />
-        </TouchableOpacity>
-
-        <View style={styles.headerTitleRow}>
-          <Text style={styles.headerTitleText}>My Cart</Text>
-          {cartCount > 0 && (
-            <View style={styles.headerItemBadge}>
-              <Text style={styles.headerItemBadgeText}>{cartCount} items</Text>
-            </View>
-          )}
-        </View>
-
-        {cartCount > 0 ? (
-          <TouchableOpacity style={styles.headerCircleBtn} onPress={handleClearCart} activeOpacity={0.7}>
-            <Ionicons name="trash-outline" size={20} color="#1E3D34" />
+    <View style={styles.safeArea}>
+      {/* Header */}
+      <View style={[styles.navbar, { paddingTop: insets.top + 8 }]}>
+        <View style={styles.navLeft}>
+          <TouchableOpacity onPress={() => router.back()} style={{ marginRight: 12 }}>
+            <Ionicons name="arrow-back" size={24} color="#111827" />
           </TouchableOpacity>
-        ) : (
-          <View style={{ width: 38 }} />
-        )}
+          <Ionicons name="basket" size={24} color="#16A34A" style={{ marginRight: 8 }} />
+          <View>
+            <Text style={styles.navTitle}>My Cart</Text>
+            <Text style={styles.navSubtitle}>{cartCount} Items Added</Text>
+          </View>
+        </View>
+        <TouchableOpacity onPress={handleClearCart} style={styles.clearBtn}>
+          <Text style={styles.clearText}>Clear Cart</Text>
+        </TouchableOpacity>
       </View>
 
       <ScrollView
-        style={styles.scroll}
+        style={styles.scrollContainer}
+        contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
-        contentContainerStyle={styles.content}
       >
-        {/* Delivering Location & Fast Lane Card */}
-        <View style={styles.addressCard}>
-          <View style={styles.addressTopRow}>
-            <View style={styles.locationPinCircle}>
-              <Ionicons name="location" size={18} color="#1E3D34" />
-            </View>
-
-            <View style={styles.addressTextContent}>
-              <View style={styles.deliveringToRow}>
-                <Text style={styles.deliveringToLabel}>Delivering to</Text>
-                <Ionicons name="chevron-down" size={13} color="#6B7280" style={{ marginLeft: 3 }} />
-              </View>
-              <Text style={styles.cityText} numberOfLines={1}>{displayLabel}</Text>
-              <Text style={styles.streetText} numberOfLines={2}>{displayAddress}</Text>
-            </View>
-
-            <TouchableOpacity onPress={() => router.push('/address')} activeOpacity={0.7}>
-              <Text style={styles.changeLinkText}>Change</Text>
-            </TouchableOpacity>
-          </View>
-
-          <View style={styles.addressDivider} />
-
-          <View style={styles.addressBottomRow}>
-            <Ionicons name="flash" size={15} color="#1E3D34" style={{ marginRight: 6 }} />
-            <Text style={styles.instantDeliveryText}>
-              Instant Delivery:{' '}
-              <Text style={styles.instantDeliveryTime}>25-35 mins</Text>
-            </Text>
-
-            <View style={styles.fastLaneBadge}>
-              <Text style={styles.fastLaneText}>Fast Lane</Text>
-            </View>
-          </View>
-        </View>
-
-        {/* Empty Cart State */}
         {cart.length === 0 ? (
           <View style={styles.emptyContainer}>
-            <View style={styles.emptyIconCircle}>
-              <Ionicons name="bag-handle-outline" size={42} color="#1E3D34" />
-            </View>
-            <Text style={styles.emptyTitle}>Your grocery cart is empty</Text>
-            <Text style={styles.emptySubtitle}>
-              Explore fresh organic veggies, daily dairy, fruits and pantry essentials.
-            </Text>
-            <TouchableOpacity
-              style={styles.exploreBtn}
-              onPress={() => router.push('/grocery/categories')}
-              activeOpacity={0.85}
-            >
+            <Ionicons name="cart-outline" size={60} color="#9CA3AF" style={{ marginBottom: 16 }} />
+            <Text style={styles.emptyTitle}>Your Cart is Empty</Text>
+            <Text style={styles.emptySubtitle}>Explore fresh groceries and add something to your cart!</Text>
+            <TouchableOpacity style={styles.exploreBtn} onPress={() => router.push('/grocery/categories')}>
               <Text style={styles.exploreBtnText}>Browse Departments</Text>
-              <Ionicons name="arrow-forward" size={16} color="#1E3D34" style={{ marginLeft: 6 }} />
             </TouchableOpacity>
           </View>
         ) : (
           <>
-            {/* Cart Items Header */}
-            <View style={styles.sectionHeaderRow}>
-              <Text style={styles.sectionTitle}>Cart Items</Text>
-              <Text style={styles.coldChainText}>Free cold-chain packing</Text>
-            </View>
-
-            {/* Live Cart Items List */}
-            <View style={styles.itemsList}>
-              {cart.map((item) => {
+            {/* Ordered Items List */}
+            <View style={styles.card}>
+              <Text style={styles.cardHeading}>ITEMS IN YOUR CART ({cartCount})</Text>
+              {cart.map((item, idx) => {
                 const prodId = item.product._id || item.product.id;
                 const product = item.product;
-                const unit = product.unit || '1 pack';
-                const originalPrice = product.originalPrice;
-
+                const imageUrl = product.image || product.images?.[0] || 'https://images.pexels.com/photos/102104/pexels-photo-102104.jpeg';
+                
                 return (
-                  <View key={prodId} style={styles.itemCard}>
-                    {/* Circular Product Image */}
-                    <View style={styles.itemImgCircle}>
-                      <Image
-                        source={{
-                          uri:
-                            product.image ||
-                            product.images?.[0] ||
-                            'https://images.pexels.com/photos/102104/pexels-photo-102104.jpeg?auto=compress&cs=tinysrgb&w=300',
-                        }}
-                        style={styles.itemImg}
-                        resizeMode="cover"
-                      />
-                    </View>
-
-                    {/* Product Details */}
-                    <View style={styles.itemDetails}>
-                      <Text style={styles.itemName} numberOfLines={1}>
-                        {product.name}
-                      </Text>
-                      <Text style={styles.itemUnit}>{unit}</Text>
-                      <View style={styles.priceContainer}>
-                        <Text style={styles.itemPrice}>
-                          ₹{(product.price * item.quantity).toFixed(0)}
-                        </Text>
-                        {originalPrice && (
-                          <Text style={styles.itemOriginalPrice}>
-                            ₹{(originalPrice * item.quantity).toFixed(0)}
-                          </Text>
-                        )}
+                  <View
+                    key={prodId}
+                    style={[styles.itemRow, idx !== cart.length - 1 && styles.itemRowBorder]}
+                  >
+                    <TouchableOpacity onPress={() => setSelectedItemForDetails(product)} activeOpacity={0.8}>
+                      <Image source={{ uri: imageUrl }} style={styles.itemImage} />
+                    </TouchableOpacity>
+                    
+                    <View style={styles.itemInfo}>
+                      <View style={styles.itemNameRow}>
+                        <View style={[styles.vegSquare, { borderColor: '#16A34A' }]}>
+                          <View style={[styles.vegDot, { backgroundColor: '#16A34A' }]} />
+                        </View>
+                        <Text style={styles.itemName} numberOfLines={2}>{product.name}</Text>
                       </View>
+                      
+                      <Text style={styles.itemModifiers}>{product.unit || '1 pack'}</Text>
+                      <Text style={styles.itemPrice}>₹{(product.price * item.quantity).toFixed(0)}</Text>
                     </View>
 
-                    {/* Stepper Pill */}
-                    <View style={styles.stepperPill}>
+                    <View style={styles.counterBox}>
                       <TouchableOpacity
-                        style={styles.stepperMinusBtn}
                         onPress={() => decrementQty(prodId)}
-                        activeOpacity={0.7}
+                        style={styles.counterBtn}
                       >
-                        <Text style={styles.stepperMinusText}>−</Text>
+                        <Ionicons name="remove" size={16} color="#16A34A" />
                       </TouchableOpacity>
-
-                      <Text style={styles.stepperQtyText}>{item.quantity}</Text>
-
+                      <Text style={styles.counterValue}>{item.quantity}</Text>
                       <TouchableOpacity
-                        style={styles.stepperPlusCircle}
                         onPress={() => incrementQty(prodId)}
-                        activeOpacity={0.8}
+                        style={styles.counterBtn}
                       >
-                        <Text style={styles.stepperPlusText}>+</Text>
+                        <Ionicons name="add" size={16} color="#16A34A" />
                       </TouchableOpacity>
                     </View>
                   </View>
@@ -286,668 +210,332 @@ export function GroceryCart() {
               })}
             </View>
 
-            {/* Promo / Coupon Applied Card */}
-            {appliedCoupon ? (
-              <View style={styles.couponCard}>
-                <View style={styles.couponIconBox}>
-                  <Ionicons name="pricetag" size={17} color="#1E3D34" />
+            {/* Delivery Location */}
+            <View style={styles.card}>
+              <View style={styles.locationHeaderRow}>
+                <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                  <Ionicons name="location" size={18} color="#16A34A" style={{ marginRight: 6 }} />
+                  <Text style={styles.cardHeading}>DELIVERY ADDRESS</Text>
                 </View>
-                <View style={styles.couponTextContent}>
-                  <View style={styles.couponRow}>
-                    <Text style={styles.couponCodeText}>{appliedCoupon.code}</Text>
-                    <View style={styles.couponAppliedBadge}>
-                      <Text style={styles.couponAppliedBadgeText}>Applied</Text>
+                <TouchableOpacity onPress={() => router.push('/address')}>
+                  <Text style={{ fontFamily: BOLD_FONT, color: '#16A34A', fontSize: 12 }}>Change</Text>
+                </TouchableOpacity>
+              </View>
+
+              <View style={styles.addressBox}>
+                <Text style={styles.addressType}>{displayLabel}</Text>
+                <Text style={styles.addressStreet}>{displayAddress}</Text>
+              </View>
+
+              <TextInput
+                placeholder="Delivery instructions (e.g. Leave at door, don't ring bell)"
+                style={styles.instructionInput}
+                placeholderTextColor="#9CA3AF"
+              />
+            </View>
+
+            {/* Coupon Card */}
+            <View style={styles.card}>
+              <Text style={styles.cardHeading}>OFFERS & BENEFITS</Text>
+              {!appliedCoupon ? (
+                showPromoInput ? (
+                  <View style={styles.promoInputRow}>
+                    <Ionicons name="pricetag" size={20} color="#16A34A" />
+                    <TextInput
+                      style={styles.promoInput}
+                      placeholder="Enter coupon code"
+                      placeholderTextColor="#9CA3AF"
+                      value={promoInput}
+                      onChangeText={setPromoInput}
+                      autoCapitalize="characters"
+                    />
+                    <TouchableOpacity style={styles.applyBtn} onPress={handleApplyPromo}>
+                      <Text style={styles.applyBtnText}>Apply</Text>
+                    </TouchableOpacity>
+                  </View>
+                ) : (
+                  <TouchableOpacity style={styles.promoTrigger} onPress={() => setShowPromoInput(true)}>
+                    <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                      <Ionicons name="pricetag-outline" size={20} color="#111827" />
+                      <Text style={styles.promoTriggerText}>Apply Coupon</Text>
+                    </View>
+                    <Ionicons name="chevron-forward" size={20} color="#9CA3AF" />
+                  </TouchableOpacity>
+                )
+              ) : (
+                <View style={styles.appliedPromoRow}>
+                  <View style={styles.appliedPromoLeft}>
+                    <Ionicons name="pricetag" size={20} color="#16A34A" />
+                    <View style={{ marginLeft: 10 }}>
+                      <Text style={styles.appliedPromoCode}>{appliedCoupon.code}</Text>
+                      <Text style={styles.appliedPromoDesc}>Coupon applied successfully</Text>
                     </View>
                   </View>
-                  <Text style={styles.couponDiscountSubtitle}>
-                    Enjoy -₹{appliedCoupon.discount.toFixed(0)} off order
-                  </Text>
+                  <TouchableOpacity onPress={removeCoupon}>
+                    <Text style={styles.removePromoText}>Remove</Text>
+                  </TouchableOpacity>
                 </View>
-                <TouchableOpacity onPress={removeCoupon} activeOpacity={0.7} style={styles.couponCloseBtn}>
-                  <Ionicons name="close" size={18} color="#9CA3AF" />
-                </TouchableOpacity>
-              </View>
-            ) : showPromoInput ? (
-              <View style={styles.promoInputRow}>
-                <TextInput
-                  style={styles.promoTextInput}
-                  placeholder="Enter code (e.g. FRESH40)"
-                  placeholderTextColor="#9CA3AF"
-                  value={promoInput}
-                  onChangeText={setPromoInput}
-                  autoCapitalize="characters"
-                />
-                <TouchableOpacity style={styles.applyBtn} onPress={handleApplyPromo} activeOpacity={0.8}>
-                  <Text style={styles.applyBtnText}>Apply</Text>
-                </TouchableOpacity>
-              </View>
-            ) : (
-              <TouchableOpacity
-                style={styles.couponCardAdd}
-                onPress={() => setShowPromoInput(true)}
-                activeOpacity={0.8}
-              >
-                <Ionicons name="pricetag-outline" size={18} color="#1E3D34" style={{ marginRight: 10 }} />
-                <Text style={styles.applyCouponText}>Apply Coupon / Voucher</Text>
-                <Ionicons name="chevron-forward" size={16} color="#9CA3AF" style={{ marginLeft: 'auto' }} />
-              </TouchableOpacity>
-            )}
+              )}
+            </View>
 
-            {/* Bill Summary Card */}
-            <View style={styles.billCard}>
-              <Text style={styles.billHeading}>Bill Summary</Text>
-
+            {/* Bill Breakdown */}
+            <View style={[styles.card, { marginBottom: 90 }]}>
+              <Text style={styles.cardHeading}>BILL DETAILS</Text>
               <View style={styles.billRow}>
                 <Text style={styles.billLabel}>Item Total</Text>
                 <Text style={styles.billValue}>₹{itemTotal.toFixed(0)}</Text>
               </View>
-
               <View style={styles.billRow}>
-                <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-                  <Text style={styles.billLabel}>Delivery Fee</Text>
-                  <View style={styles.freeOverBadge}>
-                    <Text style={styles.freeOverText}>Free over ₹300</Text>
-                  </View>
-                </View>
+                <Text style={styles.billLabel}>Delivery Partner Fee</Text>
                 <Text style={styles.billValue}>
-                  {isFreeDelivery ? 'FREE' : `₹${deliveryFee.toFixed(0)}`}
+                  {deliveryFee === 0 ? <Text style={{ color: '#16A34A' }}>FREE</Text> : `₹${deliveryFee.toFixed(0)}`}
                 </Text>
               </View>
-
               {couponDiscount > 0 && (
                 <View style={styles.billRow}>
-                  <Text style={styles.billDiscountLabel}>
-                    Promo Discount ({appliedCoupon?.code})
-                  </Text>
-                  <Text style={styles.billDiscountValue}>
-                    -₹{couponDiscount.toFixed(0)}
-                  </Text>
+                  <Text style={[styles.billLabel, { color: '#16A34A' }]}>Coupon Discount</Text>
+                  <Text style={[styles.billValue, { color: '#16A34A' }]}>-₹{couponDiscount.toFixed(0)}</Text>
                 </View>
               )}
-
-              <View style={styles.billDivider} />
-
-              <View style={styles.toPayRow}>
-                <View>
-                  <Text style={styles.toPayHeading}>To Pay</Text>
-                  <Text style={styles.toPaySubtitle}>Inclusive of all local taxes</Text>
-                </View>
-                <Text style={styles.toPayAmount}>₹{finalToPay.toFixed(0)}</Text>
+              <View style={styles.billRow}>
+                <Text style={styles.billLabel}>Handling Charge</Text>
+                <Text style={styles.billValue}>₹2</Text>
+              </View>
+              <View style={styles.divider} />
+              <View style={styles.grandTotalRow}>
+                <Text style={styles.grandTotalLabel}>To Pay</Text>
+                <Text style={styles.grandTotalValue}>₹{(finalToPay + 2).toFixed(0)}</Text>
               </View>
             </View>
-
-            {/* Free Delivery Progress Bar Hint */}
-            {!isFreeDelivery && (
-              <View style={styles.freeDeliveryBanner}>
-                <Ionicons name="leaf" size={16} color="#657917" style={{ marginRight: 8 }} />
-                <Text style={styles.freeDeliveryBannerText}>
-                  Add <Text style={{ fontFamily: BOLD_FONT }}>₹{neededForFree.toFixed(0)}</Text> more for Free Delivery
-                </Text>
-                <Text style={styles.freeDeliveryPercentText}>{progressPercent}%</Text>
-              </View>
-            )}
           </>
         )}
-
-        {/* Bottom spacer for sticky bar and tabbar */}
-        <View style={{ height: 160 }} />
       </ScrollView>
 
-      {/* Bottom Sticky Checkout Bar (Only when items exist) */}
+      {/* Floating Bottom Bar (Matching Food Delivery) */}
       {cart.length > 0 && (
         <View style={styles.bottomBar}>
           <View>
-            <Text style={styles.totalAmountLabel}>Total Amount</Text>
-            <Text style={styles.totalAmountPrice}>₹{finalToPay.toFixed(0)}</Text>
+            <Text style={styles.bottomTotalLabel}>Total to Pay</Text>
+            <Text style={styles.bottomTotalPrice}>₹{(finalToPay + 2).toFixed(0)}</Text>
           </View>
 
-          <TouchableOpacity style={styles.checkoutBtn} onPress={handleCheckout} activeOpacity={0.9}>
-            <Text style={styles.checkoutBtnText}>Proceed to Checkout</Text>
-            <Ionicons name="arrow-forward" size={16} color="#FFFFFF" style={{ marginLeft: 8 }} />
+          <TouchableOpacity
+            onPress={handleCheckout}
+            style={styles.placeOrderBtn}
+            activeOpacity={0.9}
+          >
+            <View style={styles.placeOrderBtnInner}>
+              <Text style={styles.placeOrderText}>Place Order</Text>
+              <Ionicons name="arrow-forward" size={18} color="#FFFFFF" style={{ marginLeft: 6 }} />
+            </View>
           </TouchableOpacity>
         </View>
       )}
+
+      {/* Item Details Modal */}
+      <Modal
+        visible={!!selectedItemForDetails}
+        transparent={true}
+        animationType="slide"
+        onRequestClose={() => setSelectedItemForDetails(null)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <TouchableOpacity 
+              style={styles.closeModalBtn} 
+              onPress={() => setSelectedItemForDetails(null)}
+            >
+              <Ionicons name="close-circle" size={28} color="#6B7280" />
+            </TouchableOpacity>
+            
+            {selectedItemForDetails && (
+              <>
+                <Image 
+                  source={{ uri: selectedItemForDetails.image || selectedItemForDetails.images?.[0] || 'https://images.pexels.com/photos/1639557/pexels-photo-1639557.jpeg' }} 
+                  style={styles.modalImage} 
+                />
+                <View style={styles.modalInfo}>
+                  <View style={styles.itemNameRow}>
+                    <View style={[styles.vegSquare, { borderColor: '#16A34A' }]}>
+                      <View style={[styles.vegDot, { backgroundColor: '#16A34A' }]} />
+                    </View>
+                    <Text style={styles.modalTitle}>{selectedItemForDetails.name}</Text>
+                  </View>
+                  <Text style={styles.modalPrice}>₹{selectedItemForDetails.price}</Text>
+                  {selectedItemForDetails.description ? (
+                    <Text style={styles.modalDesc}>{selectedItemForDetails.description}</Text>
+                  ) : (
+                    <Text style={styles.modalDesc}>Fresh and high-quality product sourced for you.</Text>
+                  )}
+
+                  <TouchableOpacity 
+                    style={styles.showAllDetailsBtn}
+                    onPress={() => {
+                      const prodId = selectedItemForDetails._id || selectedItemForDetails.id || selectedItemForDetails.slug;
+                      setSelectedItemForDetails(null);
+                      if (prodId) {
+                        router.push(`/grocery/product/${prodId}`);
+                      }
+                    }}
+                  >
+                    <Text style={styles.showAllDetailsText}>Show Full Details</Text>
+                    <Ionicons name="chevron-forward" size={16} color="#16A34A" />
+                  </TouchableOpacity>
+                </View>
+              </>
+            )}
+          </View>
+        </View>
+      </Modal>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  root: {
-    flex: 1,
-    backgroundColor: '#F8FAF7',
-    position: 'relative',
-  },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: 16,
-    paddingBottom: 8,
-    backgroundColor: '#F8FAF7',
-  },
-  headerCircleBtn: {
-    width: 38,
-    height: 38,
-    borderRadius: 19,
+  safeArea: { flex: 1, backgroundColor: '#F9FAFB' },
+  navbar: {
     backgroundColor: '#FFFFFF',
-    borderWidth: 1,
-    borderColor: '#E8ECE6',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  headerTitleRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-  },
-  headerTitleText: {
-    fontSize: 18,
-    fontFamily: BOLD_FONT,
-    color: '#1E3D34',
-  },
-  headerItemBadge: {
-    backgroundColor: '#D4F468',
-    paddingHorizontal: 8,
-    paddingVertical: 3,
-    borderRadius: 12,
-  },
-  headerItemBadgeText: {
-    fontSize: 11,
-    fontFamily: BOLD_FONT,
-    color: '#1E3D34',
-  },
-
-  scroll: {
-    flex: 1,
-  },
-  content: {
-    paddingHorizontal: 16,
-    paddingTop: 8,
-  },
-
-  // Address Card
-  addressCard: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 18,
-    borderWidth: 1,
-    borderColor: '#E8ECE6',
-    padding: 14,
-    marginBottom: 16,
-  },
-  addressTopRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  locationPinCircle: {
-    width: 38,
-    height: 38,
-    borderRadius: 19,
-    backgroundColor: '#E8F5E9',
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginRight: 12,
-  },
-  addressTextContent: {
-    flex: 1,
-  },
-  deliveringToRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 1,
-  },
-  deliveringToLabel: {
-    fontSize: 11.5,
-    color: '#6B7280',
-    fontFamily: STYLISH_FONT,
-  },
-  cityText: {
-    fontSize: 14.5,
-    fontFamily: BOLD_FONT,
-    color: '#1E3D34',
-    marginBottom: 1,
-  },
-  streetText: {
-    fontSize: 11.5,
-    color: '#6B7280',
-  },
-  changeLinkText: {
-    fontSize: 13,
-    fontFamily: BOLD_FONT,
-    color: '#1E3D34',
-  },
-
-  addressDivider: {
-    height: 1,
-    backgroundColor: '#F3F4F6',
-    marginVertical: 12,
-  },
-
-  addressBottomRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  instantDeliveryText: {
-    fontSize: 12.5,
-    fontFamily: STYLISH_FONT,
-    color: '#1E3D34',
-    flex: 1,
-  },
-  instantDeliveryTime: {
-    fontFamily: BOLD_FONT,
-  },
-  fastLaneBadge: {
-    backgroundColor: '#EBF9C5',
-    paddingHorizontal: 8,
-    paddingVertical: 3,
-    borderRadius: 8,
-  },
-  fastLaneText: {
-    fontSize: 10.5,
-    fontFamily: BOLD_FONT,
-    color: '#1E3D34',
-  },
-
-  // Empty State
-  emptyContainer: {
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: 50,
-    paddingHorizontal: 24,
-  },
-  emptyIconCircle: {
-    width: 80,
-    height: 80,
-    borderRadius: 40,
-    backgroundColor: '#EBF0EA',
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: 16,
-  },
-  emptyTitle: {
-    fontSize: 18,
-    fontFamily: BOLD_FONT,
-    color: '#1E3D34',
-    marginBottom: 6,
-  },
-  emptySubtitle: {
-    fontSize: 13,
-    color: '#6B7280',
-    textAlign: 'center',
-    lineHeight: 18,
-    marginBottom: 20,
-  },
-  exploreBtn: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#D4F468',
     paddingHorizontal: 20,
-    paddingVertical: 12,
-    borderRadius: 24,
-  },
-  exploreBtnText: {
-    fontSize: 13.5,
-    fontFamily: BOLD_FONT,
-    color: '#1E3D34',
-  },
-
-  // Section Header
-  sectionHeaderRow: {
+    paddingVertical: 14,
+    borderBottomWidth: 1,
+    borderBottomColor: '#E5E7EB',
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 12,
   },
-  sectionTitle: {
-    fontSize: 16,
-    fontFamily: BOLD_FONT,
-    color: '#1E3D34',
-  },
-  coldChainText: {
-    fontSize: 11.5,
-    color: '#6B7280',
-    fontFamily: STYLISH_FONT,
-  },
+  navLeft: { flexDirection: 'row', alignItems: 'center' },
+  navTitle: { fontFamily: BOLD_FONT, fontSize: 18, color: '#111827' },
+  navSubtitle: { fontFamily: STYLISH_FONT, fontSize: 12, color: '#16A34A' },
+  clearBtn: { backgroundColor: '#FEF2F2', paddingHorizontal: 10, paddingVertical: 6, borderRadius: 8 },
+  clearText: { fontFamily: BOLD_FONT, color: '#EF4444', fontSize: 11 },
+  
+  scrollContainer: { flex: 1 },
+  scrollContent: { padding: 16, paddingBottom: 180 },
+  
+  emptyContainer: { flex: 1, alignItems: 'center', justifyContent: 'center', paddingTop: 80 },
+  emptyTitle: { fontFamily: BOLD_FONT, fontSize: 20, color: '#111827', marginBottom: 8 },
+  emptySubtitle: { fontFamily: STYLISH_FONT, fontSize: 14, color: '#6B7280', textAlign: 'center', marginBottom: 20 },
+  exploreBtn: { backgroundColor: '#16A34A', paddingHorizontal: 24, paddingVertical: 12, borderRadius: 12 },
+  exploreBtnText: { fontFamily: BOLD_FONT, color: '#FFFFFF', fontSize: 14 },
 
-  // Cart Items
-  itemsList: {
-    gap: 10,
-    marginBottom: 14,
-  },
-  itemCard: {
-    flexDirection: 'row',
-    alignItems: 'center',
+  card: {
     backgroundColor: '#FFFFFF',
-    borderRadius: 16,
-    borderWidth: 1,
-    borderColor: '#E8ECE6',
-    padding: 10,
-  },
-  itemImgCircle: {
-    width: 60,
-    height: 60,
-    borderRadius: 30,
-    backgroundColor: '#F8F9F8',
-    overflow: 'hidden',
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginRight: 12,
-  },
-  itemImg: {
-    width: '100%',
-    height: '100%',
-  },
-  itemDetails: {
-    flex: 1,
-    marginRight: 8,
-  },
-  itemName: {
-    fontSize: 14,
-    fontFamily: BOLD_FONT,
-    color: '#1E3D34',
-    marginBottom: 2,
-  },
-  itemUnit: {
-    fontSize: 11.5,
-    color: '#6B7280',
-    marginBottom: 4,
-  },
-  priceContainer: {
-    flexDirection: 'row',
-    alignItems: 'baseline',
-    gap: 6,
-  },
-  itemPrice: {
-    fontSize: 14.5,
-    fontFamily: BOLD_FONT,
-    color: '#1E3D34',
-  },
-  itemOriginalPrice: {
-    fontSize: 11.5,
-    color: '#9CA3AF',
-    textDecorationLine: 'line-through',
-  },
-
-  // Stepper Pill
-  stepperPill: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#F4F6F4',
     borderRadius: 18,
-    height: 34,
-    paddingHorizontal: 4,
-  },
-  stepperMinusBtn: {
-    width: 24,
-    height: 24,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  stepperMinusText: {
-    fontSize: 16,
-    fontFamily: BOLD_FONT,
-    color: '#1E3D34',
-  },
-  stepperQtyText: {
-    fontSize: 13,
-    fontFamily: BOLD_FONT,
-    color: '#1E3D34',
-    paddingHorizontal: 8,
-  },
-  stepperPlusCircle: {
-    width: 26,
-    height: 26,
-    borderRadius: 13,
-    backgroundColor: '#D4F468',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  stepperPlusText: {
-    fontSize: 15,
-    fontFamily: BOLD_FONT,
-    color: '#1E3D34',
-  },
-
-  // Coupon Applied Card
-  couponCard: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#FBFEF8',
-    borderWidth: 1.5,
-    borderColor: '#E2F2BF',
-    borderRadius: 16,
-    paddingHorizontal: 12,
-    paddingVertical: 10,
-    marginBottom: 16,
-  },
-  couponCardAdd: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#FFFFFF',
-    borderWidth: 1,
-    borderColor: '#E8ECE6',
-    borderRadius: 16,
-    paddingHorizontal: 14,
-    paddingVertical: 12,
-    marginBottom: 16,
-  },
-  applyCouponText: {
-    fontSize: 13,
-    fontFamily: STYLISH_FONT,
-    color: '#1E3D34',
-  },
-  couponIconBox: {
-    width: 34,
-    height: 34,
-    borderRadius: 10,
-    backgroundColor: '#D4F468',
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginRight: 10,
-  },
-  couponTextContent: {
-    flex: 1,
-  },
-  couponRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-    marginBottom: 2,
-  },
-  couponCodeText: {
-    fontSize: 13.5,
-    fontFamily: BOLD_FONT,
-    color: '#1E3D34',
-  },
-  couponAppliedBadge: {
-    backgroundColor: '#D4F468',
-    paddingHorizontal: 6,
-    paddingVertical: 1.5,
-    borderRadius: 6,
-  },
-  couponAppliedBadgeText: {
-    fontSize: 9.5,
-    fontFamily: BOLD_FONT,
-    color: '#1E3D34',
-  },
-  couponDiscountSubtitle: {
-    fontSize: 11.5,
-    color: '#6B7280',
-  },
-  couponCloseBtn: {
-    padding: 4,
-  },
-
-  // Promo Input Row
-  promoInputRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#FFFFFF',
-    borderRadius: 16,
-    borderWidth: 1,
-    borderColor: '#E8ECE6',
-    paddingHorizontal: 12,
-    height: 48,
-    marginBottom: 16,
-  },
-  promoTextInput: {
-    flex: 1,
-    fontSize: 13,
-    fontFamily: BOLD_FONT,
-    color: '#1E3D34',
-  },
-  applyBtn: {
-    backgroundColor: '#1E3D34',
-    paddingHorizontal: 14,
-    paddingVertical: 8,
-    borderRadius: 12,
-  },
-  applyBtnText: {
-    color: '#FFFFFF',
-    fontSize: 12,
-    fontFamily: BOLD_FONT,
-  },
-
-  // Bill Summary
-  billCard: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 20,
-    borderWidth: 1,
-    borderColor: '#E8ECE6',
     padding: 16,
-    marginBottom: 12,
+    marginBottom: 14,
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
   },
-  billHeading: {
-    fontSize: 16,
-    fontFamily: BOLD_FONT,
-    color: '#1E3D34',
-    marginBottom: 12,
-  },
-  billRow: {
+  cardHeading: { fontFamily: BOLD_FONT, fontSize: 12, letterSpacing: 0.5, marginBottom: 12, color: '#6B7280' },
+  
+  itemRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingVertical: 14 },
+  itemRowBorder: { borderBottomWidth: 1, borderBottomColor: '#F3F4F6' },
+  itemImage: { width: 56, height: 56, borderRadius: 12, backgroundColor: '#F3F4F6' },
+  itemInfo: { flex: 1, marginLeft: 12, marginRight: 10 },
+  itemNameRow: { flexDirection: 'row', alignItems: 'flex-start', marginBottom: 2 },
+  vegSquare: { width: 12, height: 12, borderWidth: 1, borderRadius: 2, alignItems: 'center', justifyContent: 'center', marginRight: 6, marginTop: 3 },
+  vegDot: { width: 6, height: 6, borderRadius: 3 },
+  itemName: { fontFamily: BOLD_FONT, fontSize: 14, flex: 1, color: '#111827', lineHeight: 18 },
+  itemModifiers: { fontFamily: STYLISH_FONT, color: '#6B7280', marginTop: 4, fontSize: 11 },
+  itemPrice: { fontFamily: BOLD_FONT, color: '#111827', marginTop: 4, fontSize: 14 },
+  
+  counterBox: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 10,
+    backgroundColor: '#DCFCE7',
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: '#BBF7D0',
+    paddingHorizontal: 4,
+    paddingVertical: 4,
   },
-  billLabel: {
-    fontSize: 13.5,
-    color: '#4B5563',
-  },
-  freeOverBadge: {
-    backgroundColor: '#F3F4F6',
-    paddingHorizontal: 6,
-    paddingVertical: 2,
-    borderRadius: 6,
-    marginLeft: 6,
-  },
-  freeOverText: {
-    fontSize: 10,
-    fontFamily: BOLD_FONT,
-    color: '#657917',
-  },
-  billValue: {
-    fontSize: 14,
-    fontFamily: BOLD_FONT,
-    color: '#1E3D34',
-  },
-  billDiscountLabel: {
-    fontSize: 13.5,
+  counterBtn: { padding: 4 },
+  counterValue: { fontFamily: BOLD_FONT, color: '#16A34A', marginHorizontal: 10, fontSize: 14 },
+  
+  locationHeaderRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 },
+  addressBox: { backgroundColor: '#F9FAFB', padding: 12, borderRadius: 12, marginBottom: 10 },
+  addressType: { fontFamily: BOLD_FONT, fontSize: 14, marginBottom: 2, color: '#111827' },
+  addressStreet: { fontFamily: STYLISH_FONT, color: '#6B7280', fontSize: 12 },
+  instructionInput: {
+    backgroundColor: '#F9FAFB',
+    borderRadius: 12,
+    padding: 12,
     fontFamily: STYLISH_FONT,
-    color: '#657917',
-  },
-  billDiscountValue: {
-    fontSize: 14,
-    fontFamily: BOLD_FONT,
-    color: '#657917',
-  },
-  billDivider: {
-    height: 1,
-    backgroundColor: '#F3F4F6',
-    marginVertical: 12,
-  },
-  toPayRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-  },
-  toPayHeading: {
-    fontSize: 17,
-    fontFamily: BOLD_FONT,
-    color: '#1E3D34',
-  },
-  toPaySubtitle: {
-    fontSize: 11,
-    color: '#6B7280',
-    marginTop: 2,
-  },
-  toPayAmount: {
-    fontSize: 22,
-    fontFamily: BOLD_FONT,
-    color: '#1E3D34',
-  },
-
-  // Free Delivery Progress Banner
-  freeDeliveryBanner: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#F2F8E9',
-    borderRadius: 14,
-    paddingHorizontal: 12,
-    paddingVertical: 10,
-    marginBottom: 12,
-  },
-  freeDeliveryBannerText: {
-    flex: 1,
     fontSize: 12,
-    color: '#1E3D34',
+    color: '#111827',
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
   },
-  freeDeliveryPercentText: {
-    fontSize: 12,
-    fontFamily: BOLD_FONT,
-    color: '#657917',
-  },
+  
+  promoTrigger: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingVertical: 4 },
+  promoTriggerText: { fontFamily: BOLD_FONT, fontSize: 15, color: '#111827', marginLeft: 10 },
+  promoInputRow: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#F9FAFB', borderRadius: 12, paddingHorizontal: 12, paddingVertical: 4, borderWidth: 1, borderColor: '#E5E7EB' },
+  promoInput: { flex: 1, fontFamily: STYLISH_FONT, fontSize: 14, color: '#111827', marginLeft: 10, height: 40 },
+  applyBtn: { paddingHorizontal: 12, paddingVertical: 6 },
+  applyBtnText: { fontFamily: BOLD_FONT, fontSize: 14, color: '#16A34A' },
+  appliedPromoRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
+  appliedPromoLeft: { flexDirection: 'row', alignItems: 'center' },
+  appliedPromoCode: { fontFamily: BOLD_FONT, fontSize: 15, color: '#111827' },
+  appliedPromoDesc: { fontFamily: STYLISH_FONT, fontSize: 12, color: '#16A34A', marginTop: 2 },
+  removePromoText: { fontFamily: BOLD_FONT, fontSize: 13, color: '#EF4444' },
 
-  // Bottom Sticky Floating Checkout Bar
+  billRow: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 8 },
+  billLabel: { fontFamily: STYLISH_FONT, fontSize: 13, color: '#6B7280' },
+  billValue: { fontFamily: STYLISH_FONT, fontSize: 13, color: '#111827', fontWeight: '600' },
+  divider: { height: 1, backgroundColor: '#E5E7EB', marginVertical: 10 },
+  grandTotalRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
+  grandTotalLabel: { fontFamily: BOLD_FONT, fontSize: 16, color: '#111827' },
+  grandTotalValue: { fontFamily: BOLD_FONT, fontSize: 18, color: '#16A34A' },
+  
   bottomBar: {
     position: 'absolute',
-    bottom: Platform.OS === 'ios' ? 96 : 88,
+    bottom: Platform.OS === 'ios' ? 98 : 90,
     left: 16,
     right: 16,
     backgroundColor: '#FFFFFF',
-    borderRadius: 22,
-    borderWidth: 1.5,
-    borderColor: '#E8ECE6',
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
     paddingHorizontal: 18,
     paddingVertical: 12,
-    shadowColor: '#1E3D34',
+    borderRadius: 22,
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    shadowColor: '#000',
     shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.12,
+    shadowOpacity: 0.1,
     shadowRadius: 10,
     elevation: 8,
   },
-  totalAmountLabel: {
-    fontSize: 11,
-    color: '#6B7280',
-    fontFamily: STYLISH_FONT,
+  bottomTotalLabel: { fontFamily: STYLISH_FONT, fontSize: 11, color: '#6B7280' },
+  bottomTotalPrice: { fontFamily: BOLD_FONT, fontSize: 18, color: '#16A34A' },
+  placeOrderBtn: {
+    backgroundColor: '#16A34A',
+    paddingHorizontal: 22,
+    paddingVertical: 12,
+    borderRadius: 14,
   },
-  totalAmountPrice: {
-    fontSize: 22,
-    fontFamily: BOLD_FONT,
-    color: '#1E3D34',
-  },
-  checkoutBtn: {
-    height: 48,
-    borderRadius: 24,
-    backgroundColor: '#162E27',
+  placeOrderBtnInner: { flexDirection: 'row', alignItems: 'center' },
+  placeOrderText: { fontFamily: BOLD_FONT, color: '#FFFFFF', fontSize: 14 },
+  
+  modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'flex-end' },
+  modalContent: { backgroundColor: '#FFFFFF', borderTopLeftRadius: 24, borderTopRightRadius: 24, paddingBottom: 40, maxHeight: '80%' },
+  closeModalBtn: { position: 'absolute', top: 12, right: 16, zIndex: 10, backgroundColor: 'rgba(255,255,255,0.7)', borderRadius: 16, width: 32, height: 32, alignItems: 'center', justifyContent: 'center' },
+  modalImage: { width: '100%', height: 220, borderTopLeftRadius: 24, borderTopRightRadius: 24 },
+  modalInfo: { padding: 20 },
+  modalTitle: { fontFamily: BOLD_FONT, fontSize: 20, flex: 1, color: '#111827' },
+  modalPrice: { fontFamily: BOLD_FONT, color: '#16A34A', marginTop: 6, fontSize: 18 },
+  modalDesc: { fontFamily: STYLISH_FONT, color: '#6B7280', marginTop: 12, lineHeight: 22 },
+  showAllDetailsBtn: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: 22,
+    justifyContent: 'center',
+    marginTop: 20,
+    paddingVertical: 12,
+    backgroundColor: '#DCFCE7',
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#BBF7D0',
   },
-  checkoutBtnText: {
-    color: '#FFFFFF',
-    fontSize: 14.5,
-    fontFamily: BOLD_FONT,
-  },
+  showAllDetailsText: { fontFamily: BOLD_FONT, color: '#16A34A', fontSize: 14 },
 });

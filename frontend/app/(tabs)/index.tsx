@@ -28,7 +28,7 @@ const TypewriterText = ({ texts, style }: { texts: string[], style: any }) => {
   useEffect(() => {
     let timer: NodeJS.Timeout;
     const currentWord = texts[index];
-    
+
     const handleTyping = () => {
       if (isDeleting) {
         setText(currentWord.substring(0, text.length - 1));
@@ -37,7 +37,7 @@ const TypewriterText = ({ texts, style }: { texts: string[], style: any }) => {
         setText(currentWord.substring(0, text.length + 1));
         setTypingSpeed(80); // Normal typing
       }
-      
+
       if (!isDeleting && text === currentWord) {
         timer = setTimeout(() => setIsDeleting(true), 2000); // Pause at end of word
       } else if (isDeleting && text === '') {
@@ -48,7 +48,7 @@ const TypewriterText = ({ texts, style }: { texts: string[], style: any }) => {
         timer = setTimeout(handleTyping, typingSpeed);
       }
     };
-    
+
     timer = setTimeout(handleTyping, typingSpeed);
     return () => clearTimeout(timer);
   }, [text, isDeleting, index, texts, typingSpeed]);
@@ -247,7 +247,7 @@ export default function HomeScreen() {
           >
 
             {/* FataFat Brand Orange Food Header with Gradient */}
-            <LinearGradient 
+            <LinearGradient
               colors={['#D94E1B', '#FF7A3D', '#FFD1B3', '#FFFFFF']}
               locations={[0, 0.4, 0.8, 1]}
               style={[styles.headerContainer, { paddingTop: insets.top + 10 }]}
@@ -259,15 +259,15 @@ export default function HomeScreen() {
               <View style={styles.searchRow}>
                 <View style={styles.searchContainer}>
                   {/* Left: Search Action */}
-                  <TouchableOpacity 
-                    style={{ flex: 1, flexDirection: 'row', alignItems: 'center' }} 
+                  <TouchableOpacity
+                    style={{ flex: 1, flexDirection: 'row', alignItems: 'center' }}
                     onPress={() => router.push('/(tabs)/search')}
                     activeOpacity={0.7}
                   >
                     <Ionicons name="search" size={20} color="#9CA3AF" style={styles.searchIcon} />
-                    <TypewriterText 
-                      texts={['Search "Biryani"', 'Search "Pizza"', 'Search "Momos"', 'Search "Dosa"', 'Search "Burger"']} 
-                      style={styles.searchText} 
+                    <TypewriterText
+                      texts={['Search "Biryani"', 'Search "Pizza"', 'Search "Momos"', 'Search "Dosa"', 'Search "Burger"']}
+                      style={styles.searchText}
                     />
                   </TouchableOpacity>
 
@@ -275,7 +275,7 @@ export default function HomeScreen() {
                   <View style={{ width: 1, height: 28, backgroundColor: '#E5E7EB', marginHorizontal: 10 }} />
 
                   {/* Right: Location Action */}
-                  <TouchableOpacity 
+                  <TouchableOpacity
                     style={{ flexDirection: 'row', alignItems: 'center', paddingLeft: 4 }}
                     onPress={() => router.push('/address')}
                     activeOpacity={0.7}
@@ -341,7 +341,7 @@ export default function HomeScreen() {
                   {categories.map((cat, idx) => {
                     const fallbackImage = getFallbackCategoryImage(cat.name);
                     const imageSource = cat.image && cat.image.startsWith('http') ? { uri: cat.image } : { uri: fallbackImage };
-                    
+
                     return (
                       <TouchableOpacity
                         key={cat._id || cat.id || idx}
@@ -500,9 +500,9 @@ export default function HomeScreen() {
             >
               <Ionicons name="search" size={24} color="#4ADE80" style={{ marginRight: 12 }} />
               <View style={{ flex: 1, justifyContent: 'center' }}>
-                <TypewriterText 
-                  texts={['Search "Milk"', 'Search "Bread"', 'Search "Eggs"', 'Search "Chips"', 'Search "Cold Drink"', 'Search "Atta"']} 
-                  style={{ fontFamily: BOLD_FONT, fontSize: 14, color: '#1F2937' }} 
+                <TypewriterText
+                  texts={['Search "Milk"', 'Search "Bread"', 'Search "Eggs"', 'Search "Chips"', 'Search "Cold Drink"', 'Search "Atta"']}
+                  style={{ fontFamily: BOLD_FONT, fontSize: 14, color: '#1F2937' }}
                 />
               </View>
               <View style={{ width: 1, height: 28, backgroundColor: '#E5E7EB', marginHorizontal: 10 }} />
@@ -774,7 +774,7 @@ const styles = StyleSheet.create({
   sectionTitle: { fontFamily: BOLD_FONT, fontSize: 18, color: '#1F2937' },
   categoriesScroll: { paddingBottom: 16 },
   categoriesContent: { paddingHorizontal: 20 },
-  
+
   categoryItemWrapper: {
     marginRight: 16,
     shadowColor: '#D94E1B',
@@ -785,10 +785,10 @@ const styles = StyleSheet.create({
     backgroundColor: 'transparent',
   },
   categoryItemInner: {
-    width: 105, 
+    width: 105,
     height: 140, // Much larger and taller size!
     borderRadius: 24, // Unique ultra-rounded corners
-    overflow: 'hidden', 
+    overflow: 'hidden',
     backgroundColor: '#F3F4F6',
   },
   categoryImage: { width: '100%', height: '100%', position: 'absolute' },
@@ -800,11 +800,11 @@ const styles = StyleSheet.create({
     paddingHorizontal: 8,
     paddingBottom: 14,
   },
-  categoryName: { 
-    fontFamily: BOLD_FONT, 
-    fontSize: 14.5, 
-    color: '#FFFFFF', 
-    textAlign: 'center', 
+  categoryName: {
+    fontFamily: BOLD_FONT,
+    fontSize: 14.5,
+    color: '#FFFFFF',
+    textAlign: 'center',
     letterSpacing: 0.5,
     textShadowColor: 'rgba(0,0,0,0.4)',
     textShadowOffset: { width: 0, height: 1 },

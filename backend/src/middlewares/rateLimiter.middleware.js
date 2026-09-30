@@ -1,20 +1,15 @@
 'use strict';
 
 const rateLimit = require('express-rate-limit');
-const { RedisStore } = require('rate-limit-redis');
 const redis = require('../config/redis');
 const ERROR_CODES = require('../common/constants/errorCodes');
 
 function createLimiter(options) {
-  return rateLimit({
+  const limiterOptions = {
     windowMs: options.windowMs,
     max: options.max,
     standardHeaders: true,
     legacyHeaders: false,
-    store: new RedisStore({
-      sendCommand: (...args) => redis.call(...args),
-      prefix: `rl:${options.keyPrefix || 'global'}:`,
-    }),
     handler: (_req, res) => {
       res.status(429).json({
         success: false,
@@ -25,7 +20,22 @@ function createLimiter(options) {
     keyGenerator: options.keyGenerator,
     validate: false,
     skip: options.skip,
-  });
+  };
+
+  // Only use RedisStore if real Redis is connected (not mock)
+  if (!redis._isMock) {
+    try {
+      const { RedisStore } = require('rate-limit-redis');
+      limiterOptions.store = new RedisStore({
+        sendCommand: (...args) => redis.call(...args),
+        prefix: `rl:${options.keyPrefix || 'global'}:`,
+      });
+    } catch (e) {
+      // fall through to MemoryStore
+    }
+  }
+
+  return rateLimit(limiterOptions);
 }
 
 const globalLimiter = createLimiter({
