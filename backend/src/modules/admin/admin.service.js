@@ -75,12 +75,24 @@ async function getDashboardOverview() {
 async function logAudit({ adminId, action, resource, resourceId, changes, ipAddress, userAgent }) {
   return AuditLog.create({
     admin: adminId,
+    actor: {
+      id: adminId,
+      role: 'admin',
+      ip: ipAddress,
+      userAgent,
+    },
     action,
     resource,
     resourceId,
+    entity: {
+      type: resource || 'General',
+      id: String(resourceId || 'N/A'),
+    },
     changes,
     ipAddress,
     userAgent,
+  }).catch((err) => {
+    // Non-fatal logging notice
   });
 }
 
@@ -396,6 +408,32 @@ async function sendNotificationBroadcast(adminId, payload = {}, meta = {}) {
     logger.warn('[NotificationBroadcast] Bulk insert warning', { error: err.message });
   }
 
+  // Real-time In-App Socket Emission
+  try {
+    const { getIO } = require('../../config/socket');
+    const io = getIO();
+    if (io) {
+      if (targetAudience === 'user' && userId) {
+        io.to(`user:${userId}`).emit('notification:new', {
+          title: title.trim(),
+          body: body.trim(),
+          type,
+          data: { imageUrl: imageUrl || '', broadcast: 'true' },
+        });
+      } else {
+        io.emit('broadcast:received', {
+          title: title.trim(),
+          body: body.trim(),
+          type,
+          targetAudience,
+          data: { imageUrl: imageUrl || '', broadcast: 'true' },
+        });
+      }
+    }
+  } catch (socketErr) {
+    logger.warn('[NotificationBroadcast] Socket broadcast error:', { error: socketErr.message });
+  }
+
   // Collect FCM tokens for Push Notification
   const validTokens = targetUsers.map((u) => u.fcmToken).filter((token) => typeof token === 'string' && token.length > 10);
 
@@ -485,6 +523,58 @@ async function getNotificationHistory(query = {}) {
   };
 }
 
+async function listOrdersAdmin(query) {
+  const { page, limit, skip } = getPagination(query);
+  const filter = {};
+
+  if (query.vertical) filter.vertical = query.vertical;
+  if (query.status) {
+    const s = query.status.toLowerCase();
+    const S = query.status.toUpperCase();
+    filter.$or = [{ orderStatus: s }, { orderStatus: S }, { status: s }, { status: S }];
+  }
+  if (query.search) {
+    filter.$or = [
+      { orderNumber: { $regex: query.search, $options: 'i' } },
+      { 'deliveryAddress.line1': { $regex: query.search, $options: 'i' } },
+      { 'deliveryAddress.city': { $regex: query.search, $options: 'i' } },
+    ];
+  }
+
+  const [orders, total] = await Promise.all([
+    Order.find(filter)
+      .populate('user', 'name phone email role')
+      .populate('customerId', 'name phone email role')
+      .populate('restaurant', 'name coverImage phone')
+      .populate('vendorId', 'name images phone')
+      .populate('items.menuItem', 'images isVeg')
+      .populate('items.itemId', 'images isVeg')
+      .sort({ createdAt: -1 })
+      .skip(skip)
+      .limit(limit)
+      .lean(),
+    Order.countDocuments(filter),
+  ]);
+
+  return { orders, meta: buildPaginationMeta(total, page, limit) };
+}
+
+async function updateOrderStatusAdmin(adminId, orderId, { status, reason }, meta = {}) {
+  const orderService = require('../orders/order.service');
+  const user = await User.findById(adminId);
+  const order = await orderService.updateOrderStatus(orderId, status, user || { id: adminId, role: 'super_admin' });
+  await logAudit({
+    adminId,
+    action: 'ADMIN_ORDER_STATUS_OVERRIDE',
+    resource: 'Order',
+    resourceId: String(orderId),
+    changes: { status, reason },
+    ipAddress: meta.ip,
+    userAgent: meta.userAgent,
+  });
+  return order;
+}
+
 module.exports = {
   getDashboardOverview,
   logAudit,
@@ -501,4 +591,6 @@ module.exports = {
   reorderCategories,
   sendNotificationBroadcast,
   getNotificationHistory,
+  listOrdersAdmin,
+  updateOrderStatusAdmin,
 };

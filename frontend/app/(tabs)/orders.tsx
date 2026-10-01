@@ -12,20 +12,21 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
-import { router } from 'expo-router';
+import { router, useFocusEffect } from 'expo-router';
 import { orderService } from '../../services/order.service';
 import { socketService } from '../../services/socket.service';
 import { useOrderTrackingStore } from '../../store/orderTracking.store';
-import { Order, OrderStatus } from '../../types';
+import { useAuthStore } from '../../store/auth.store';
+import { Order } from '../../types';
 import { formatPaise } from '../../utils/formatters';
 import { Typography, Colors } from '../../constants/Theme';
 import { EmptyState } from '../../components/ui/EmptyState';
 
-const STATUS_STEPS: { status: OrderStatus; label: string; icon: keyof typeof Ionicons.glyphMap }[] = [
-  { status: 'CONFIRMED', label: 'Confirmed', icon: 'checkmark-circle' },
-  { status: 'PREPARING', label: 'Preparing', icon: 'flame' },
-  { status: 'OUT_FOR_DELIVERY', label: 'On The Way', icon: 'bicycle' },
-  { status: 'DELIVERED', label: 'Delivered', icon: 'home' },
+const STATUS_STEPS = [
+  { status: 'ACCEPTED', label: 'Accepted', icon: 'checkmark-circle' as const },
+  { status: 'PREPARING', label: 'Preparing', icon: 'flame' as const },
+  { status: 'PICKED_UP', label: 'On The Way', icon: 'bicycle' as const },
+  { status: 'DELIVERED', label: 'Delivered', icon: 'home' as const },
 ];
 
 export default function OrdersScreen() {
@@ -33,19 +34,39 @@ export default function OrdersScreen() {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
 
+  const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
   const activeOrder = useOrderTrackingStore((state) => state.activeOrder);
   const riderLocation = useOrderTrackingStore((state) => state.riderLocation);
   const setActiveOrder = useOrderTrackingStore((state) => state.setActiveOrder);
 
   const fetchOrders = useCallback(async () => {
+    if (!isAuthenticated) {
+      setOrders([]);
+      setActiveOrder(null);
+      setLoading(false);
+      setRefreshing(false);
+      return;
+    }
+
     try {
-      const data = await orderService.getOrders({ page: 1, limit: 15 });
+      const data = await orderService.getOrders({ page: 1, limit: 30 });
       const orderList = data.items || [];
       setOrders(orderList);
 
       const ongoing = orderList.find((o) => {
         const s = (o.status || (o as any).orderStatus || '').toString().toUpperCase();
-        return ['PENDING', 'CONFIRMED', 'PREPARING', 'READY_FOR_PICKUP', 'OUT_FOR_DELIVERY'].includes(s);
+        return [
+          'PAYMENT_PENDING',
+          'PLACED',
+          'ACCEPTED',
+          'PENDING',
+          'CONFIRMED',
+          'PREPARING',
+          'READY',
+          'READY_FOR_PICKUP',
+          'PICKED_UP',
+          'OUT_FOR_DELIVERY',
+        ].includes(s);
       });
 
       if (ongoing) {
@@ -60,44 +81,33 @@ export default function OrdersScreen() {
       setLoading(false);
       setRefreshing(false);
     }
-  }, [setActiveOrder]);
+  }, [isAuthenticated, setActiveOrder]);
 
-  useEffect(() => {
-    fetchOrders();
-  }, [fetchOrders]);
+  useFocusEffect(
+    useCallback(() => {
+      fetchOrders();
+    }, [fetchOrders])
+  );
 
   const onRefresh = () => {
     setRefreshing(true);
     fetchOrders();
   };
 
-  const handleCancelOrder = async (orderId: string) => {
-    Alert.alert('Cancel Order', 'Are you sure you want to cancel this order?', [
-      { text: 'No', style: 'cancel' },
-      {
-        text: 'Yes, Cancel',
-        style: 'destructive',
-        onPress: async () => {
-          try {
-            await orderService.cancelOrder(orderId, 'User requested cancellation');
-            Alert.alert('Success', 'Order has been cancelled.');
-            fetchOrders();
-          } catch (err: any) {
-            Alert.alert('Error', err.response?.data?.message || 'Could not cancel order');
-          }
-        },
-      },
-    ]);
-  };
-
-  const getStepIndex = (status: OrderStatus) => {
+  const getStepIndex = (rawStatus: string) => {
+    const status = (rawStatus || '').toUpperCase();
     switch (status) {
+      case 'PAYMENT_PENDING':
+      case 'PLACED':
       case 'PENDING':
       case 'CONFIRMED':
+      case 'ACCEPTED':
         return 0;
       case 'PREPARING':
+      case 'READY':
       case 'READY_FOR_PICKUP':
         return 1;
+      case 'PICKED_UP':
       case 'OUT_FOR_DELIVERY':
         return 2;
       case 'DELIVERED':
@@ -116,7 +126,8 @@ export default function OrdersScreen() {
     );
   }
 
-  const currentStep = activeOrder ? getStepIndex(activeOrder.status) : 0;
+  const currentStatusStr = (activeOrder?.status || (activeOrder as any)?.orderStatus || '').toString().toUpperCase();
+  const currentStep = activeOrder ? getStepIndex(currentStatusStr) : 0;
 
   return (
     <SafeAreaView style={styles.safeArea}>
@@ -135,7 +146,7 @@ export default function OrdersScreen() {
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={[Colors.primary]} />}
       >
         {/* Active Live Tracking Card */}
-        {activeOrder && !['DELIVERED', 'CANCELLED', 'REFUNDED'].includes((activeOrder.status || (activeOrder as any).orderStatus || '').toString().toUpperCase()) && (
+        {activeOrder && !['DELIVERED', 'CANCELLED', 'REFUNDED', 'REJECTED', 'EXPIRED'].includes(currentStatusStr) && (
           <TouchableOpacity 
             style={styles.activeCard} 
             onPress={() => router.push(`/order/${activeOrder._id}`)}
@@ -200,7 +211,7 @@ export default function OrdersScreen() {
                 {activeOrder.items?.map((i) => `${i.quantity}x ${i.name}`).join(', ')}
               </Text>
               <Text style={styles.priceHighlight}>
-                {formatPaise(activeOrder.pricing?.totalAmount || (activeOrder as any).totalAmount || 0)}
+                {formatPaise(activeOrder.pricing?.totalAmount || (activeOrder as any).totalAmount || (activeOrder as any).pricing?.totalPaise || 0)}
               </Text>
             </View>
           </TouchableOpacity>
@@ -209,7 +220,15 @@ export default function OrdersScreen() {
         {/* Past Orders Header */}
         <Text style={styles.sectionHeading}>PAST ORDERS</Text>
 
-        {orders.length === 0 ? (
+        {!isAuthenticated ? (
+          <EmptyState 
+            icon="log-in-outline" 
+            title="Login Required" 
+            message="Please login to view and track your orders." 
+            actionText="Login Now"
+            onAction={() => router.push('/(auth)/login')}
+          />
+        ) : orders.length === 0 ? (
           <EmptyState 
             icon="receipt-outline" 
             title="No Orders Found" 
@@ -219,20 +238,18 @@ export default function OrdersScreen() {
           />
         ) : (
           orders.map((order) => {
-            const isGroceryOrder = (order as any).orderType === 'grocery' || (order as any).isGrocery || !(order as any).restaurant;
-            const restName =
-              (order as any).restaurant?.name ||
-              (typeof order.restaurantId === 'object' && order.restaurantId !== null ? order.restaurantId.name : null) ||
-              (isGroceryOrder ? 'Ftafat Fresh Grocery Mart' : 'Partner Restaurant');
-            const restImage =
-              (order as any).restaurant?.coverImage ||
-              (isGroceryOrder
-                ? 'https://images.pexels.com/photos/102104/pexels-photo-102104.jpeg?auto=compress&cs=tinysrgb&w=300'
-                : 'https://images.pexels.com/photos/262978/pexels-photo-262978.jpeg');
+            const isGroceryOrder = (order as any).vertical === 'grocery' || (order as any).orderType === 'grocery';
+            const restName = isGroceryOrder
+              ? 'Ftafat Fresh Grocery Mart'
+              : ((order as any).restaurant?.name || (order as any).vendor?.name || 'Partner Restaurant');
+            const restImage = isGroceryOrder
+              ? 'https://images.pexels.com/photos/102104/pexels-photo-102104.jpeg?auto=compress&cs=tinysrgb&w=300'
+              : ((order as any).restaurant?.coverImage || (order as any).vendor?.images?.banner || 'https://images.pexels.com/photos/262978/pexels-photo-262978.jpeg');
 
-            const isDelivered = order.status === 'DELIVERED';
-            const isCancelled = order.status === 'CANCELLED';
-            const totalPrice = order.pricing?.totalAmount || (order as any).totalAmount || 0;
+            const orderStatusUpper = (order.status || (order as any).orderStatus || '').toString().toUpperCase();
+            const isDelivered = orderStatusUpper === 'DELIVERED';
+            const isCancelled = ['CANCELLED', 'REJECTED', 'EXPIRED'].includes(orderStatusUpper);
+            const totalPrice = order.pricing?.totalAmount || (order as any).totalAmount || (order as any).pricing?.totalPaise || 0;
 
             return (
               <TouchableOpacity 
@@ -264,7 +281,7 @@ export default function OrdersScreen() {
                         isCancelled && styles.statusCancelledText,
                       ]}
                     >
-                      {order.status}
+                      {orderStatusUpper}
                     </Text>
                   </View>
                 </View>
@@ -289,7 +306,9 @@ export default function OrdersScreen() {
                           </View>
                           <Text style={styles.itemQuantity}>Qty: {it.quantity}</Text>
                         </View>
-                        <Text style={styles.itemPrice}>{formatPaise(it.price * it.quantity)}</Text>
+                        <Text style={styles.itemPrice}>
+                          {formatPaise(it.totalItemPrice || (it.price * it.quantity))}
+                        </Text>
                       </View>
                     );
                   })}
@@ -318,7 +337,8 @@ export default function OrdersScreen() {
                         if (isGroceryOrder) {
                           router.push('/(tabs)');
                         } else {
-                          router.push(`/restaurant/${(order as any).restaurant?._id || order.restaurantId}`);
+                          const rId = (order as any).vendor?._id || (order as any).restaurant?._id || order.restaurantId;
+                          if (rId) router.push(`/restaurant/${rId}`);
                         }
                       }}
                     >
@@ -351,8 +371,6 @@ const styles = StyleSheet.create({
   greenDot: { width: 8, height: 8, borderRadius: 4, backgroundColor: Colors.success, marginRight: 6 },
   liveBadgeText: { ...Typography.label, color: Colors.success, letterSpacing: 0.5 },
   activeOrderNumber: { ...Typography.title, fontSize: 16, marginTop: 2 },
-  cancelButton: { backgroundColor: '#FEF2F2', paddingHorizontal: 10, paddingVertical: 4, borderRadius: 8, borderWidth: 1, borderColor: '#FECACA' },
-  cancelButtonText: { ...Typography.button, color: Colors.error, fontSize: 11 },
   timelineRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginVertical: 12, paddingHorizontal: 4 },
   timelineStep: { alignItems: 'center', flex: 1 },
   stepCircle: { width: 36, height: 36, borderRadius: 18, backgroundColor: Colors.border, alignItems: 'center', justifyContent: 'center', marginBottom: 6 },

@@ -17,7 +17,7 @@ function createMockQueue(name) {
   };
 }
 
-let notificationQueue, emailQueue, smsQueue, analyticsQueue, couponExpiryQueue, payoutQueue;
+let notificationQueue, emailQueue, smsQueue, analyticsQueue, couponExpiryQueue, payoutQueue, slaQueue, refundQueue;
 
 if (redis._isMock) {
   logger.warn('[Queues] Redis unavailable — using no-op mock queues');
@@ -27,6 +27,8 @@ if (redis._isMock) {
   analyticsQueue = createMockQueue('analytics');
   couponExpiryQueue = createMockQueue('coupon-expiry');
   payoutQueue = createMockQueue('payouts');
+  slaQueue = createMockQueue('sla-timers');
+  refundQueue = createMockQueue('refunds');
 } else {
   const { Queue } = require('bullmq');
   const QUEUE_DEFAULTS = {
@@ -34,7 +36,7 @@ if (redis._isMock) {
     defaultJobOptions: {
       attempts: 3,
       backoff: { type: 'exponential', delay: 1000 },
-      removeOnComplete: { count: 100 },
+      removeOnComplete: { count: 200 },
       removeOnFail: { count: 500 },
     },
   };
@@ -45,8 +47,19 @@ if (redis._isMock) {
   analyticsQueue = new Queue('analytics', QUEUE_DEFAULTS);
   couponExpiryQueue = new Queue('coupon-expiry', QUEUE_DEFAULTS);
   payoutQueue = new Queue('payouts', QUEUE_DEFAULTS);
+  slaQueue = new Queue('sla-timers', QUEUE_DEFAULTS);
+  refundQueue = new Queue('refunds', QUEUE_DEFAULTS);
 
-  const queues = [notificationQueue, emailQueue, smsQueue, analyticsQueue, couponExpiryQueue, payoutQueue];
+  const queues = [
+    notificationQueue,
+    emailQueue,
+    smsQueue,
+    analyticsQueue,
+    couponExpiryQueue,
+    payoutQueue,
+    slaQueue,
+    refundQueue,
+  ];
   queues.forEach((q) => {
     q.on('error', (err) => logger.error(`[Queue:${q.name}] Error`, { error: err.message }));
   });
@@ -54,8 +67,14 @@ if (redis._isMock) {
 
 async function closeAllQueues() {
   await Promise.all([
-    notificationQueue, emailQueue, smsQueue,
-    analyticsQueue, couponExpiryQueue, payoutQueue,
+    notificationQueue,
+    emailQueue,
+    smsQueue,
+    analyticsQueue,
+    couponExpiryQueue,
+    payoutQueue,
+    slaQueue,
+    refundQueue,
   ].map((q) => q.close()));
   logger.info('[Queues] All queues closed');
 }
@@ -67,5 +86,7 @@ module.exports = {
   analyticsQueue,
   couponExpiryQueue,
   payoutQueue,
+  slaQueue,
+  refundQueue,
   closeAllQueues,
 };

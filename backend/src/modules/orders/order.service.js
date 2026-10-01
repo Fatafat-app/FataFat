@@ -22,6 +22,9 @@ async function placeOrder(userId, payload = {}) {
     deliveryInstructions,
     items: directItems,
     restaurantId,
+    vendorId,
+    orderType = 'food',
+    vertical = 'food',
     paymentMethod = 'COD',
   } = payload;
 
@@ -32,23 +35,23 @@ async function placeOrder(userId, payload = {}) {
   }
 
   let cart = await cartService.getCart(userId);
-  let orderRestaurantId = cart?.restaurant?._id || cart?.restaurant || restaurantId;
+  let orderRestaurantId = cart?.restaurant?._id || cart?.restaurant || vendorId || restaurantId;
   let cartItems = cart?.items || [];
 
-  // Support direct items from frontend request body if backend cart is empty
+  // Support direct items from frontend request body (e.g. food cart or grocery cart)
   if ((!cartItems || !cartItems.length) && directItems && directItems.length) {
     const MenuItem = require('../menu/menuItem.model');
-    const itemIds = directItems.map((i) => i.menuItemId || i._id).filter(Boolean);
+    const itemIds = directItems.map((i) => i.menuItemId || i.productId || i._id).filter(Boolean);
     const menuItems = await MenuItem.find({ _id: { $in: itemIds } });
     const menuItemMap = new Map(menuItems.map((m) => [m._id.toString(), m]));
 
     cartItems = directItems.map((di) => {
-      const idStr = (di.menuItemId || di._id || '').toString();
+      const idStr = (di.menuItemId || di.productId || di._id || '').toString();
       const mItem = menuItemMap.get(idStr);
-      const price = di.price || mItem?.price || 0;
-      const name = di.name || mItem?.name || 'Dish';
+      const price = di.price || di.pricePaise || mItem?.price || 0;
+      const name = di.name || di.title || mItem?.name || 'Item';
       return {
-        menuItem: mItem ? mItem._id : (di.menuItemId || di._id),
+        menuItem: mItem ? mItem._id : (di.menuItemId || di.productId || di._id),
         name,
         price,
         quantity: di.quantity || 1,
@@ -65,13 +68,54 @@ async function placeOrder(userId, payload = {}) {
     throw new BusinessError('Cart is empty. Please add items before placing order.', ERROR_CODES.CART_EMPTY);
   }
 
-  if (!orderRestaurantId) {
-    throw new BusinessError('Restaurant not found for this order', 'RESTAURANT_REQUIRED');
+  const isGrocery = (vertical === 'grocery' || orderType === 'grocery');
+  let restaurant = null;
+  if (!isGrocery && orderRestaurantId && mongoose.isValidObjectId(orderRestaurantId)) {
+    restaurant = await restaurantService.getRestaurantById(orderRestaurantId).catch(() => null);
   }
 
-  const restaurant = await restaurantService.getRestaurantById(orderRestaurantId);
-  if (!restaurant) {
-    throw new NotFoundError('Restaurant not found');
+  if (isGrocery) {
+    const Vendor = require('../vendors/vendor.model');
+    let groceryVendor = await Vendor.findOne({ vendorType: { $in: ['grocery_store', 'dark_store'] } });
+    if (!groceryVendor) {
+      groceryVendor = await Vendor.create({
+        name: 'Ftafat Fresh Grocery Mart',
+        slug: 'ftafat-fresh-grocery-mart',
+        vertical: 'grocery',
+        vendorType: 'grocery_store',
+        ownership: 'platform',
+        address: {
+          line1: 'Central Warehouse Plaza',
+          city: 'New Delhi',
+          state: 'Delhi',
+          pincode: '110001',
+          location: { type: 'Point', coordinates: [77.2090, 28.6139] },
+        },
+        images: {
+          banner: 'https://images.pexels.com/photos/102104/pexels-photo-102104.jpeg',
+        },
+      });
+    }
+    orderRestaurantId = groceryVendor._id;
+    restaurant = groceryVendor;
+  } else if (!restaurant) {
+    const Restaurant = require('../restaurants/restaurant.model');
+    restaurant = await Restaurant.findOne({ isActive: true });
+    if (!restaurant) {
+      restaurant = await Restaurant.create({
+        name: 'Ftafat Food Partner',
+        address: {
+          street: 'Central Plaza',
+          city: 'New Delhi',
+          state: 'Delhi',
+          pincode: '110001',
+          location: { type: 'Point', coordinates: [77.2090, 28.6139] },
+        },
+        cuisines: ['Indian', 'Fast Food'],
+        pricing: { costForTwo: 300, deliveryCharge: 3000 },
+      });
+    }
+    orderRestaurantId = restaurant._id;
   }
 
   let feeConfig = null;
@@ -81,8 +125,8 @@ async function placeOrder(userId, payload = {}) {
   } catch (e) {}
 
   const platformFee = feeConfig?.platformFeeEnabled ? (feeConfig.platformFee ?? 500) : 0;
-  const taxRate = feeConfig?.taxEnabled ? (feeConfig.taxPercent ?? restaurant.taxPercent ?? 5) : 0;
-  const baseDeliveryFee = feeConfig?.deliveryFeeEnabled ? (feeConfig.baseDeliveryFee ?? restaurant.deliveryInfo?.deliveryFee ?? 3000) : (restaurant.deliveryInfo?.deliveryFee || 3000);
+  const taxRate = feeConfig?.taxEnabled ? (feeConfig.taxPercent ?? restaurant?.taxPercent ?? 5) : 0;
+  const baseDeliveryFee = feeConfig?.deliveryFeeEnabled ? (feeConfig.baseDeliveryFee ?? restaurant?.deliveryInfo?.deliveryFee ?? 3000) : (restaurant?.deliveryInfo?.deliveryFee || 3000);
   const packagingFee = feeConfig?.packagingFeeEnabled ? (feeConfig.packagingFee ?? 0) : 0;
   const surgeFee = feeConfig?.surgeFeeEnabled ? (feeConfig.surgeFee ?? 0) : 0;
 
@@ -132,7 +176,12 @@ async function placeOrder(userId, payload = {}) {
 
   const orderData = {
     user: userId,
-    restaurant: restaurant._id,
+    customerId: userId,
+    restaurant: isGrocery ? null : restaurant._id,
+    vendorId: restaurant._id,
+    orderNumber: `FTF-${(isGrocery ? 'GRO' : 'FOO')}-${Date.now().toString().slice(-6)}-${Math.floor(100 + Math.random() * 900)}`,
+    vertical: isGrocery ? 'grocery' : (vertical || orderType || 'food'),
+    orderType: isGrocery ? 'grocery' : (orderType || 'food'),
     items,
     deliveryAddress: formattedAddress,
     subtotal,
@@ -140,6 +189,14 @@ async function placeOrder(userId, payload = {}) {
     taxAmount,
     discountAmount,
     totalAmount,
+    pricing: {
+      itemsPaise: subtotal,
+      packagingPaise: packagingFee,
+      deliveryPaise: deliveryFee,
+      taxPaise: taxAmount,
+      discountPaise: discountAmount,
+      totalPaise: totalAmount,
+    },
     couponCode: cart?.appliedCoupon?.code,
     couponId: cart?.appliedCoupon?.couponId,
     idempotencyKey: key,
@@ -171,7 +228,7 @@ async function placeOrder(userId, payload = {}) {
       await session.endSession();
     }
   } catch (err) {
-    logger.warn('[Order] Transaction fallback to non-transactional creation', { error: err.message });
+    logger.warn('[Order] Non-transactional order creation fallback', { error: err.message });
     order = await Order.create(orderData);
     payment = await Payment.create(paymentData(order._id));
   }
@@ -192,14 +249,16 @@ async function placeOrder(userId, payload = {}) {
 
 async function getOrderById(orderId, requestingUser) {
   const order = await Order.findById(orderId)
-    .populate('restaurant', 'name phone address')
+    .populate('restaurant', 'name phone address coverImage')
+    .populate('vendorId', 'name address images')
     .populate('user', 'name phone');
 
   if (!order) throw new NotFoundError('Order not found');
 
-  const isOwner = order.user._id.toString() === requestingUser.id;
-  const isAdmin = requestingUser.role === 'admin';
-  const isRestaurant = requestingUser.role === 'restaurant_owner';
+  const orderUserId = order.user?._id?.toString() || order.user?.toString() || order.customerId?.toString();
+  const isOwner = orderUserId === requestingUser.id;
+  const isAdmin = ['admin', 'super_admin', 'ops_admin'].includes(requestingUser.role);
+  const isRestaurant = ['restaurant_owner', 'merchant_owner'].includes(requestingUser.role);
 
   if (!isOwner && !isAdmin && !isRestaurant) {
     throw new BusinessError('Access denied', ERROR_CODES.FORBIDDEN);
@@ -210,17 +269,28 @@ async function getOrderById(orderId, requestingUser) {
 
 async function getUserOrders(userId, query) {
   const { page, limit, skip } = getPagination(query);
-  const filter = { user: userId };
+  const userFilters = [{ user: userId }, { customerId: userId }];
+  if (mongoose.isValidObjectId(userId)) {
+    const userObjId = new mongoose.Types.ObjectId(userId);
+    userFilters.push({ user: userObjId }, { customerId: userObjId });
+  }
+
+  const filter = {
+    $or: userFilters,
+  };
 
   if (query.status) filter.orderStatus = query.status;
 
   const [orders, total] = await Promise.all([
     Order.find(filter)
       .populate('restaurant', 'name coverImage')
+      .populate('vendorId', 'name images')
       .populate('items.menuItem', 'images isVeg')
+      .populate('items.itemId', 'name images isVeg')
       .sort({ createdAt: -1 })
       .skip(skip)
-      .limit(limit),
+      .limit(limit)
+      .lean(),
     Order.countDocuments(filter),
   ]);
 
@@ -229,7 +299,9 @@ async function getUserOrders(userId, query) {
 
 async function getRestaurantOrders(restaurantId, query) {
   const { page, limit, skip } = getPagination(query);
-  const filter = { restaurant: restaurantId };
+  const filter = {
+    $or: [{ restaurant: restaurantId }, { vendorId: restaurantId }],
+  };
 
   if (query.status) filter.orderStatus = query.status;
 
@@ -245,12 +317,22 @@ async function getRestaurantOrders(restaurantId, query) {
   return { orders, meta: buildPaginationMeta(total, page, limit) };
 }
 
-async function updateOrderStatus(orderId, newStatus, requestingUser) {
+async function updateOrderStatus(orderId, newStatus, requestingUser, options = {}) {
   const order = await Order.findById(orderId);
   if (!order) throw new NotFoundError('Order not found');
 
-  const normalizedStatus = (newStatus || '').toLowerCase();
-  stateMachine.transition(order, normalizedStatus);
+  const actor = requestingUser
+    ? { id: requestingUser.id || requestingUser._id, role: requestingUser.role || 'system' }
+    : { role: 'system' };
+
+  stateMachine.transition(order, newStatus, {
+    actor,
+    reason: options.reason || 'Status updated',
+  });
+
+  if (!order.orderNumber) {
+    order.orderNumber = `FTF-${order._id.toString().slice(-6).toUpperCase()}`;
+  }
   await order.save();
 
   await order.populate('user', 'name phone email');
@@ -259,7 +341,7 @@ async function updateOrderStatus(orderId, newStatus, requestingUser) {
   notificationQueue.add('order-status-changed', {
     userId: order.user?._id ? order.user._id.toString() : order.user?.toString?.(),
     orderId: order._id.toString(),
-    newStatus: normalizedStatus,
+    newStatus: order.orderStatus,
   }).catch(() => {});
 
   return order;
@@ -269,15 +351,34 @@ async function cancelOrder(orderId, reason, requestingUser) {
   const order = await Order.findById(orderId);
   if (!order) throw new NotFoundError('Order not found');
 
-  // Verify the order belongs to the user
-  if (order.user.toString() !== requestingUser.id) {
+  const orderUserId = order.user?._id?.toString() || order.user?.toString() || order.customerId?.toString();
+  if (orderUserId !== requestingUser.id && !['super_admin', 'ops_admin', 'admin'].includes(requestingUser.role)) {
     throw new BusinessError('Not authorized to cancel this order', ERROR_CODES.FORBIDDEN);
   }
 
-  // Use state machine to transition to cancelled
-  stateMachine.transition(order, 'cancelled');
+  const currentStatusUpper = (order.orderStatus || order.status || '').toUpperCase();
+  if (['CANCELLED', 'REFUNDED', 'REJECTED', 'EXPIRED'].includes(currentStatusUpper)) {
+    await order.populate('user', 'name phone email');
+    await order.populate('restaurant', 'name phone address');
+    await order.populate('items.menuItem', 'images isVeg');
+    return order;
+  }
+
+  if (currentStatusUpper === 'DELIVERED') {
+    throw new BusinessError('Cannot cancel an order that has already been delivered', ERROR_CODES.ORDER_INVALID_TRANSITION);
+  }
+
+  stateMachine.transition(order, 'cancelled', {
+    actor: { id: requestingUser.id, role: requestingUser.role || 'customer' },
+    reason,
+  });
+
   if (reason) {
     order.specialInstructions = order.specialInstructions ? `${order.specialInstructions}\nCancel Reason: ${reason}` : `Cancel Reason: ${reason}`;
+  }
+
+  if (!order.orderNumber) {
+    order.orderNumber = `FTF-${order._id.toString().slice(-6).toUpperCase()}`;
   }
   await order.save();
 

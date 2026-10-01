@@ -14,6 +14,7 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
+import { useRouter } from 'expo-router';
 import { adminService, CategoryItem } from '../../services/admin.service';
 import { Typography } from '../../constants/Theme';
 
@@ -189,9 +190,14 @@ export default function AdminCategoriesScreen() {
     <SafeAreaView style={styles.safeArea}>
       {/* Header */}
       <View style={styles.navbar}>
-        <View>
-          <Text style={styles.pageTitle}>"What's on your mind?"</Text>
-          <Text style={styles.pageSubtitle}>Manage & arrange home food categories</Text>
+        <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+          <TouchableOpacity onPress={() => router.back()} style={{ width: 36, height: 36, borderRadius: 18, backgroundColor: '#F1F5F9', alignItems: 'center', justifyContent: 'center', marginRight: 12 }}>
+            <Ionicons name="arrow-back" size={20} color="#0F172A" />
+          </TouchableOpacity>
+          <View>
+            <Text style={styles.pageTitle}>Home Categories</Text>
+            <Text style={styles.pageSubtitle}>"What's on your mind?" Taxonomy</Text>
+          </View>
         </View>
         <TouchableOpacity onPress={openAddModal} style={styles.addBtn}>
           <Ionicons name="add" size={18} color="#FFF" style={{ marginRight: 4 }} />

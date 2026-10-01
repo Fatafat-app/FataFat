@@ -10,7 +10,9 @@ import {
   Alert,
   TextInput,
   Platform,
- Modal,} from 'react-native';
+  Modal,
+  ActivityIndicator,
+} from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
@@ -19,6 +21,8 @@ import { GColors, GRadius, GSpacing, GShadow } from '../../constants/GroceryThem
 import { useGroceryStore, useGroceryCartCount, useGroceryCartTotal } from '../../store/grocery.store';
 import { useLocationStore } from '../../store/location.store';
 import { useAuthStore } from '../../store/auth.store';
+import { useOrderTrackingStore } from '../../store/orderTracking.store';
+import { orderService } from '../../services/order.service';
 import { addressService } from '../../services/address.service';
 import { Address } from '../../types';
 
@@ -26,8 +30,9 @@ export function GroceryCart() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
 
-  const user = useAuthStore((state) => state.user);
+  const { user, isAuthenticated } = useAuthStore();
   const { locationTitle, locationSubtitle, selectedAddress, setSelectedAddress } = useLocationStore();
+  const setActiveOrder = useOrderTrackingStore((state) => state.setActiveOrder);
 
   const {
     cart,
@@ -38,6 +43,9 @@ export function GroceryCart() {
     removeCoupon,
     applyCoupon,
   } = useGroceryStore();
+
+  const [placingOrder, setPlacingOrder] = useState(false);
+  const [deliveryInstructions, setDeliveryInstructions] = useState('');
 
   useEffect(() => {
     const fetchUserAddresses = async () => {
@@ -52,10 +60,10 @@ export function GroceryCart() {
         // Fallback gracefully
       }
     };
-    if (!selectedAddress) {
+    if (!selectedAddress && isAuthenticated) {
       fetchUserAddresses();
     }
-  }, [selectedAddress]);
+  }, [selectedAddress, isAuthenticated]);
 
   const cartCount = useGroceryCartCount();
   const itemTotal = useGroceryCartTotal();
@@ -64,10 +72,6 @@ export function GroceryCart() {
   const deliveryFee = itemTotal > 0 ? (isFreeDelivery ? 0 : 35) : 0;
   const couponDiscount = appliedCoupon ? appliedCoupon.discount : 0;
   const finalToPay = Math.max(0, itemTotal + deliveryFee - couponDiscount);
-
-  const freeDeliveryThreshold = 300;
-  const neededForFree = Math.max(0, freeDeliveryThreshold - itemTotal);
-  const progressPercent = Math.min(100, Math.round((itemTotal / freeDeliveryThreshold) * 100));
 
   const [promoInput, setPromoInput] = useState('');
   const [showPromoInput, setShowPromoInput] = useState(false);
@@ -97,23 +101,86 @@ export function GroceryCart() {
     }
   };
 
-  const handleCheckout = () => {
+  const handleCheckout = async () => {
     if (cart.length === 0) return;
-    Alert.alert(
-      'Order Placed Successfully! 🎉',
-      `Your grocery order of ₹${finalToPay.toFixed(0)} has been placed for ${
-        selectedAddress?.line1 || locationTitle || 'your delivery address'
-      }. Fast Lane 25-35 mins delivery started!`,
-      [
-        {
-          text: 'View Orders',
-          onPress: () => {
-            clearCart();
-            router.push('/(tabs)/orders');
+
+    // 1. Enforce Authentication
+    if (!isAuthenticated || !user) {
+      Alert.alert(
+        'Login Required',
+        'Please login to place your grocery order.',
+        [
+          { text: 'Cancel', style: 'cancel' },
+          { text: 'Login Now', onPress: () => router.push('/(auth)/login') },
+        ]
+      );
+      return;
+    }
+
+    // 2. Enforce Valid Address
+    if (!selectedAddress || (!selectedAddress.line1 && !(selectedAddress as any).street)) {
+      Alert.alert(
+        'Address Required',
+        'Please select or add a delivery address to continue.',
+        [
+          { text: 'Cancel', style: 'cancel' },
+          { text: 'Select Address', onPress: () => router.push('/address') },
+        ]
+      );
+      return;
+    }
+
+    try {
+      setPlacingOrder(true);
+
+      const addressToUse = {
+        line1: selectedAddress.line1 || (selectedAddress as any)?.street || 'Main Road',
+        line2: selectedAddress.line2 || '',
+        city: selectedAddress.city || 'New Delhi',
+        state: selectedAddress.state || 'Delhi',
+        pincode: selectedAddress.pincode || '110001',
+        location: selectedAddress.location || { type: 'Point', coordinates: [77.2090, 28.6139] },
+      };
+
+      const itemsPayload = cart.map((i) => ({
+        menuItemId: i.product._id || i.product.id,
+        productId: i.product._id || i.product.id,
+        name: i.product.name,
+        price: Math.round(i.product.price * 100), // in paise
+        quantity: i.quantity,
+      }));
+
+      const { order } = await orderService.createOrder({
+        restaurantId: (cart[0]?.product as any)?.vendorId || 'platform_grocery_store',
+        items: itemsPayload as any,
+        deliveryAddress: addressToUse as any,
+        deliveryInstructions: deliveryInstructions.trim() || undefined,
+        paymentMethod: 'COD',
+        couponCode: appliedCoupon?.code,
+        orderType: 'grocery',
+        vertical: 'grocery',
+      } as any);
+
+      setActiveOrder(order);
+      clearCart();
+
+      const orderRef = order?.orderNumber || (order as any)?._id?.slice(-6) || 'New';
+      Alert.alert(
+        'Order Placed Successfully! 🎉',
+        `Grocery Order #${orderRef} placed for ₹${(finalToPay + 2).toFixed(0)}. Quick Delivery in 20-30 mins!`,
+        [
+          {
+            text: 'Track Order',
+            onPress: () => router.push('/(tabs)/orders'),
           },
-        },
-      ]
-    );
+        ]
+      );
+    } catch (err: any) {
+      const msg = err.response?.data?.message || err.message || 'Failed to place grocery order';
+      Alert.alert('Order Error', msg);
+    } finally {
+      setPlacingOrder(false);
+    }
   };
 
   const displayLabel = selectedAddress
@@ -136,7 +203,7 @@ export function GroceryCart() {
           </TouchableOpacity>
           <Ionicons name="basket" size={24} color="#16A34A" style={{ marginRight: 8 }} />
           <View>
-            <Text style={styles.navTitle}>My Cart</Text>
+            <Text style={styles.navTitle}>Grocery Cart</Text>
             <Text style={styles.navSubtitle}>{cartCount} Items Added</Text>
           </View>
         </View>
@@ -153,7 +220,7 @@ export function GroceryCart() {
         {cart.length === 0 ? (
           <View style={styles.emptyContainer}>
             <Ionicons name="cart-outline" size={60} color="#9CA3AF" style={{ marginBottom: 16 }} />
-            <Text style={styles.emptyTitle}>Your Cart is Empty</Text>
+            <Text style={styles.emptyTitle}>Your Grocery Cart is Empty</Text>
             <Text style={styles.emptySubtitle}>Explore fresh groceries and add something to your cart!</Text>
             <TouchableOpacity style={styles.exploreBtn} onPress={() => router.push('/grocery/categories')}>
               <Text style={styles.exploreBtnText}>Browse Departments</Text>
@@ -222,12 +289,14 @@ export function GroceryCart() {
                 </TouchableOpacity>
               </View>
 
-              <View style={styles.addressBox}>
+              <TouchableOpacity onPress={() => router.push('/address')} activeOpacity={0.8} style={styles.addressBox}>
                 <Text style={styles.addressType}>{displayLabel}</Text>
                 <Text style={styles.addressStreet}>{displayAddress}</Text>
-              </View>
+              </TouchableOpacity>
 
               <TextInput
+                value={deliveryInstructions}
+                onChangeText={setDeliveryInstructions}
                 placeholder="Delivery instructions (e.g. Leave at door, don't ring bell)"
                 style={styles.instructionInput}
                 placeholderTextColor="#9CA3AF"
@@ -311,7 +380,7 @@ export function GroceryCart() {
         )}
       </ScrollView>
 
-      {/* Floating Bottom Bar (Matching Food Delivery) */}
+      {/* Floating Bottom Bar */}
       {cart.length > 0 && (
         <View style={styles.bottomBar}>
           <View>
@@ -321,13 +390,18 @@ export function GroceryCart() {
 
           <TouchableOpacity
             onPress={handleCheckout}
-            style={styles.placeOrderBtn}
+            disabled={placingOrder}
+            style={[styles.placeOrderBtn, placingOrder && { opacity: 0.8 }]}
             activeOpacity={0.9}
           >
-            <View style={styles.placeOrderBtnInner}>
-              <Text style={styles.placeOrderText}>Place Order</Text>
-              <Ionicons name="arrow-forward" size={18} color="#FFFFFF" style={{ marginLeft: 6 }} />
-            </View>
+            {placingOrder ? (
+              <ActivityIndicator color="#FFFFFF" />
+            ) : (
+              <View style={styles.placeOrderBtnInner}>
+                <Text style={styles.placeOrderText}>Place Order</Text>
+                <Ionicons name="arrow-forward" size={18} color="#FFFFFF" style={{ marginLeft: 6 }} />
+              </View>
+            )}
           </TouchableOpacity>
         </View>
       )}

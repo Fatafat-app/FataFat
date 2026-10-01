@@ -128,6 +128,24 @@ async function toggleItemAvailability(itemId, restaurantId) {
   return item;
 }
 
+async function deleteMenuItem(itemId, restaurantId) {
+  const query = { _id: itemId };
+  if (restaurantId) query.restaurant = restaurantId;
+  const item = await MenuItem.findOneAndDelete(query);
+  if (!item) throw new NotFoundError('Menu item not found');
+  await invalidateMenuCache(item.restaurant || restaurantId);
+  return item;
+}
+
+async function deleteCategory(categoryId, restaurantId) {
+  const query = { _id: categoryId };
+  if (restaurantId) query.restaurant = restaurantId;
+  const category = await MenuCategory.findOneAndDelete(query);
+  if (!category) throw new NotFoundError('Category not found');
+  await invalidateMenuCache(category.restaurant || restaurantId);
+  return category;
+}
+
 async function getMenuItem(itemId) {
   const item = await MenuItem.findById(itemId).populate('category', 'name');
   if (!item) throw new NotFoundError('Menu item not found');
@@ -138,8 +156,10 @@ module.exports = {
   getMenuByRestaurant,
   addCategory,
   updateCategory,
+  deleteCategory,
   addMenuItem,
   updateMenuItem,
+  deleteMenuItem,
   toggleItemAvailability,
   getMenuItem,
 };

@@ -124,11 +124,19 @@ async function getProducts(queryParams = {}) {
     isSpecialDeal,
     isTrending,
     search,
+    includeUnavailable,
+    includeInactive,
     page = 1,
     limit = 20,
   } = queryParams;
 
-  const mongoQuery = { isActive: true, isAvailable: true };
+  const mongoQuery = {};
+  if (!includeInactive) {
+    mongoQuery.isActive = true;
+  }
+  if (!includeUnavailable) {
+    mongoQuery.isAvailable = true;
+  }
 
   // Category filter by ObjectId or Slug
   if (category) {

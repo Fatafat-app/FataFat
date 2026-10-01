@@ -51,31 +51,38 @@ const redisProxy = new Proxy({}, {
 try {
   const Redis = require('ioredis');
 
-  const redisOptions = {
+  const redisConfig = env.redis.url || {
     host: env.redis.host,
     port: env.redis.port,
+    username: 'default',
     password: env.redis.password || undefined,
-    maxRetriesPerRequest: 1, // Fail fast
-    enableReadyCheck: false,
-    connectTimeout: 2000,
-    lazyConnect: true,
-    retryStrategy() {
-      return null; // Don't retry, just fail and use mock
-    }
   };
 
-  const client = new Redis(redisOptions);
+  const commonOptions = {
+    maxRetriesPerRequest: null,
+    enableReadyCheck: true,
+    connectTimeout: 10000,
+    lazyConnect: true,
+    retryStrategy(times) {
+      if (times > 10) return null;
+      return Math.min(times * 200, 3000);
+    },
+  };
 
-  client.on('error', () => {
-    // Suppress unhandled error events that crash the app when mock is used
+  const client = typeof redisConfig === 'string'
+    ? new Redis(redisConfig, commonOptions)
+    : new Redis({ ...redisConfig, ...commonOptions });
+
+  client.on('error', (err) => {
+    logger.warn('[Redis] Connection warning:', { error: err.message });
   });
 
   client.connect().then(() => {
-    logger.info('[Redis] Connected successfully');
+    logger.info('[Redis] Connected to Redis Cloud successfully 🚀');
     activeInstance = client;
     activeInstance._isMock = false;
-  }).catch(() => {
-    logger.warn('[Redis] Connection failed — continuing with in-memory mock');
+  }).catch((err) => {
+    logger.warn('[Redis] Initial connection failed — continuing with in-memory mock', { error: err.message });
   });
 
 } catch (e) {

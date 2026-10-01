@@ -10,39 +10,44 @@ import {
 
 function normalizeOrder(order: any): Order {
   if (!order) return order;
-  const items = (order.items || []).map((it: any) => ({
-    menuItemId: it.menuItemId || it.menuItem?._id || it.menuItem || '',
-    name: it.name || it.menuItem?.name || 'Dish Item',
-    quantity: it.quantity || 1,
-    price: it.price || 0,
-    selectedModifiers: it.selectedModifiers || [],
-    totalItemPrice: it.totalPrice || it.totalItemPrice || ((it.price || 0) * (it.quantity || 1)),
-  }));
+  const items = (order.items || []).map((it: any) => {
+    const rawPrice = it.pricePaise !== undefined ? it.pricePaise : (it.price || 0);
+    const rawTotal = it.totalPaise !== undefined ? it.totalPaise : (it.totalPrice || it.totalItemPrice || (rawPrice * (it.quantity || 1)));
+    return {
+      menuItemId: it.listingId || it.itemId || it.menuItemId || it.menuItem?._id || it.menuItem || '',
+      name: it.name || it.menuItem?.name || it.itemId?.name || 'Item',
+      quantity: it.quantity || 1,
+      price: rawPrice,
+      selectedModifiers: it.selectedModifiers || it.addons || [],
+      totalItemPrice: rawTotal,
+      menuItem: it.menuItem || it.itemId || {
+        _id: it.itemId || it.menuItemId,
+        name: it.name,
+        images: it.menuItem?.images || it.itemId?.images || (it.image ? [it.image] : []),
+        isVeg: it.isVeg !== undefined ? it.isVeg : it.menuItem?.isVeg,
+      },
+    };
+  });
 
-  const itemsTotal = order.subtotal || items.reduce((sum: number, it: any) => sum + (it.price || 0) * (it.quantity || 1), 0);
-  const deliveryFee = order.deliveryFee || 0;
-  const gstAndTaxes = order.taxAmount || 0;
-  const platformFee = 500;
-  const discount = order.discountAmount || 0;
-  const totalAmount = order.totalAmount || (itemsTotal + deliveryFee + gstAndTaxes + platformFee - discount);
-
-  const rawStatus = (order.orderStatus || order.status || 'PENDING').toString().toUpperCase();
-  const rest = order.restaurant || order.restaurantId;
+  const totalPaise = order.pricing?.totalPaise || order.pricing?.totalAmount || order.totalAmount || 0;
+  const rawStatus = (order.orderStatus || order.status || 'PLACED').toString().toUpperCase();
+  const vendorOrRest = order.vendorId || order.restaurant || order.restaurantId;
 
   return {
     ...order,
     _id: order._id?.toString() || '',
     orderNumber: order.orderNumber || (order._id ? order._id.toString().slice(-6).toUpperCase() : 'FTFT'),
-    restaurant: rest,
-    restaurantId: rest,
+    restaurant: vendorOrRest,
+    restaurantId: vendorOrRest,
+    vendor: order.vendorId || order.vendor,
     items,
-    pricing: order.pricing || {
-      itemsTotal,
-      deliveryFee,
-      gstAndTaxes,
-      platformFee,
-      discount,
-      totalAmount,
+    pricing: {
+      itemsTotal: order.pricing?.itemsPaise || order.pricing?.itemsTotal || order.subtotal || 0,
+      deliveryFee: order.pricing?.deliveryPaise || order.pricing?.deliveryFee || order.deliveryFee || 0,
+      gstAndTaxes: order.pricing?.taxPaise || order.pricing?.gstAndTaxes || order.taxAmount || 0,
+      platformFee: order.pricing?.platformFee || 500,
+      discount: order.pricing?.discountPaise || order.pricing?.discount || order.discountAmount || 0,
+      totalAmount: totalPaise,
     },
     status: rawStatus as any,
     orderStatus: rawStatus as any,

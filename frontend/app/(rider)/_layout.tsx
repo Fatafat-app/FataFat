@@ -12,7 +12,8 @@ export default function RiderLayout() {
     return <Redirect href="/(auth)/login" />;
   }
   
-  if (!isLoading && user?.role !== 'delivery_partner') {
+  const riderRoles = ['delivery_partner', 'rider'];
+  if (!isLoading && (!user || !riderRoles.includes(user.role))) {
     return <Redirect href="/(tabs)" />;
   }
 
@@ -21,7 +22,7 @@ export default function RiderLayout() {
       screenOptions={{
         headerShown: false,
         tabBarStyle: styles.tabBar,
-        tabBarActiveTintColor: '#2563EB', // Rider specific theme color
+        tabBarActiveTintColor: '#2563EB',
         tabBarInactiveTintColor: Colors.textSecondary,
         tabBarLabelStyle: styles.tabLabel,
       }}

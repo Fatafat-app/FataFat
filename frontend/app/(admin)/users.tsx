@@ -13,11 +13,13 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
+import { useRouter } from 'expo-router';
 import { useAdminStore } from '../../store/admin.store';
 import { User } from '../../types';
 import { Typography, Colors } from '../../constants/Theme';
 
 export default function AdminUsersScreen() {
+  const router = useRouter();
   const { users, isLoading, fetchUsers, toggleUserStatus } = useAdminStore();
   const [search, setSearch] = useState('');
   const [selectedRole, setSelectedRole] = useState<string>('ALL');
@@ -64,13 +66,18 @@ export default function AdminUsersScreen() {
   return (
     <SafeAreaView style={styles.safeArea}>
       <View style={styles.navbar}>
-        <View>
-          <Text style={styles.pageTitle}>User Control & Moderation</Text>
-          <Text style={styles.pageSubtitle}>Total Loaded: {users.length} Users</Text>
+        <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+          <TouchableOpacity onPress={() => router.back()} style={{ width: 36, height: 36, borderRadius: 18, backgroundColor: '#F1F5F9', alignItems: 'center', justifyContent: 'center', marginRight: 12 }}>
+            <Ionicons name="arrow-back" size={20} color={Colors.text} />
+          </TouchableOpacity>
+          <View>
+            <Text style={styles.pageTitle}>User Directory</Text>
+            <Text style={styles.pageSubtitle}>Total: {users.length} Platform Accounts</Text>
+          </View>
         </View>
 
         <TouchableOpacity onPress={onRefresh} style={styles.refreshBtn}>
-          <Ionicons name="refresh" size={18} color={Colors.textSecondary} />
+          <Ionicons name="refresh" size={18} color="#4F46E5" />
         </TouchableOpacity>
       </View>
 

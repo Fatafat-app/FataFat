@@ -27,6 +27,7 @@ interface AdminState {
   fetchCoupons: () => Promise<void>;
   createCoupon: (payload: CreateCouponPayload) => Promise<void>;
   toggleCoupon: (couponId: string) => Promise<void>;
+  deleteCoupon: (couponId: string) => Promise<void>;
 }
 
 export const useAdminStore = create<AdminState>((set, get) => ({
@@ -50,7 +51,16 @@ export const useAdminStore = create<AdminState>((set, get) => ({
   },
 
   fetchAuditLogs: async () => {
-    // Audit logs mock or API stub
+    try {
+      set({ isLoading: true });
+      const data = await adminService.getAuditLogs({ limit: 100 });
+      const logs = data?.logs || (Array.isArray(data) ? data : []);
+      set({ auditLogs: logs });
+    } catch (err) {
+      console.warn('Failed to load audit logs:', err);
+    } finally {
+      set({ isLoading: false });
+    }
   },
 
   fetchUsers: async (role, search) => {
@@ -152,6 +162,19 @@ export const useAdminStore = create<AdminState>((set, get) => ({
     } catch (err) {
       await get().fetchCoupons();
       console.warn('Failed to toggle coupon:', err);
+    }
+  },
+
+  deleteCoupon: async (couponId) => {
+    set((state) => ({
+      coupons: state.coupons.filter((c) => c._id !== couponId),
+    }));
+
+    try {
+      await adminService.deleteCoupon(couponId);
+    } catch (err) {
+      await get().fetchCoupons();
+      console.warn('Failed to delete coupon:', err);
     }
   },
 }));

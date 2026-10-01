@@ -90,7 +90,18 @@ async function sendNotification(req, res) {
 
 async function getNotificationHistory(req, res) {
   const result = await adminService.getNotificationHistory(req.query);
-  return success(res, result, 'Notification history retrieved');
+  return success(res, result);
+}
+
+async function listOrders(req, res) {
+  const result = await adminService.listOrdersAdmin(req.query);
+  return success(res, result, 'Admin orders retrieved');
+}
+
+async function updateOrderStatus(req, res) {
+  const meta = { ip: req.ip, userAgent: req.headers['user-agent'] };
+  const order = await adminService.updateOrderStatusAdmin(req.user.id, req.params.id, req.body, meta);
+  return success(res, { order }, 'Order status updated successfully');
 }
 
 module.exports = {
@@ -109,4 +120,6 @@ module.exports = {
   reorderCategories,
   sendNotification,
   getNotificationHistory,
+  listOrders,
+  updateOrderStatus,
 };

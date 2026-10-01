@@ -17,6 +17,8 @@ import { GrocerySearch } from '../../components/grocery/GrocerySearch';
 import { GroceryHome } from '../../components/grocery/GroceryHome';
 import { GroceryTabBar } from '../../components/grocery/GroceryTabBar';
 import { useGroceryStore } from '../../store/grocery.store';
+import { useConfigStore } from '../../store/config.store';
+import { useNotificationStore } from '../../store/notification.store';
 
 const { width } = Dimensions.get('window');
 
@@ -89,17 +91,38 @@ export default function HomeScreen() {
   const router = useRouter();
   const user = useAuthStore((state) => state.user);
   const cartCount = useCartStore((state) => state.items.reduce((s, i) => s + i.quantity, 0));
+  const unreadNotifications = useNotificationStore((state) => state.unreadCount);
   const { locationTitle, locationSubtitle, isDetectingLocation, detectCurrentLocation, currentLocation, selectedAddress } = useLocationStore();
   const insets = useSafeAreaInsets();
   const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
   // Section switcher — food is default on app open
   const { activeSection, setSection } = useGroceryStore();
+  const isFoodAvailable = useConfigStore((state) => state.isVerticalAvailable('food'));
+  const foodMode = useConfigStore((state) => state.config?.verticals?.food?.mode || 'ON');
+  const isFoodEnabled = isFoodAvailable && foodMode !== 'OFF';
+
+  const isGroceryAvailable = useConfigStore((state) => state.isVerticalAvailable('grocery'));
+  const groceryMode = useConfigStore((state) => state.config?.verticals?.grocery?.mode || 'ON');
+  const isGroceryEnabled = isGroceryAvailable && groceryMode !== 'OFF';
+
+  const showSwitcher = isFoodEnabled && isGroceryEnabled;
+
+  useEffect(() => {
+    if (isFoodEnabled && !isGroceryEnabled && activeSection !== 'food') {
+      setSection('food');
+    } else if (!isFoodEnabled && isGroceryEnabled && activeSection !== 'grocery') {
+      setSection('grocery');
+    }
+  }, [isFoodEnabled, isGroceryEnabled, activeSection]);
+
   const foodTranslate = useRef(new Animated.Value(0)).current;
   const groceryTranslate = useRef(new Animated.Value(SCREEN_WIDTH)).current;
   const [headerHeight, setHeaderHeight] = useState(0);
 
   const handleSectionSwitch = (section: 'food' | 'grocery') => {
+    if (!isGroceryEnabled && section === 'grocery') return;
+    if (!isFoodEnabled && section === 'food') return;
     if (section === activeSection) return;
     setSection(section);
     Animated.parallel([
@@ -197,9 +220,7 @@ export default function HomeScreen() {
   useEffect(() => {
     fetchCategories();
     fetchRestaurants();
-    if (!currentLocation && !isDetectingLocation) {
-      detectCurrentLocation();
-    }
+    detectCurrentLocation();
   }, []);
 
   useEffect(() => {
@@ -234,10 +255,32 @@ export default function HomeScreen() {
 
   return (
     <View style={styles.container}>
+      {/* 0. BOTH SERVICES OFFLINE (When both Food and Grocery are turned OFF) */}
+      {!isFoodEnabled && !isGroceryEnabled && (
+        <View style={{ flex: 1, backgroundColor: '#FFFFFF', alignItems: 'center', justifyContent: 'center', padding: 28 }}>
+          <View style={{ width: 80, height: 80, borderRadius: 40, backgroundColor: '#FEF2F2', alignItems: 'center', justifyContent: 'center', marginBottom: 20 }}>
+            <Ionicons name="cloud-offline" size={40} color="#DC2626" />
+          </View>
+          <Text style={{ fontFamily: BOLD_FONT, fontSize: 22, color: '#1E293B', textAlign: 'center' }}>
+            We're Currently Closed
+          </Text>
+          <Text style={{ fontFamily: STYLISH_FONT, fontSize: 14, color: '#64748B', textAlign: 'center', marginTop: 8, lineHeight: 20 }}>
+            Both Food and Grocery deliveries are currently offline. We'll be back online shortly!
+          </Text>
+          <TouchableOpacity
+            onPress={onRefresh}
+            style={{ marginTop: 24, backgroundColor: Colors.primary, paddingHorizontal: 24, paddingVertical: 12, borderRadius: 14, flexDirection: 'row', alignItems: 'center' }}
+          >
+            <Ionicons name="refresh" size={16} color="#FFFFFF" style={{ marginRight: 6 }} />
+            <Text style={{ fontFamily: BOLD_FONT, color: '#FFFFFF', fontSize: 13 }}>Check Again</Text>
+          </TouchableOpacity>
+        </View>
+      )}
+
       {/* ============================================================ */}
       {/* 1. FOOD DELIVERY SECTION                                      */}
       {/* ============================================================ */}
-      {activeSection === 'food' && (
+      {isFoodEnabled && (activeSection === 'food' || !isGroceryEnabled) && (
         <View style={{ flex: 1, backgroundColor: '#FFFFFF' }}>
 
           {/* Top Peach-Orange Gradient matching Grocery design */}
@@ -260,9 +303,13 @@ export default function HomeScreen() {
               </View>
 
               {/* Bell Icon */}
-              <TouchableOpacity style={styles.bellBtn} activeOpacity={0.7}>
+              <TouchableOpacity
+                style={styles.bellBtn}
+                activeOpacity={0.7}
+                onPress={() => router.push('/notifications')}
+              >
                 <Ionicons name="notifications-outline" size={24} color="#111827" />
-                <View style={styles.bellBadge} />
+                {unreadNotifications > 0 && <View style={styles.bellBadge} />}
               </TouchableOpacity>
             </View>
 
@@ -301,13 +348,24 @@ export default function HomeScreen() {
               <View style={{ width: 1, height: 28, backgroundColor: '#E5E7EB', marginHorizontal: 8 }} />
 
               {/* Location Side */}
-              <TouchableOpacity style={{ flexDirection: 'row', alignItems: 'center', paddingLeft: 4, paddingVertical: 4 }} onPress={() => router.push('/address')} activeOpacity={0.8}>
-                <View style={{ alignItems: 'flex-end', marginRight: 6 }}>
-                  <Text style={{ fontFamily: BOLD_FONT, fontSize: 10, color: '#D94E1B', marginBottom: 1 }}>
-                    {selectedAddress?.label?.toUpperCase() || 'HOME'} <Ionicons name="chevron-down" size={10} />
+              <TouchableOpacity
+                style={{ flexDirection: 'row', alignItems: 'center', paddingLeft: 4, paddingVertical: 4, maxWidth: 140 }}
+                onPress={() => router.push('/address')}
+                activeOpacity={0.8}
+              >
+                <View style={{ alignItems: 'flex-end', marginRight: 6, flexShrink: 1 }}>
+                  <Text
+                    style={{ fontFamily: BOLD_FONT, fontSize: 11, color: '#D94E1B', marginBottom: 1 }}
+                    numberOfLines={1}
+                  >
+                    {(locationTitle || selectedAddress?.label || activeCity || 'Location').toUpperCase()}{' '}
+                    <Ionicons name="chevron-down" size={10} color="#D94E1B" />
                   </Text>
-                  <Text style={{ fontFamily: STYLISH_FONT, fontSize: 9, color: '#6B7280', maxWidth: 65 }} numberOfLines={1}>
-                    {locationTitle || 'Fetching Lo...'}
+                  <Text
+                    style={{ fontFamily: STYLISH_FONT, fontSize: 9, color: '#6B7280', maxWidth: 90 }}
+                    numberOfLines={1}
+                  >
+                    {locationSubtitle ? locationSubtitle.split(',')[0] : (activeCity || 'New Delhi')}
                   </Text>
                 </View>
                 <View style={styles.locationIconBg}>
@@ -316,8 +374,10 @@ export default function HomeScreen() {
               </TouchableOpacity>
             </TouchableOpacity>
 
-            {/* Mode Switcher */}
-            <SectionSwitcher activeSection={activeSection} onSwitch={handleSectionSwitch} style={{ marginBottom: 12 }} />
+            {/* Mode Switcher - only visible when Grocery is enabled */}
+            {isGroceryEnabled && (
+              <SectionSwitcher activeSection={activeSection} onSwitch={handleSectionSwitch} style={{ marginBottom: 12 }} />
+            )}
           </View>
 
           <ScrollView
@@ -513,7 +573,7 @@ export default function HomeScreen() {
       {/* ============================================================ */}
       {/* 2. GROCERY SECTION (Yellowish-Greenish Gradient Top Design)  */}
       {/* ============================================================ */}
-      {activeSection === 'grocery' && (
+      {isGroceryEnabled && (activeSection === 'grocery' || !isFoodEnabled) && (
         <View style={styles.groceryMainWrapper}>
           {/* Top Yellowish-Greenish Gradient matching reference image */}
           <LinearGradient
@@ -533,10 +593,16 @@ export default function HomeScreen() {
                 </Text>
               </View>
 
-              {/* Bag Icon */}
-              <TouchableOpacity style={styles.bellBtn} activeOpacity={0.7}>
-                <Ionicons name="bag-handle-outline" size={24} color="#111827" />
-                <View style={[styles.bellBadge, { backgroundColor: '#22C55E' }]} />
+              {/* Notifications Icon */}
+              <TouchableOpacity
+                style={styles.bellBtn}
+                activeOpacity={0.7}
+                onPress={() => router.push('/notifications')}
+              >
+                <Ionicons name="notifications-outline" size={24} color="#111827" />
+                {unreadNotifications > 0 && (
+                  <View style={[styles.bellBadge, { backgroundColor: '#22C55E' }]} />
+                )}
               </TouchableOpacity>
             </View>
 
@@ -575,12 +641,14 @@ export default function HomeScreen() {
               </TouchableOpacity>
             </TouchableOpacity>
 
-            {/* 1. Mode Switcher */}
-            <SectionSwitcher
-              activeSection={activeSection}
-              onSwitch={handleSectionSwitch}
-              style={{ marginBottom: 12 }}
-            />
+            {/* 1. Mode Switcher - only visible when Grocery is enabled */}
+            {isGroceryEnabled && (
+              <SectionSwitcher
+                activeSection={activeSection}
+                onSwitch={handleSectionSwitch}
+                style={{ marginBottom: 12 }}
+              />
+            )}
           </View>
 
           {/* Grocery Scrollable Content */}

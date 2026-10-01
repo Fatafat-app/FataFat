@@ -51,6 +51,22 @@ export const adminService = {
   },
 
   /**
+   * List vertical feature flags
+   */
+  async getVerticals(): Promise<any[]> {
+    const response = await api.get<ApiResponse<{ flags: any[] }>>('/config/verticals');
+    return response.data.data?.flags || [];
+  },
+
+  /**
+   * Set vertical mode (ON, DRAIN, OFF)
+   */
+  async setVerticalMode(vertical: 'food' | 'grocery', payload: { mode: 'ON' | 'DRAIN' | 'OFF'; message?: any; reason?: string }): Promise<any> {
+    const response = await api.put<ApiResponse<{ flag: any }>>(`/config/verticals/${vertical}`, payload);
+    return response.data.data?.flag;
+  },
+
+  /**
    * List platform users with filter & search
    */
   async listUsers(params?: {
@@ -86,7 +102,7 @@ export const adminService = {
   },
 
   /**
-   * List all partner restaurants
+   * List all partner restaurants / vendors
    */
   async listAllRestaurants(): Promise<Restaurant[]> {
     const response = await api.get<ApiResponse<any>>('/restaurants', {
@@ -151,11 +167,34 @@ export const adminService = {
   },
 
   /**
+   * Delete coupon
+   */
+  async deleteCoupon(couponId: string): Promise<void> {
+    await api.delete(`/coupons/${couponId}`);
+  },
+
+  /**
    * Get dynamic platform fee & tax settings
    */
   async getFeeConfig(): Promise<FeeConfig> {
     const response = await api.get<ApiResponse<{ config: FeeConfig }>>('/admin/fees');
     return response.data.data.config;
+  },
+
+  /**
+   * Update platform fee & tax settings
+   */
+  async updateFeeConfig(payload: Partial<FeeConfig>): Promise<FeeConfig> {
+    const response = await api.put<ApiResponse<{ config: FeeConfig }>>('/admin/fees', payload);
+    return response.data.data.config;
+  },
+
+  /**
+   * Get system audit logs
+   */
+  async getAuditLogs(params?: { page?: number; limit?: number; action?: string; resource?: string }): Promise<any> {
+    const response = await api.get<ApiResponse<any>>('/admin/audit-logs', { params });
+    return response.data.data;
   },
 
   /**
@@ -202,6 +241,36 @@ export const adminService = {
   },
 
   /**
+   * List all platform orders across Food & Grocery verticals with status filter
+   */
+  async listOrders(params?: {
+    page?: number;
+    limit?: number;
+    vertical?: string;
+    status?: string;
+    search?: string;
+  }): Promise<PaginatedData<any>> {
+    const response = await api.get<ApiResponse<any>>('/admin/orders', { params });
+    const data = response.data.data;
+    const orderList = Array.isArray(data) ? data : (data?.orders || data?.items || []);
+    return {
+      items: orderList,
+      total: data?.meta?.total || orderList.length,
+      page: data?.meta?.page || 1,
+      limit: data?.meta?.limit || orderList.length,
+      hasMore: false,
+    };
+  },
+
+  /**
+   * Super Admin / Ops status override
+   */
+  async updateOrderStatus(orderId: string, payload: { status: string; reason?: string }): Promise<any> {
+    const response = await api.patch<ApiResponse<any>>(`/admin/orders/${orderId}/status`, payload);
+    return response.data.data?.order || response.data.data;
+  },
+
+  /**
    * Send Push / In-app Broadcast Notification to users, riders, or owners
    */
   async sendNotification(payload: BroadcastNotificationPayload): Promise<BroadcastNotificationResult> {
@@ -215,6 +284,93 @@ export const adminService = {
   async getNotificationHistory(params?: { page?: number; limit?: number }): Promise<any> {
     const response = await api.get<ApiResponse<any>>('/admin/notifications', { params });
     return response.data.data;
+  },
+
+  /**
+   * Grocery Products Admin
+   */
+  async listGroceryProducts(params?: {
+    category?: string;
+    search?: string;
+    page?: number;
+    limit?: number;
+    includeUnavailable?: boolean;
+    includeInactive?: boolean;
+  }): Promise<{ products: any[]; total: number; page: number; totalPages: number }> {
+    const response = await api.get<ApiResponse<{ products: any[] }>>('/grocery/products', {
+      params: {
+        includeUnavailable: true,
+        includeInactive: true,
+        limit: 100,
+        ...params,
+      },
+    });
+    return {
+      products: response.data.data?.products || [],
+      total: response.data.meta?.total || response.data.data?.products?.length || 0,
+      page: response.data.meta?.page || 1,
+      totalPages: response.data.meta?.totalPages || 1,
+    };
+  },
+
+  async createGroceryProduct(payload: any): Promise<any> {
+    const response = await api.post<ApiResponse<any>>('/grocery/products', payload);
+    return response.data.data?.product || response.data.data;
+  },
+
+  async updateGroceryProduct(id: string, payload: any): Promise<any> {
+    const response = await api.patch<ApiResponse<any>>(`/grocery/products/${id}`, payload);
+    return response.data.data?.product || response.data.data;
+  },
+
+  async toggleGroceryProductAvailability(id: string): Promise<any> {
+    const response = await api.patch<ApiResponse<any>>(`/grocery/products/${id}/availability`);
+    return response.data.data;
+  },
+
+  async deleteGroceryProduct(id: string): Promise<void> {
+    await api.delete(`/grocery/products/${id}`);
+  },
+
+  async listGroceryCategories(): Promise<any[]> {
+    const response = await api.get<ApiResponse<{ categories: any[] }>>('/grocery/categories');
+    return response.data.data?.categories || [];
+  },
+
+  /**
+   * Restaurant Menu Admin Management
+   */
+  async getRestaurantMenu(restaurantId: string): Promise<any[]> {
+    const response = await api.get<ApiResponse<{ menu: any[] }>>(`/restaurants/${restaurantId}/menu`);
+    return response.data.data?.menu || [];
+  },
+
+  async addRestaurantMenuItem(restaurantId: string, payload: any): Promise<any> {
+    const response = await api.post<ApiResponse<any>>(`/restaurants/${restaurantId}/menu/items`, payload);
+    return response.data.data?.item || response.data.data;
+  },
+
+  async updateRestaurantMenuItem(restaurantId: string, itemId: string, payload: any): Promise<any> {
+    const response = await api.patch<ApiResponse<any>>(`/restaurants/${restaurantId}/menu/items/${itemId}`, payload);
+    return response.data.data?.item || response.data.data;
+  },
+
+  async toggleRestaurantMenuItemAvailability(restaurantId: string, itemId: string): Promise<any> {
+    const response = await api.patch<ApiResponse<any>>(`/restaurants/${restaurantId}/menu/items/${itemId}/availability`);
+    return response.data.data;
+  },
+
+  async deleteRestaurantMenuItem(restaurantId: string, itemId: string): Promise<void> {
+    await api.delete(`/restaurants/${restaurantId}/menu/items/${itemId}`);
+  },
+
+  async addRestaurantCategory(restaurantId: string, payload: { name: string; sortOrder?: number }): Promise<any> {
+    const response = await api.post<ApiResponse<any>>(`/restaurants/${restaurantId}/menu/categories`, payload);
+    return response.data.data;
+  },
+
+  async deleteRestaurantCategory(restaurantId: string, categoryId: string): Promise<void> {
+    await api.delete(`/restaurants/${restaurantId}/menu/categories/${categoryId}`);
   },
 };
 

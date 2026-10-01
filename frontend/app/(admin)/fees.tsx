@@ -13,10 +13,12 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
+import { useRouter } from 'expo-router';
 import { adminService, FeeConfig, CustomFeeItem } from '../../services/admin.service';
 import { Typography, Colors } from '../../constants/Theme';
 
 export default function AdminFeesScreen() {
+  const router = useRouter();
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
 
@@ -171,9 +173,14 @@ export default function AdminFeesScreen() {
     <SafeAreaView style={styles.safeArea}>
       {/* Header */}
       <View style={styles.navbar}>
-        <View>
-          <Text style={styles.pageTitle}>Fee & Tax Management</Text>
-          <Text style={styles.pageSubtitle}>Configure platform charges & taxes</Text>
+        <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+          <TouchableOpacity onPress={() => router.back()} style={{ width: 36, height: 36, borderRadius: 18, backgroundColor: '#F1F5F9', alignItems: 'center', justifyContent: 'center', marginRight: 12 }}>
+            <Ionicons name="arrow-back" size={20} color={Colors.text} />
+          </TouchableOpacity>
+          <View>
+            <Text style={styles.pageTitle}>Fee & Tax Engine</Text>
+            <Text style={styles.pageSubtitle}>Platform Charges, GST & Surge</Text>
+          </View>
         </View>
         <TouchableOpacity onPress={loadFeeConfig} style={styles.refreshBtn}>
           <Ionicons name="refresh" size={18} color="#4F46E5" />

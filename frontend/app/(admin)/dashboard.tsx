@@ -101,13 +101,13 @@ export default function AdminDashboardScreen() {
 
         <Text style={styles.sectionHeading}>LIVE PLATFORM ECOSYSTEM</Text>
         <View style={styles.kpiGrid}>
-          <View style={styles.kpiCard}>
+          <TouchableOpacity onPress={() => router.push('/(admin)/orders')} style={styles.kpiCard} activeOpacity={0.8}>
             <View style={[styles.kpiIcon, { backgroundColor: '#FFEDD5' }]}>
               <Ionicons name="flame" size={24} color="#EA580C" />
             </View>
             <Text style={[styles.kpiValue, { color: '#EA580C' }]}>{activeOrders}</Text>
             <Text style={styles.kpiLabel}>Live Active Orders</Text>
-          </View>
+          </TouchableOpacity>
 
           <View style={styles.kpiCard}>
             <View style={[styles.kpiIcon, { backgroundColor: '#DBEAFE' }]}>
@@ -117,61 +117,49 @@ export default function AdminDashboardScreen() {
             <Text style={styles.kpiLabel}>Riders Online</Text>
           </View>
 
-          <View style={styles.kpiCard}>
+          <TouchableOpacity onPress={() => router.push('/(admin)/users')} style={styles.kpiCard} activeOpacity={0.8}>
             <View style={[styles.kpiIcon, { backgroundColor: '#EEF2FF' }]}>
               <Ionicons name="people" size={24} color="#4F46E5" />
             </View>
             <Text style={styles.kpiValue}>{totalUsers}</Text>
             <Text style={styles.kpiLabel}>Registered Users</Text>
-          </View>
+          </TouchableOpacity>
 
-          <View style={styles.kpiCard}>
+          <TouchableOpacity onPress={() => router.push('/(admin)/restaurants')} style={styles.kpiCard} activeOpacity={0.8}>
             <View style={[styles.kpiIcon, { backgroundColor: '#DCFCE7' }]}>
               <Ionicons name="storefront" size={24} color="#16A34A" />
             </View>
             <Text style={styles.kpiValue}>{totalRestaurants}</Text>
-            <Text style={styles.kpiLabel}>Partner Restaurants</Text>
-          </View>
+            <Text style={styles.kpiLabel}>Partner Stores</Text>
+          </TouchableOpacity>
         </View>
 
-        <Text style={[styles.sectionHeading, { marginTop: 12 }]}>SUPER ADMIN MODULES</Text>
+        {/* Quick Launchpad */}
+        <Text style={[styles.sectionHeading, { marginTop: 12 }]}>ADMIN COMMAND MODULES</Text>
 
-        <TouchableOpacity onPress={() => router.push('/(admin)/categories')} style={styles.actionRowCard} activeOpacity={0.7}>
-          <View style={[styles.actionIconCircle, { backgroundColor: '#FDF2F8' }]}>
-            <Ionicons name="fast-food" size={24} color="#DB2777" />
-          </View>
-          <View style={styles.actionTextContainer}>
-            <Text style={styles.actionTitle}>Menu Categories</Text>
-            <Text style={styles.actionSubtitle}>Add, edit, remove & arrange food categories</Text>
-          </View>
-          <View style={styles.actionArrow}>
-            <Ionicons name="chevron-forward" size={18} color="#DB2777" />
-          </View>
-        </TouchableOpacity>
-
-        <TouchableOpacity onPress={() => router.push('/(admin)/notifications')} style={styles.actionRowCard} activeOpacity={0.7}>
+        <TouchableOpacity onPress={() => router.push('/(admin)/orders')} style={styles.actionRowCard} activeOpacity={0.7}>
           <View style={[styles.actionIconCircle, { backgroundColor: '#EEF2FF' }]}>
-            <Ionicons name="paper-plane" size={24} color="#4F46E5" />
+            <Ionicons name="receipt" size={24} color="#4F46E5" />
           </View>
           <View style={styles.actionTextContainer}>
-            <Text style={styles.actionTitle}>Broadcast Notifications</Text>
-            <Text style={styles.actionSubtitle}>Send instant alerts & offers to customers</Text>
+            <Text style={styles.actionTitle}>Live Orders & Ops Monitor</Text>
+            <Text style={styles.actionSubtitle}>Track Food & Grocery orders, update statuses & SLA</Text>
           </View>
           <View style={styles.actionArrow}>
             <Ionicons name="chevron-forward" size={18} color="#4F46E5" />
           </View>
         </TouchableOpacity>
 
-        <TouchableOpacity onPress={() => router.push('/(admin)/fees')} style={styles.actionRowCard} activeOpacity={0.7}>
-          <View style={[styles.actionIconCircle, { backgroundColor: '#ECFEFF' }]}>
-            <Ionicons name="card" size={24} color="#0891B2" />
+        <TouchableOpacity onPress={() => router.push('/(admin)/flags')} style={styles.actionRowCard} activeOpacity={0.7}>
+          <View style={[styles.actionIconCircle, { backgroundColor: '#FEF3C7' }]}>
+            <Ionicons name="options" size={24} color="#D97706" />
           </View>
           <View style={styles.actionTextContainer}>
-            <Text style={styles.actionTitle}>Fees & Tax Settings</Text>
-            <Text style={styles.actionSubtitle}>Configure GST, platform & delivery charges</Text>
+            <Text style={styles.actionTitle}>Vertical Flags & Kill Switches</Text>
+            <Text style={styles.actionSubtitle}>Control Food / Grocery modes (ON, DRAIN, OFF)</Text>
           </View>
           <View style={styles.actionArrow}>
-            <Ionicons name="chevron-forward" size={18} color="#0891B2" />
+            <Ionicons name="chevron-forward" size={18} color="#D97706" />
           </View>
         </TouchableOpacity>
 
@@ -180,11 +168,50 @@ export default function AdminDashboardScreen() {
             <Ionicons name="storefront" size={24} color="#16A34A" />
           </View>
           <View style={styles.actionTextContainer}>
-            <Text style={styles.actionTitle}>Restaurant Control</Text>
-            <Text style={styles.actionSubtitle}>Onboard partners, toggle store active/suspended</Text>
+            <Text style={styles.actionTitle}>Stores & Vendors Control</Text>
+            <Text style={styles.actionSubtitle}>Onboard restaurants & grocery marts, manage dishes & menus</Text>
           </View>
           <View style={styles.actionArrow}>
             <Ionicons name="chevron-forward" size={18} color="#16A34A" />
+          </View>
+        </TouchableOpacity>
+
+        <TouchableOpacity onPress={() => router.push('/(admin)/grocery-products' as any)} style={styles.actionRowCard} activeOpacity={0.7}>
+          <View style={[styles.actionIconCircle, { backgroundColor: '#DCFCE7' }]}>
+            <Ionicons name="basket" size={24} color="#16A34A" />
+          </View>
+          <View style={styles.actionTextContainer}>
+            <Text style={styles.actionTitle}>Grocery Product Catalog</Text>
+            <Text style={styles.actionSubtitle}>Add, edit, restock, toggle availability & delete grocery items</Text>
+          </View>
+          <View style={styles.actionArrow}>
+            <Ionicons name="chevron-forward" size={18} color="#16A34A" />
+          </View>
+        </TouchableOpacity>
+
+        <TouchableOpacity onPress={() => router.push('/(admin)/categories')} style={styles.actionRowCard} activeOpacity={0.7}>
+          <View style={[styles.actionIconCircle, { backgroundColor: '#FDF2F8' }]}>
+            <Ionicons name="fast-food" size={24} color="#DB2777" />
+          </View>
+          <View style={styles.actionTextContainer}>
+            <Text style={styles.actionTitle}>Categories Taxonomy</Text>
+            <Text style={styles.actionSubtitle}>Add, edit, remove & reorder food & grocery categories</Text>
+          </View>
+          <View style={styles.actionArrow}>
+            <Ionicons name="chevron-forward" size={18} color="#DB2777" />
+          </View>
+        </TouchableOpacity>
+
+        <TouchableOpacity onPress={() => router.push('/(admin)/fees')} style={styles.actionRowCard} activeOpacity={0.7}>
+          <View style={[styles.actionIconCircle, { backgroundColor: '#ECFEFF' }]}>
+            <Ionicons name="wallet" size={24} color="#0891B2" />
+          </View>
+          <View style={styles.actionTextContainer}>
+            <Text style={styles.actionTitle}>Pricing Engine, Fees & Taxes</Text>
+            <Text style={styles.actionSubtitle}>Configure GST, platform fees, delivery & surge charges</Text>
+          </View>
+          <View style={styles.actionArrow}>
+            <Ionicons name="chevron-forward" size={18} color="#0891B2" />
           </View>
         </TouchableOpacity>
 
@@ -193,11 +220,50 @@ export default function AdminDashboardScreen() {
             <Ionicons name="people-circle" size={26} color="#9333EA" />
           </View>
           <View style={styles.actionTextContainer}>
-            <Text style={styles.actionTitle}>User Roles & Access</Text>
-            <Text style={styles.actionSubtitle}>Manage Owners, Riders & blocked accounts</Text>
+            <Text style={styles.actionTitle}>User Roles & Permissions</Text>
+            <Text style={styles.actionSubtitle}>Assign Super Admin, Ops, Merchants & Rider partners</Text>
           </View>
           <View style={styles.actionArrow}>
             <Ionicons name="chevron-forward" size={18} color="#9333EA" />
+          </View>
+        </TouchableOpacity>
+
+        <TouchableOpacity onPress={() => router.push('/(admin)/notifications')} style={styles.actionRowCard} activeOpacity={0.7}>
+          <View style={[styles.actionIconCircle, { backgroundColor: '#EFF6FF' }]}>
+            <Ionicons name="paper-plane" size={24} color="#2563EB" />
+          </View>
+          <View style={styles.actionTextContainer}>
+            <Text style={styles.actionTitle}>Push Broadcast & Campaigns</Text>
+            <Text style={styles.actionSubtitle}>Send instant alerts & promo offers to customers/riders</Text>
+          </View>
+          <View style={styles.actionArrow}>
+            <Ionicons name="chevron-forward" size={18} color="#2563EB" />
+          </View>
+        </TouchableOpacity>
+
+        <TouchableOpacity onPress={() => router.push('/(admin)/coupons' as any)} style={styles.actionRowCard} activeOpacity={0.7}>
+          <View style={[styles.actionIconCircle, { backgroundColor: '#FEF3C7' }]}>
+            <Ionicons name="pricetag" size={24} color="#D97706" />
+          </View>
+          <View style={styles.actionTextContainer}>
+            <Text style={styles.actionTitle}>Coupons & Promo Codes</Text>
+            <Text style={styles.actionSubtitle}>Create percentage & flat discount codes, limits & conditions</Text>
+          </View>
+          <View style={styles.actionArrow}>
+            <Ionicons name="chevron-forward" size={18} color="#D97706" />
+          </View>
+        </TouchableOpacity>
+
+        <TouchableOpacity onPress={() => router.push('/(admin)/audit')} style={styles.actionRowCard} activeOpacity={0.7}>
+          <View style={[styles.actionIconCircle, { backgroundColor: '#F1F5F9' }]}>
+            <Ionicons name="shield-checkmark" size={24} color="#334155" />
+          </View>
+          <View style={styles.actionTextContainer}>
+            <Text style={styles.actionTitle}>Security Audit & Outbox Logs</Text>
+            <Text style={styles.actionSubtitle}>View administrative logs, IP addresses & transactional events</Text>
+          </View>
+          <View style={styles.actionArrow}>
+            <Ionicons name="chevron-forward" size={18} color="#334155" />
           </View>
         </TouchableOpacity>
       </ScrollView>

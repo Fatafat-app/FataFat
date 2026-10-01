@@ -32,6 +32,9 @@ function initGateway() {
     logger.debug('[Socket] Client connected', { userId, socketId: socket.id });
 
     socket.join(`user:${userId}`);
+    if (role) {
+      socket.join(`role:${role}`);
+    }
 
     if (role === 'restaurant_owner' && socket.handshake.auth?.restaurantId) {
       socket.join(`restaurant:${socket.handshake.auth.restaurantId}`);

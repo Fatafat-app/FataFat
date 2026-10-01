@@ -1,5 +1,5 @@
 import React from 'react';
-import { Tabs, Redirect, router } from 'expo-router';
+import { Tabs, Redirect } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { StyleSheet } from 'react-native';
 import { useAuthStore } from '../../store/auth.store';
@@ -12,7 +12,8 @@ export default function OwnerLayout() {
     return <Redirect href="/(auth)/login" />;
   }
   
-  if (!isLoading && user?.role !== 'restaurant_owner') {
+  const ownerRoles = ['restaurant_owner', 'merchant_owner', 'merchant_staff'];
+  if (!isLoading && (!user || !ownerRoles.includes(user.role))) {
     return <Redirect href="/(tabs)" />;
   }
 
@@ -38,7 +39,7 @@ export default function OwnerLayout() {
       <Tabs.Screen
         name="orders"
         options={{
-          title: 'Live Kitchen',
+          title: 'Live Orders',
           tabBarIcon: ({ color, focused }) => (
             <Ionicons name={focused ? 'restaurant' : 'restaurant-outline'} size={22} color={color} />
           ),

@@ -15,16 +15,16 @@ import { Ionicons } from '@expo/vector-icons';
 import { orderService } from '../../services/order.service';
 import { socketService } from '../../services/socket.service';
 import { useOrderTrackingStore } from '../../store/orderTracking.store';
-import { Order, OrderStatus } from '../../types';
+import { Order } from '../../types';
 import { formatPaise } from '../../utils/formatters';
 import { Typography, Colors } from '../../constants/Theme';
 import { ErrorState } from '../../components/ui/ErrorState';
 
-const STATUS_STEPS: { status: OrderStatus; label: string; icon: keyof typeof Ionicons.glyphMap }[] = [
-  { status: 'CONFIRMED', label: 'Confirmed', icon: 'checkmark-circle' },
-  { status: 'PREPARING', label: 'Preparing', icon: 'flame' },
-  { status: 'OUT_FOR_DELIVERY', label: 'On The Way', icon: 'bicycle' },
-  { status: 'DELIVERED', label: 'Delivered', icon: 'home' },
+const STATUS_STEPS = [
+  { status: 'ACCEPTED', label: 'Accepted', icon: 'checkmark-circle' as const },
+  { status: 'PREPARING', label: 'Preparing', icon: 'flame' as const },
+  { status: 'PICKED_UP', label: 'On The Way', icon: 'bicycle' as const },
+  { status: 'DELIVERED', label: 'Delivered', icon: 'home' as const },
 ];
 
 export default function OrderDetailsScreen() {
@@ -56,8 +56,7 @@ export default function OrderDetailsScreen() {
   }, [fetchOrderDetails]);
 
   useEffect(() => {
-    // Only connect socket if the order is active and we are viewing it
-    const isFinished = !order || ['DELIVERED', 'CANCELLED', 'REFUNDED'].includes(
+    const isFinished = !order || ['DELIVERED', 'CANCELLED', 'REFUNDED', 'REJECTED', 'EXPIRED'].includes(
       (order.status || (order as any).orderStatus || '').toString().toUpperCase()
     );
     if (!isFinished && order) {
@@ -114,17 +113,24 @@ export default function OrderDetailsScreen() {
     );
   }
 
-  // Display status from socket if it's the active order, else fallback to API fetched order
-  const displayStatus = (activeOrder && activeOrder._id === order._id) ? activeOrder.status : order.status;
+  const rawDisplayStatus = (activeOrder && activeOrder._id === order._id) 
+    ? (activeOrder.status || (activeOrder as any).orderStatus) 
+    : (order.status || (order as any).orderStatus);
+  const displayStatus = (rawDisplayStatus || 'PENDING').toString().toUpperCase();
 
-  const getStepIndex = (status: OrderStatus) => {
+  const getStepIndex = (status: string) => {
     switch (status) {
+      case 'PAYMENT_PENDING':
+      case 'PLACED':
       case 'PENDING':
       case 'CONFIRMED':
+      case 'ACCEPTED':
         return 0;
       case 'PREPARING':
+      case 'READY':
       case 'READY_FOR_PICKUP':
         return 1;
+      case 'PICKED_UP':
       case 'OUT_FOR_DELIVERY':
         return 2;
       case 'DELIVERED':
@@ -135,12 +141,14 @@ export default function OrderDetailsScreen() {
   };
 
   const currentStep = getStepIndex(displayStatus);
-  const isCancelled = displayStatus === 'CANCELLED';
-  const restName =
-    (typeof (order as any).restaurant === 'object' && (order as any).restaurant !== null && (order as any).restaurant.name)
+  const isCancelled = ['CANCELLED', 'REJECTED', 'EXPIRED'].includes(displayStatus);
+  const isGroceryOrder = (order as any).vertical === 'grocery' || (order as any).orderType === 'grocery';
+  const restName = isGroceryOrder
+    ? 'Ftafat Fresh Grocery Mart'
+    : (typeof (order as any).restaurant === 'object' && (order as any).restaurant !== null && (order as any).restaurant.name)
+    || (typeof (order as any).vendor === 'object' && (order as any).vendor !== null && (order as any).vendor.name)
     || (typeof order.restaurantId === 'object' && order.restaurantId !== null && (order.restaurantId as any).name)
-    || (typeof (order as any).restaurantName === 'string' ? (order as any).restaurantName : null)
-    || 'Partner Restaurant';
+    || 'Partner Store';
 
   return (
     <SafeAreaView style={styles.safeArea}>
@@ -174,14 +182,14 @@ export default function OrderDetailsScreen() {
               })}
             </View>
 
-            {riderLocation && activeOrder?._id === order._id && displayStatus === 'OUT_FOR_DELIVERY' && (
+            {riderLocation && activeOrder?._id === order._id && ['OUT_FOR_DELIVERY', 'PICKED_UP'].includes(displayStatus) && (
               <View style={styles.riderAlertBox}>
                 <Ionicons name="navigate" size={16} color={Colors.primary} style={{ marginRight: 6 }} />
                 <Text style={styles.riderAlertText}>Delivery partner is arriving soon!</Text>
               </View>
             )}
 
-            {['PENDING', 'CONFIRMED'].includes(displayStatus) && (
+            {['PENDING', 'CONFIRMED', 'PLACED', 'ACCEPTED'].includes(displayStatus) && (
               <TouchableOpacity onPress={handleCancelOrder} style={styles.cancelButton}>
                 <Text style={styles.cancelButtonText}>Cancel Order</Text>
               </TouchableOpacity>
@@ -197,9 +205,9 @@ export default function OrderDetailsScreen() {
           </View>
         )}
 
-        {/* Restaurant Info */}
+        {/* Vendor / Restaurant Info */}
         <View style={styles.card}>
-          <Text style={styles.cardHeading}>RESTAURANT</Text>
+          <Text style={styles.cardHeading}>{isGroceryOrder ? 'GROCERY STORE' : 'RESTAURANT'}</Text>
           <Text style={styles.restaurantName}>{restName}</Text>
           <Text style={styles.dateText}>{new Date(order.createdAt).toLocaleString()}</Text>
         </View>
@@ -225,7 +233,9 @@ export default function OrderDetailsScreen() {
                   </View>
                   <Text style={styles.itemQuantity}>Qty: {item.quantity}</Text>
                 </View>
-                <Text style={styles.itemPrice}>{formatPaise(item.price * item.quantity)}</Text>
+                <Text style={styles.itemPrice}>
+                  {formatPaise(item.totalItemPrice || (item.price * item.quantity))}
+                </Text>
               </View>
             );
           })}
@@ -236,24 +246,34 @@ export default function OrderDetailsScreen() {
           <Text style={styles.cardHeading}>BILL DETAILS</Text>
           <View style={styles.billRow}>
             <Text style={styles.billLabel}>Item Total</Text>
-            <Text style={styles.billValue}>{formatPaise(order.pricing?.itemsTotal ?? (order as any).subtotal ?? 0)}</Text>
+            <Text style={styles.billValue}>
+              {formatPaise(order.pricing?.itemsTotal ?? (order as any).pricing?.itemsPaise ?? (order as any).subtotal ?? 0)}
+            </Text>
           </View>
           <View style={styles.billRow}>
             <Text style={styles.billLabel}>Delivery Fee</Text>
-            <Text style={styles.billValue}>{formatPaise(order.pricing?.deliveryFee ?? (order as any).deliveryFee ?? 0)}</Text>
+            <Text style={styles.billValue}>
+              {formatPaise(order.pricing?.deliveryFee ?? (order as any).pricing?.deliveryPaise ?? (order as any).deliveryFee ?? 0)}
+            </Text>
           </View>
           <View style={styles.billRow}>
             <Text style={styles.billLabel}>Taxes & GST</Text>
-            <Text style={styles.billValue}>{formatPaise(order.pricing?.gstAndTaxes ?? (order as any).taxAmount ?? 0)}</Text>
+            <Text style={styles.billValue}>
+              {formatPaise(order.pricing?.gstAndTaxes ?? (order as any).pricing?.taxPaise ?? (order as any).taxAmount ?? 0)}
+            </Text>
           </View>
           <View style={styles.billRow}>
             <Text style={styles.billLabel}>Platform Fee</Text>
-            <Text style={styles.billValue}>{formatPaise(order.pricing?.platformFee ?? 500)}</Text>
+            <Text style={styles.billValue}>
+              {formatPaise(order.pricing?.platformFee ?? (order as any).pricing?.packagingPaise ?? 500)}
+            </Text>
           </View>
           <View style={styles.divider} />
           <View style={styles.grandTotalRow}>
             <Text style={styles.grandTotalLabel}>Total Paid</Text>
-            <Text style={styles.grandTotalValue}>{formatPaise(order.pricing?.totalAmount ?? (order as any).totalAmount ?? 0)}</Text>
+            <Text style={styles.grandTotalValue}>
+              {formatPaise(order.pricing?.totalAmount ?? (order as any).pricing?.totalPaise ?? (order as any).totalAmount ?? 0)}
+            </Text>
           </View>
         </View>
 
@@ -263,7 +283,9 @@ export default function OrderDetailsScreen() {
             <Text style={styles.cardHeading}>DELIVERY DETAILS</Text>
             <View style={styles.addressBox}>
               <Text style={styles.addressType}>{order.deliveryAddress.label || 'Home'}</Text>
-              <Text style={styles.addressStreet}>{order.deliveryAddress.line1}, {order.deliveryAddress.city} - {order.deliveryAddress.pincode}</Text>
+              <Text style={styles.addressStreet}>
+                {order.deliveryAddress.line1 || (order.deliveryAddress as any).street}, {order.deliveryAddress.city} - {order.deliveryAddress.pincode}
+              </Text>
             </View>
           </View>
         )}

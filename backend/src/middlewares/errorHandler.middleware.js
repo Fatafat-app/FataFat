@@ -57,6 +57,7 @@ function errorHandler(err, req, res, _next) {
       code: error.code,
       statusCode: error.statusCode,
       url: req.originalUrl,
+      errors: error.errors || error.details,
     });
   }
 

@@ -26,6 +26,7 @@ import { Address, PaymentMethod } from '../../types';
 import { Typography, Colors } from '../../constants/Theme';
 import { EmptyState } from '../../components/ui/EmptyState';
 import { useGroceryStore } from '../../store/grocery.store';
+import { useConfigStore } from '../../store/config.store';
 import { GroceryCart } from '../../components/grocery/GroceryCart';
 
 export default function CartScreen() {
@@ -33,7 +34,29 @@ export default function CartScreen() {
   const groceryCart = useGroceryStore((state) => state.cart);
   const foodItems = useCartStore((state) => state.items);
 
-  if (activeSection === 'grocery' || (groceryCart.length > 0 && foodItems.length === 0)) {
+  const isFoodAvailable = useConfigStore((state) => state.isVerticalAvailable('food'));
+  const foodMode = useConfigStore((state) => state.config?.verticals?.food?.mode || 'ON');
+  const isFoodEnabled = isFoodAvailable && foodMode !== 'OFF';
+
+  const isGroceryAvailable = useConfigStore((state) => state.isVerticalAvailable('grocery'));
+  const groceryMode = useConfigStore((state) => state.config?.verticals?.grocery?.mode || 'ON');
+  const isGroceryEnabled = isGroceryAvailable && groceryMode !== 'OFF';
+
+  if (!isFoodEnabled && !isGroceryEnabled) {
+    return (
+      <SafeAreaView style={{ flex: 1, backgroundColor: '#FFFFFF', alignItems: 'center', justifyContent: 'center', padding: 24 }}>
+        <View style={{ width: 72, height: 72, borderRadius: 36, backgroundColor: '#FEF2F2', alignItems: 'center', justifyContent: 'center', marginBottom: 16 }}>
+          <Ionicons name="cloud-offline" size={36} color="#DC2626" />
+        </View>
+        <Text style={{ fontFamily: BOLD_FONT, fontSize: 18, color: '#1E293B', textAlign: 'center' }}>Ordering Currently Offline</Text>
+        <Text style={{ fontFamily: STYLISH_FONT, fontSize: 13, color: '#64748B', textAlign: 'center', marginTop: 6 }}>
+          Deliveries are temporarily paused. We'll be back shortly!
+        </Text>
+      </SafeAreaView>
+    );
+  }
+
+  if (isGroceryEnabled && (!isFoodEnabled || activeSection === 'grocery' || (groceryCart.length > 0 && foodItems.length === 0))) {
     return <GroceryCart />;
   }
 
@@ -58,9 +81,8 @@ function FoodCartContent() {
     fetchFeeConfig,
   } = useCartStore();
 
-  const user = useAuthStore((state) => state.user);
-  const selectedAddress = useLocationStore((state) => state.selectedAddress);
-  const setSelectedAddress = useLocationStore((state) => state.setSelectedAddress);
+  const { user, isAuthenticated } = useAuthStore();
+  const { locationTitle, locationSubtitle, selectedAddress, setSelectedAddress } = useLocationStore();
   const setActiveOrder = useOrderTrackingStore((state) => state.setActiveOrder);
 
   const [addresses, setAddresses] = useState<Address[]>([]);
@@ -101,8 +123,10 @@ function FoodCartContent() {
         setLoadingAddresses(false);
       }
     };
-    fetchUserAddresses();
-  }, []);
+    if (isAuthenticated) {
+      fetchUserAddresses();
+    }
+  }, [isAuthenticated]);
 
   const itemsTotal = getItemsTotal();
   const deliveryFee = getDeliveryFee();
@@ -119,13 +143,39 @@ function FoodCartContent() {
       return;
     }
 
+    // 1. Enforce Authentication
+    if (!isAuthenticated || !user) {
+      Alert.alert(
+        'Login Required',
+        'Please login to place your food order.',
+        [
+          { text: 'Cancel', style: 'cancel' },
+          { text: 'Login Now', onPress: () => router.push('/(auth)/login') },
+        ]
+      );
+      return;
+    }
+
+    // 2. Enforce Valid Address
+    if (!selectedAddress || (!selectedAddress.line1 && !(selectedAddress as any).street)) {
+      Alert.alert(
+        'Address Required',
+        'Please select or add a delivery address to continue.',
+        [
+          { text: 'Cancel', style: 'cancel' },
+          { text: 'Select Address', onPress: () => router.push('/address') },
+        ]
+      );
+      return;
+    }
+
     const addressToUse = {
-      line1: selectedAddress?.line1 || (selectedAddress as any)?.street || 'Flat 402, Sunshine Heights, Connaught Place',
-      line2: selectedAddress?.line2 || '',
-      city: selectedAddress?.city || 'New Delhi',
-      state: selectedAddress?.state || 'Delhi',
-      pincode: selectedAddress?.pincode || '110001',
-      location: selectedAddress?.location || { type: 'Point', coordinates: [77.2090, 28.6139] },
+      line1: selectedAddress.line1 || (selectedAddress as any)?.street || 'Main Road',
+      line2: selectedAddress.line2 || '',
+      city: selectedAddress.city || 'New Delhi',
+      state: selectedAddress.state || 'Delhi',
+      pincode: selectedAddress.pincode || '110001',
+      location: selectedAddress.location || { type: 'Point', coordinates: [77.2090, 28.6139] },
     };
 
     try {
@@ -270,23 +320,29 @@ function FoodCartContent() {
             </TouchableOpacity>
           </View>
 
-          {selectedAddress ? (
-            <View style={styles.addressBox}>
-              <Text style={styles.addressType}>
-                {(selectedAddress.label || (selectedAddress as any).type || 'Delivery Address')} • {user?.name || 'Customer'}
-              </Text>
-              <Text style={styles.addressStreet}>
-                {selectedAddress.line1 || (selectedAddress as any)?.street}
-                {selectedAddress.line2 ? `, ${selectedAddress.line2}` : ''}, {selectedAddress.city} -{' '}
-                {selectedAddress.pincode}
-              </Text>
-            </View>
-          ) : (
-            <View style={styles.addressBox}>
-              <Text style={styles.addressType}>Default Location</Text>
-              <Text style={styles.addressStreet}>Flat 402, Sunshine Heights, Connaught Place, New Delhi - 110001</Text>
-            </View>
-          )}
+          <TouchableOpacity
+            style={styles.addressBox}
+            onPress={() => router.push('/address')}
+            activeOpacity={0.8}
+          >
+            {selectedAddress ? (
+              <>
+                <Text style={styles.addressType}>
+                  {(selectedAddress.label || (selectedAddress as any).type || 'Delivery Address')} • {user?.name || 'Customer'}
+                </Text>
+                <Text style={styles.addressStreet}>
+                  {selectedAddress.line1 || (selectedAddress as any)?.street}
+                  {selectedAddress.line2 ? `, ${selectedAddress.line2}` : ''}, {selectedAddress.city} -{' '}
+                  {selectedAddress.pincode}
+                </Text>
+              </>
+            ) : (
+              <>
+                <Text style={styles.addressType}>{locationTitle || 'Current Location'}</Text>
+                <Text style={styles.addressStreet}>{locationSubtitle || 'Tap to select or add delivery address'}</Text>
+              </>
+            )}
+          </TouchableOpacity>
 
           <TextInput
             value={deliveryInstructions}

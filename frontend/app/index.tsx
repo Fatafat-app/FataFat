@@ -2,6 +2,8 @@ import React, { useEffect, useRef, useState } from 'react';
 import { View, Image, StyleSheet, Animated, Dimensions, Text, Platform } from 'react-native';
 import { Redirect } from 'expo-router';
 import { useAuthStore } from '../store/auth.store';
+import { useConfigStore } from '../store/config.store';
+import { socketService } from '../services/socket.service';
 
 const { width } = Dimensions.get('window');
 
@@ -20,6 +22,7 @@ const randomTagline = TAGLINES[Math.floor(Math.random() * TAGLINES.length)];
 
 export default function Index() {
   const { user, isAuthenticated, isLoading } = useAuthStore();
+  const { fetchBootstrap } = useConfigStore();
   const [showSplash, setShowSplash] = useState(true);
 
   const logoScale    = useRef(new Animated.Value(0.3)).current;
@@ -28,6 +31,12 @@ export default function Index() {
   const containerOpacity = useRef(new Animated.Value(1)).current;
 
   useEffect(() => {
+    // 1. Fetch live system configuration & vertical statuses
+    fetchBootstrap();
+
+    // 2. Initialize live socket connection
+    socketService.connect().catch(() => {});
+
     Animated.sequence([
       // Logo bounce in
       Animated.parallel([
@@ -74,16 +83,25 @@ export default function Index() {
   }
 
   if (!isAuthenticated || !user) return <Redirect href="/(auth)/login" />;
-  if (user.role === 'admin') return <Redirect href="/(admin)/dashboard" />;
-  if (user.role === 'restaurant_owner') return <Redirect href="/(owner)/dashboard" />;
-  if (user.role === 'delivery_partner') return <Redirect href="/(rider)/dashboard" />;
+  
+  const role = user.role;
+  if (['admin', 'super_admin', 'ops_admin', 'catalog_admin', 'finance_admin', 'support_admin'].includes(role)) {
+    return <Redirect href="/(admin)/dashboard" />;
+  }
+  if (['restaurant_owner', 'merchant_owner', 'merchant_staff'].includes(role)) {
+    return <Redirect href="/(owner)/dashboard" />;
+  }
+  if (['delivery_partner', 'rider'].includes(role)) {
+    return <Redirect href="/(rider)/dashboard" />;
+  }
+  
   return <Redirect href="/(tabs)" />;
 }
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#FDF2E3', // Same as login screen — logo is perfectly visible here
+    backgroundColor: '#FDF2E3',
     alignItems: 'center',
     justifyContent: 'center',
     overflow: 'hidden',
@@ -115,15 +133,11 @@ const styles = StyleSheet.create({
     bottom: width * 0.15,
     right: width * 0.05,
   },
-
-  // Logo — transparent PNG, wide landscape format
   logoImage: {
     width: width * 0.78,
     height: width * 0.28,
     marginBottom: 40,
   },
-
-  // Text block
   textBlock: {
     alignItems: 'center',
     paddingHorizontal: 32,
@@ -131,7 +145,7 @@ const styles = StyleSheet.create({
   tagline: {
     fontFamily: BOLD_FONT,
     fontSize: 17,
-    color: '#7C3500',   // Dark warm brown — perfect on cream bg
+    color: '#7C3500',
     textAlign: 'center',
     lineHeight: 26,
     letterSpacing: 0.2,

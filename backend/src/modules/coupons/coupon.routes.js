@@ -38,4 +38,13 @@ router.patch('/:id/toggle', authenticate, requireRole(ROLES.ADMIN), async (req, 
   success(res, { coupon }, `Coupon ${coupon.isActive ? 'activated' : 'deactivated'}`);
 });
 
+router.delete('/:id', authenticate, requireRole(ROLES.ADMIN), async (req, res) => {
+  const coupon = await Coupon.findByIdAndDelete(req.params.id);
+  if (!coupon) {
+    return res.status(404).json({ success: false, message: 'Coupon not found' });
+  }
+  success(res, { coupon }, 'Coupon deleted successfully');
+});
+
 module.exports = router;
+

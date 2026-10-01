@@ -21,22 +21,22 @@ function initSocket(httpServer) {
     try {
       const { createAdapter } = require('@socket.io/redis-adapter');
       const Redis = require('ioredis');
-      const redisOptions = {
+      const redisOptions = env.redis.url || {
         host: env.redis.host,
         port: env.redis.port,
         password: env.redis.password || undefined,
         maxRetriesPerRequest: null,
         enableReadyCheck: false,
-        retryStrategy: () => null // no retries, fail fast
+        retryStrategy: () => null,
       };
-      const pubClient = new Redis(redisOptions);
+      const pubClient = typeof redisOptions === 'string' ? new Redis(redisOptions) : new Redis(redisOptions);
       const subClient = pubClient.duplicate();
       
       pubClient.on('error', () => {});
       subClient.on('error', () => {});
 
       io.adapter(createAdapter(pubClient, subClient));
-      logger.info('[Socket.IO] Initialised with Redis adapter');
+      logger.info('[Socket.IO] Initialised with Redis Cloud adapter 🚀');
     } catch (e) {
       logger.warn('[Socket.IO] Redis adapter failed, falling back to memory adapter');
     }

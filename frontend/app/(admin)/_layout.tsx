@@ -12,7 +12,8 @@ export default function AdminLayout() {
     return <Redirect href="/(auth)/login" />;
   }
   
-  if (!isLoading && user?.role !== 'admin') {
+  const adminRoles = ['admin', 'super_admin', 'ops_admin', 'catalog_admin', 'finance_admin', 'support_admin'];
+  if (!isLoading && (!user || !adminRoles.includes(user.role))) {
     return <Redirect href="/(tabs)" />;
   }
 
@@ -21,7 +22,7 @@ export default function AdminLayout() {
       screenOptions={{
         headerShown: false,
         tabBarStyle: styles.tabBar,
-        tabBarActiveTintColor: '#4F46E5', // Admin specific theme color
+        tabBarActiveTintColor: '#4F46E5',
         tabBarInactiveTintColor: Colors.textSecondary,
         tabBarLabelStyle: styles.tabLabel,
       }}
@@ -29,18 +30,18 @@ export default function AdminLayout() {
       <Tabs.Screen
         name="dashboard"
         options={{
-          title: 'KPIs',
+          title: 'Overview',
           tabBarIcon: ({ color, focused }) => (
             <Ionicons name={focused ? 'grid' : 'grid-outline'} size={22} color={color} />
           ),
         }}
       />
       <Tabs.Screen
-        name="users"
+        name="orders"
         options={{
-          title: 'Users',
+          title: 'Live Orders',
           tabBarIcon: ({ color, focused }) => (
-            <Ionicons name={focused ? 'people' : 'people-outline'} size={22} color={color} />
+            <Ionicons name={focused ? 'receipt' : 'receipt-outline'} size={22} color={color} />
           ),
         }}
       />
@@ -54,41 +55,31 @@ export default function AdminLayout() {
         }}
       />
       <Tabs.Screen
-        name="categories"
-        options={{
-          title: 'Categories',
-          tabBarIcon: ({ color, focused }) => (
-            <Ionicons name={focused ? 'fast-food' : 'fast-food-outline'} size={22} color={color} />
-          ),
-        }}
-      />
-      <Tabs.Screen
         name="fees"
         options={{
           title: 'Fees & Tax',
           tabBarIcon: ({ color, focused }) => (
-            <Ionicons name={focused ? 'card' : 'card-outline'} size={22} color={color} />
+            <Ionicons name={focused ? 'wallet' : 'wallet-outline'} size={22} color={color} />
           ),
         }}
       />
       <Tabs.Screen
-        name="notifications"
+        name="flags"
         options={{
-          title: 'Broadcast',
+          title: 'Controls',
           tabBarIcon: ({ color, focused }) => (
-            <Ionicons name={focused ? 'paper-plane' : 'paper-plane-outline'} size={22} color={color} />
+            <Ionicons name={focused ? 'options' : 'options-outline'} size={22} color={color} />
           ),
         }}
       />
-      <Tabs.Screen
-        name="audit"
-        options={{
-          title: 'Audit',
-          tabBarIcon: ({ color, focused }) => (
-            <Ionicons name={focused ? 'shield-checkmark' : 'shield-checkmark-outline'} size={22} color={color} />
-          ),
-        }}
-      />
+
+      {/* Secondary Screens Navigable via Dashboard Launchpad */}
+      <Tabs.Screen name="grocery-products" options={{ href: null, title: 'Grocery Catalog' }} />
+      <Tabs.Screen name="users" options={{ href: null, title: 'Users' }} />
+      <Tabs.Screen name="categories" options={{ href: null, title: 'Categories' }} />
+      <Tabs.Screen name="coupons" options={{ href: null, title: 'Coupons' }} />
+      <Tabs.Screen name="notifications" options={{ href: null, title: 'Broadcast' }} />
+      <Tabs.Screen name="audit" options={{ href: null, title: 'Audit' }} />
     </Tabs>
   );
 }

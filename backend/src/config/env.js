@@ -56,6 +56,7 @@ const env = {
     host: process.env.REDIS_HOST,
     port: parseInt(process.env.REDIS_PORT, 10),
     password: process.env.REDIS_PASSWORD || undefined,
+    url: process.env.REDIS_URL || undefined,
   },
   jwt: {
     accessSecret: process.env.JWT_ACCESS_SECRET,

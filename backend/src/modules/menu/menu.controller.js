@@ -30,9 +30,28 @@ async function updateItem(req, res) {
   success(res, { item }, 'Item updated');
 }
 
+async function deleteItem(req, res) {
+  await menuService.deleteMenuItem(req.params.itemId, req.params.restaurantId);
+  success(res, null, 'Menu item deleted');
+}
+
 async function toggleAvailability(req, res) {
   const item = await menuService.toggleItemAvailability(req.params.itemId, req.params.restaurantId);
   success(res, { isAvailable: item.isAvailable }, item.isAvailable ? 'Item marked available' : 'Item marked unavailable');
 }
 
-module.exports = { getMenu, addCategory, updateCategory, addItem, updateItem, toggleAvailability };
+async function deleteCategory(req, res) {
+  await menuService.deleteCategory(req.params.categoryId, req.params.restaurantId);
+  success(res, null, 'Category deleted');
+}
+
+module.exports = {
+  getMenu,
+  addCategory,
+  updateCategory,
+  deleteCategory,
+  addItem,
+  updateItem,
+  deleteItem,
+  toggleAvailability,
+};

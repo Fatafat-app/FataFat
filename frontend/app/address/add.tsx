@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, Text, ScrollView, TouchableOpacity, TextInput, Alert, StyleSheet, ActivityIndicator } from 'react-native';
+import { View, Text, ScrollView, TouchableOpacity, TextInput, Alert, StyleSheet, ActivityIndicator, Linking } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
@@ -24,15 +24,28 @@ export default function AddAddressScreen() {
   const handleUseCurrentLocation = async () => {
     try {
       setDetectingGps(true);
-      const { status } = await Location.requestForegroundPermissionsAsync();
-      if (status !== 'granted') {
-        Alert.alert('Permission Denied', 'Please grant GPS permission to detect your current location.');
+      let perm = await Location.getForegroundPermissionsAsync();
+      if (perm.status !== 'granted') {
+        perm = await Location.requestForegroundPermissionsAsync();
+      }
+      if (perm.status !== 'granted') {
+        Alert.alert(
+          'Permission Required',
+          'Please grant GPS permission to detect your current location.',
+          [
+            { text: 'Cancel', style: 'cancel' },
+            { text: 'Open Settings', onPress: () => Linking.openSettings() },
+          ]
+        );
         return;
       }
 
-      const position = await Location.getCurrentPositionAsync({
-        accuracy: Location.Accuracy.Balanced,
-      });
+      let position = await Location.getLastKnownPositionAsync();
+      if (!position) {
+        position = await Location.getCurrentPositionAsync({
+          accuracy: Location.Accuracy.Balanced,
+        });
+      }
 
       const coords = position.coords;
       setCoordinates([coords.longitude, coords.latitude]);
@@ -127,7 +140,7 @@ export default function AddAddressScreen() {
           )}
           <View style={{ flex: 1 }}>
             <Text style={styles.gpsButtonTitle}>
-              {detectingGps ? 'Detecting Your Location...' : 'Use Current GPS Location'}
+              {detectingGps ? 'Detecting Your Location...' : 'Use Current Location'}
             </Text>
             <Text style={styles.gpsButtonSubtitle}>Auto-fills address, city & pincode</Text>
           </View>
