@@ -15,9 +15,7 @@
       "permissions": [
         "ACCESS_COARSE_LOCATION",
         "ACCESS_FINE_LOCATION",
-        "FOREGROUND_SERVICE",
-        "android.permission.ACCESS_COARSE_LOCATION",
-        "android.permission.ACCESS_FINE_LOCATION"
+        "FOREGROUND_SERVICE"
       ],
       "adaptiveIcon": {
         "backgroundColor": "#E6F4FE",
@@ -47,7 +45,8 @@
           "locationAlwaysAndWhenInUsePermission": "Allow Ftafat to access your location to show nearby restaurants, stores and deliver orders."
         }
       ],
-      "@react-native-google-signin/google-signin"
+      "@react-native-google-signin/google-signin",
+      "expo-secure-store"
     ],
     "experiments": {
       "typedRoutes": true,

@@ -92,7 +92,7 @@ export default function HomeScreen() {
   const user = useAuthStore((state) => state.user);
   const cartCount = useCartStore((state) => state.items.reduce((s, i) => s + i.quantity, 0));
   const unreadNotifications = useNotificationStore((state) => state.unreadCount);
-  const { locationTitle, locationSubtitle, isDetectingLocation, detectCurrentLocation, currentLocation, selectedAddress } = useLocationStore();
+  const { locationTitle, locationSubtitle, isDetectingLocation, detectCurrentLocation, currentLocation, selectedAddress, activeCity } = useLocationStore();
   const insets = useSafeAreaInsets();
   const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
@@ -1150,7 +1150,7 @@ const styles = StyleSheet.create({
     alignItems: 'flex-start',
     width: '100%',
   },
-  locationPill: {
+  legacyLocationPill: {
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: '#FFFFFF',
