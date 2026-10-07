@@ -18,9 +18,10 @@ function validate(schema) {
     const result = validationSchema.safeParse(target);
 
     if (!result.success) {
-      const errors = result.error.errors.map((e) => ({
-        field: e.path.join('.'),
-        message: e.message,
+      const issues = result.error?.issues || result.error?.errors || [];
+      const errors = issues.map((e) => ({
+        field: Array.isArray(e.path) ? e.path.join('.') : String(e.path || ''),
+        message: e.message || 'Invalid value',
       }));
       throw new ValidationError('Validation failed', errors);
     }

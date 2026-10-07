@@ -29,16 +29,17 @@ async function login(req, res) {
 async function sendOtp(req, res) {
   const result = await authService.sendOtp(req.body.phone);
 
-  const data = env.node.isDevelopment ? result : {};
+  // In dev: result has { otp, isNewUser }; in prod: { isNewUser }
+  const data = env.node.isDevelopment ? result : { isNewUser: result.isNewUser };
   success(res, data, 'OTP sent successfully');
 }
 
 async function verifyOtp(req, res) {
   const { phone, otp } = req.body;
-  const { accessToken, refreshToken, user } = await authService.verifyOtpAndLogin({ phone, otp });
+  const { accessToken, refreshToken, user, isNewUser } = await authService.verifyOtpAndLogin({ phone, otp });
 
   res.cookie('refreshToken', refreshToken, REFRESH_COOKIE_OPTIONS);
-  success(res, { accessToken, refreshToken, user }, 'OTP verified. Login successful');
+  success(res, { accessToken, refreshToken, user, isNewUser }, 'OTP verified. Login successful');
 }
 
 async function refresh(req, res) {

@@ -12,6 +12,7 @@ router.use(authenticate);
 
 router.get('/me', controller.getMe);
 router.patch('/me', controller.updateMe);
+router.put('/me', controller.updateMe);
 router.delete('/me', controller.deleteMe);
 router.post('/me/avatar', upload.single('avatar'), controller.uploadAvatar);
 

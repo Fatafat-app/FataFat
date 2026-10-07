@@ -16,6 +16,7 @@ const {
 } = require('../../common/errors');
 const ERROR_CODES = require('../../common/constants/errorCodes');
 const ROLES = require('../../common/constants/roles');
+const logger = require('../../config/logger');
 
 const BCRYPT_COST = 12;
 
@@ -96,18 +97,28 @@ async function loginWithPassword({ phone, password }) {
 }
 
 async function sendOtp(phone) {
-  const user = await User.findOne({ phone });
-  if (!user) {
-    throw new NotFoundError('No account found with this phone number');
+  let user = await User.findOne({ phone });
+  const isNewUser = !user;
+
+  if (isNewUser) {
+    // Auto-register new user with phone only; name will be set in onboarding
+    user = await User.create({
+      name: 'Ftafat User',
+      phone,
+      role: ROLES.CUSTOMER,
+      isVerified: false,
+      authProvider: 'phone',
+    });
+    logger.info('[Auth] New user auto-registered via OTP', { phone });
   }
 
   const otp = await otpService.generateAndStoreOtp(phone);
 
   if (!env.node.isProduction) {
-    return { otp };
+    return { otp, isNewUser };
   }
 
-  return {};
+  return { isNewUser };
 }
 
 async function verifyOtpAndLogin({ phone, otp }) {
@@ -120,11 +131,15 @@ async function verifyOtpAndLogin({ phone, otp }) {
     throw new BusinessError('Account is deactivated.', ERROR_CODES.ACCOUNT_INACTIVE);
   }
 
+  const isNewUser = !user.isVerified;
+
   if (!user.isVerified) {
     user.isVerified = true;
+    await user.save();
   }
 
-  return issueTokenPair(user);
+  const tokenData = await issueTokenPair(user);
+  return { ...tokenData, isNewUser };
 }
 
 async function refreshAccessToken(incomingRefreshToken) {

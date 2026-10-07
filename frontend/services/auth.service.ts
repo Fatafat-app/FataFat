@@ -44,16 +44,18 @@ export const authService = {
 
   /**
    * Request OTP sent to phone number
+   * Returns isNewUser=true if number was not registered before
    */
-  async sendOtp(payload: SendOtpPayload): Promise<{ message: string; otp?: string }> {
-    const response = await api.post<ApiResponse<{ message: string; otp?: string }>>('/auth/otp/send', payload);
+  async sendOtp(payload: SendOtpPayload): Promise<{ message: string; otp?: string; isNewUser?: boolean }> {
+    const response = await api.post<ApiResponse<{ message: string; otp?: string; isNewUser?: boolean }>>('/auth/otp/send', payload);
     return response.data.data;
   },
 
   /**
    * Verify OTP and receive auth tokens
+   * Returns isNewUser=true for newly registered users (redirect to onboarding)
    */
-  async verifyOtp(payload: VerifyOtpPayload): Promise<AuthResponseData> {
+  async verifyOtp(payload: VerifyOtpPayload): Promise<AuthResponseData & { isNewUser?: boolean }> {
     const response = await api.post<ApiResponse<any>>('/auth/otp/verify', payload);
     const data = response.data.data;
     const { accessToken, refreshToken } = extractTokens(data);

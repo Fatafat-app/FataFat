@@ -5,28 +5,33 @@ import { Platform } from 'react-native';
 
 export function getApiBaseUrl(): string {
   const envUrl = process.env.EXPO_PUBLIC_API_URL;
+
+  // Use envUrl only if it's a real remote URL (not localhost)
+  // For localhost, fall through to hostUri so physical phones get the PC's LAN IP
   if (envUrl && !envUrl.includes('localhost')) {
     return envUrl;
   }
 
-  // If running in Expo Go or dev client on a physical phone or simulator
+  // Expo provides the PC's actual LAN IP via hostUri (e.g. "192.168.1.5:8081")
+  // Physical phones use this to reach the local backend
   const hostUri = Constants.expoConfig?.hostUri;
   if (hostUri) {
     const ip = hostUri.split(':')[0];
     return `http://${ip}:3000/api/v1`;
   }
 
-  // Android Emulator fallback when not through hostUri
+  // Android Emulator fallback
   if (Platform.OS === 'android') {
     return 'http://10.0.2.2:3000/api/v1';
   }
 
-  // Web / iOS Simulator / default
   return envUrl || 'http://localhost:3000/api/v1';
 }
 
 export function getSocketUrl(): string {
   const envUrl = process.env.EXPO_PUBLIC_SOCKET_URL;
+
+  // Use envUrl only if it's a real remote URL
   if (envUrl && !envUrl.includes('localhost')) {
     return envUrl;
   }

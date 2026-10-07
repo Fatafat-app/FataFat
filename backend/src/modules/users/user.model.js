@@ -54,7 +54,7 @@ const userSchema = new mongoose.Schema(
     googleId: { type: String, sparse: true, index: true },
     authProvider: {
       type: String,
-      enum: ['phone', 'google', 'email'],
+      enum: ['phone', 'google', 'email', 'otp'],
       default: 'phone',
     },
 
