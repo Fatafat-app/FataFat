@@ -89,10 +89,11 @@ const env = {
     ttlSeconds: parseInt(process.env.OTP_TTL_SECONDS || '300', 10),
     maxAttempts: parseInt(process.env.OTP_MAX_ATTEMPTS || '5', 10),
   },
-  messageCentral: {
-    customerId: process.env.MESSAGECENTRAL_CUSTOMER_ID || '',
-    authToken: process.env.MESSAGECENTRAL_AUTH_TOKEN || '',
-    baseUrl: process.env.MESSAGECENTRAL_BASE_URL || 'https://cpaas.messagecentral.com',
+  wakit: {
+    apiKey: process.env.WAKIT_API_KEY || '',
+    templateName: process.env.WAKIT_TEMPLATE_NAME || 'ftafat',
+    templateLang: process.env.WAKIT_TEMPLATE_LANG || 'en',
+    baseUrl: process.env.WAKIT_BASE_URL || 'https://wakit.in/api/v1',
   },
 };
 
