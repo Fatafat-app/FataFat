@@ -20,6 +20,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
 import * as WebBrowser from 'expo-web-browser';
 import * as Google from 'expo-auth-session/providers/google';
+import { makeRedirectUri } from 'expo-auth-session';
 import { useAuthStore } from '../../store/auth.store';
 import { authService } from '../../services/auth.service';
 import Animated, {
@@ -60,27 +61,39 @@ export default function LoginScreen() {
 
   const setUser = useAuthStore((state) => state.setUser);
 
-  const GOOGLE_CLIENT_ID = '392432738097-bs54bnjhhjg873ufvdgi2g84vsuoei3p.apps.googleusercontent.com';
+  const GOOGLE_WEB_CLIENT_ID = process.env.EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID || '392432738097-bs54bnjhhjg873ufvdgi2g84vsuoei3p.apps.googleusercontent.com';
+  const GOOGLE_ANDROID_CLIENT_ID = process.env.EXPO_PUBLIC_GOOGLE_ANDROID_CLIENT_ID;
+
+  // makeRedirectUri automatically generates the correct URI for both Expo Go and APK builds
+  const redirectUri = makeRedirectUri({
+    scheme: 'com.ftafat.app',
+    path: 'auth/google',
+  });
 
   // Expo Google Auth Request Hook
   const [request, response, promptAsync] = Google.useAuthRequest({
-    clientId: process.env.EXPO_PUBLIC_GOOGLE_CLIENT_ID || GOOGLE_CLIENT_ID,
-    webClientId: process.env.EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID || GOOGLE_CLIENT_ID,
-    androidClientId: process.env.EXPO_PUBLIC_GOOGLE_ANDROID_CLIENT_ID || GOOGLE_CLIENT_ID,
-    iosClientId: process.env.EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID || GOOGLE_CLIENT_ID,
-    redirectUri: 'https://auth.expo.io/@anonymous/frontend',
-    scopes: ['profile', 'email'],
+    clientId: GOOGLE_WEB_CLIENT_ID,
+    webClientId: GOOGLE_WEB_CLIENT_ID,
+    androidClientId: GOOGLE_ANDROID_CLIENT_ID || GOOGLE_WEB_CLIENT_ID,
+    redirectUri,
+    scopes: ['openid', 'profile', 'email'],
   });
 
   useEffect(() => {
     if (request?.redirectUri) {
       console.log('[Google Auth Redirect URI]:', request.redirectUri);
+      console.log('[Google Auth Client ID]:', request.clientId);
     }
   }, [request]);
 
   useEffect(() => {
     if (response?.type === 'success' && response.authentication) {
       handleGoogleAuthSuccess(response.authentication.accessToken, response.authentication.idToken);
+    } else if (response?.type === 'error') {
+      console.log('[Google Auth Error]:', response.error);
+      Alert.alert('Google Sign-In Failed', response.error?.message || 'Authentication was cancelled or failed. Please try again.');
+    } else if (response?.type === 'dismiss') {
+      console.log('[Google Auth Dismissed]');
     }
   }, [response]);
 
