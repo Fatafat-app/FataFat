@@ -6,47 +6,38 @@ const { generateOtp } = require('../../common/utils/generateOtp');
 const { BusinessError, UnauthorizedError } = require('../../common/errors');
 const ERROR_CODES = require('../../common/constants/errorCodes');
 const logger = require('../../config/logger');
-const {
-  sendOtpViaMessageCentral,
-  verifyOtpViaMessageCentral,
-} = require('../../integrations/messagecentral.client');
+const { sendOtpViaWakit } = require('../../integrations/wakit.client');
 
 const OTP_PREFIX = 'otp:';
-const MC_VID_PREFIX = 'mc_vid:';
 const ATTEMPT_PREFIX = 'otp_attempts:';
 
 async function generateAndStoreOtp(phone) {
-  const localOtp = generateOtp();
+  const otp = generateOtp();
   const key = `${OTP_PREFIX}${phone}`;
-  const mcKey = `${MC_VID_PREFIX}${phone}`;
 
-  await redis.set(key, localOtp, 'EX', env.otp.ttlSeconds);
+  await redis.set(key, otp, 'EX', env.otp.ttlSeconds);
   logger.debug('[OTP] Generated and stored locally', { phone, ttl: env.otp.ttlSeconds });
 
-  // Send via Message Central VerifyNow API
-  if (env.messageCentral.authToken && env.messageCentral.customerId) {
+  // Send via Wakit WhatsApp API
+  if (env.wakit.apiKey) {
     try {
-      const { verificationId } = await sendOtpViaMessageCentral(phone, 4);
-      if (verificationId) {
-        await redis.set(mcKey, verificationId, 'EX', env.otp.ttlSeconds);
-        logger.info('[OTP] SMS sent via Message Central VerifyNow', { phone, verificationId });
-      }
+      await sendOtpViaWakit(phone, otp);
+      logger.info('[OTP] WhatsApp OTP sent via Wakit', { phone });
     } catch (err) {
-      logger.warn('[OTP] Message Central send error', { phone, err: err.message });
+      logger.warn('[OTP] Wakit WhatsApp send error', { phone, err: err.message });
       if (env.node.isProduction) {
-        throw new BusinessError('Failed to send OTP via SMS. Please try again.', 'OTP_SEND_FAILED');
+        throw new BusinessError('Failed to send OTP via WhatsApp. Please try again.', 'OTP_SEND_FAILED');
       }
     }
   } else {
-    logger.warn('[OTP] Message Central credentials not configured — SMS skipped', { phone });
+    logger.warn('[OTP] Wakit API key not configured — WhatsApp message skipped', { phone });
   }
 
-  return localOtp;
+  return otp;
 }
 
 async function verifyOtp(phone, otp) {
   const key = `${OTP_PREFIX}${phone}`;
-  const mcKey = `${MC_VID_PREFIX}${phone}`;
   const attemptsKey = `${ATTEMPT_PREFIX}${phone}`;
 
   const attempts = parseInt((await redis.get(attemptsKey)) || '0', 10);
@@ -57,37 +48,23 @@ async function verifyOtp(phone, otp) {
     );
   }
 
-  let isVerified = false;
+  const storedOtp = await redis.get(key);
 
-  // 1. Try Message Central VerifyNow validation if verificationId is saved
-  const verificationId = await redis.get(mcKey);
-  if (verificationId && env.messageCentral.authToken) {
-    try {
-      isVerified = await verifyOtpViaMessageCentral(phone, otp, verificationId);
-    } catch (err) {
-      logger.warn('[OTP] Message Central verification call failed, trying local fallback', { err: err.message });
-    }
+  if (!storedOtp) {
+    throw new UnauthorizedError('OTP has expired. Please request a new one.', ERROR_CODES.OTP_EXPIRED);
   }
 
-  // 2. Fallback to local Redis OTP check (e.g. for development or if local OTP matches)
-  if (!isVerified) {
-    const storedOtp = await redis.get(key);
-    if (storedOtp && storedOtp === otp) {
-      isVerified = true;
-    }
-  }
-
-  if (!isVerified) {
+  if (storedOtp !== String(otp).trim()) {
     await redis.multi()
       .incr(attemptsKey)
       .expire(attemptsKey, env.otp.ttlSeconds)
       .exec();
 
-    throw new UnauthorizedError('Invalid or expired OTP', ERROR_CODES.INVALID_OTP);
+    throw new UnauthorizedError('Invalid OTP code', ERROR_CODES.INVALID_OTP);
   }
 
   // Cleanup on success
-  await redis.multi().del(key).del(mcKey).del(attemptsKey).exec();
+  await redis.multi().del(key).del(attemptsKey).exec();
   logger.info('[OTP] Verified successfully', { phone });
 
   return true;
@@ -95,7 +72,6 @@ async function verifyOtp(phone, otp) {
 
 async function invalidateOtp(phone) {
   await redis.del(`${OTP_PREFIX}${phone}`);
-  await redis.del(`${MC_VID_PREFIX}${phone}`);
   await redis.del(`${ATTEMPT_PREFIX}${phone}`);
 }
 
