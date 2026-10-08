@@ -1,0 +1,21 @@
+{
+  "name": "Ftafat - Fastest Food Delivery",
+  "short_name": "Ftafat",
+  "description": "Lightning-fast 10-minute food delivery from top local restaurants to your doorstep.",
+  "icons": [
+    {
+      "src": "/android-chrome-192x192.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "/android-chrome-512x512.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ],
+  "theme_color": "#c91820",
+  "background_color": "#ba161e",
+  "display": "standalone",
+  "start_url": "/"
+}
