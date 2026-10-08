@@ -24,7 +24,7 @@ import { Loading } from '../../components/ui/Loading';
 import { Colors, Typography, BOLD_FONT, STYLISH_FONT } from '../../constants/Theme';
 import { formatPaise } from '../../utils/formatters';
 
-const ORANGE = '#FF6000';
+const THEME_COLOR = '#0D9488'; // Main App Color (Teal)
 
 const formatDistance = (meters?: number) => {
   if (!meters) return '';
@@ -190,7 +190,7 @@ export default function SearchScreen() {
         </TouchableOpacity>
 
         <View style={styles.searchBar}>
-          <Ionicons name="search" size={20} color={ORANGE} style={styles.searchIcon} />
+          <Ionicons name="search" size={20} color={THEME_COLOR} style={styles.searchIcon} />
           <TextInput
             ref={searchInputRef}
             style={styles.searchInput}
@@ -205,7 +205,7 @@ export default function SearchScreen() {
           />
 
           {isTyping && (
-            <ActivityIndicator size="small" color={ORANGE} style={{ marginRight: 6 }} />
+            <ActivityIndicator size="small" color={THEME_COLOR} style={{ marginRight: 6 }} />
           )}
 
           {query.length > 0 && (
@@ -289,7 +289,7 @@ export default function SearchScreen() {
             </View>
 
             <View style={styles.searchTipBox}>
-              <Ionicons name="sparkles" size={20} color={ORANGE} style={{ marginRight: 10 }} />
+              <Ionicons name="sparkles" size={20} color={THEME_COLOR} style={{ marginRight: 10 }} />
               <View style={{ flex: 1 }}>
                 <Text style={styles.searchTipTitle}>Fast Debounced Search</Text>
                 <Text style={styles.searchTipDesc}>
@@ -498,7 +498,7 @@ const styles = StyleSheet.create({
     marginRight: 8,
   },
   filterChipActive: {
-    backgroundColor: ORANGE,
+    backgroundColor: THEME_COLOR,
   },
   filterChipText: {
     fontSize: 13,
@@ -730,7 +730,7 @@ const styles = StyleSheet.create({
     marginTop: 2,
   },
   viewCartBtn: {
-    backgroundColor: ORANGE,
+    backgroundColor: THEME_COLOR,
     paddingHorizontal: 16,
     paddingVertical: 8,
     borderRadius: 10,

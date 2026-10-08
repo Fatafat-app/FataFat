@@ -83,7 +83,7 @@ export default function AddressSelectionScreen() {
 
       {loading ? (
         <View style={styles.centerContainer}>
-          <Loading size="large" color={Colors.primary} />
+          <Loading />
         </View>
       ) : addresses.length === 0 ? (
         <View style={styles.centerContainer}>

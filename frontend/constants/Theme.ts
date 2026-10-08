@@ -1,17 +1,18 @@
 export const Colors = {
-  primary: '#FF6000',      // Ftafat Orange
-  primaryDark: '#D95300',
-  primaryLight: '#FFEDD5', // Very light orange/peach for backgrounds
-  cream: '#FFF5F0',        // Warm cream
+  primary: '#0D9488',      // Deep Teal
+  primaryDark: '#0F766E',  // Darker Teal
+  primaryLight: '#F0FDFA', // Mint Background
+  cream: '#FFFBEB',        // Warm Amber tint
   background: '#F9FAFB',   // App background
   surface: '#FFFFFF',      // Card background
-  text: '#111827',         // Primary text
-  textSecondary: '#6B7280',// Secondary text
-  border: '#F3F4F6',       // Light border
-  borderDark: '#E5E7EB',   // Slightly darker border
-  success: '#10B981',      // Subtle green
-  error: '#EF4444',        // Subtle red
-  warning: '#F59E0B',      // Yellow
+  text: '#1C1C1C',         // Primary text
+  textSecondary: '#7A7A7A',// Secondary text
+  border: '#F0F0F0',       // Light border
+  borderDark: '#EBEBEB',   // Slightly darker border
+  success: '#059669',      // Green (Veg, Success)
+  error: '#DC2626',        // Red (Non-Veg, Error)
+  warning: '#F59E0B',      // Amber (Offers, Badges)
+  accent: '#7C3AED',       // Rich Purple (Rating, Special)
   white: '#FFFFFF',
   transparent: 'transparent',
 };
@@ -36,14 +37,14 @@ export const Radii = {
 import { Platform } from 'react-native';
 
 export const STYLISH_FONT = Platform.select({
-  ios: 'Georgia',
-  android: 'serif',
+  ios: 'System',
+  android: 'sans-serif',
   default: 'System',
 });
 
 export const BOLD_FONT = Platform.select({
-  ios: 'Georgia-Bold',
-  android: 'serif',
+  ios: 'System',
+  android: 'sans-serif-medium',
   default: 'System',
 });
 

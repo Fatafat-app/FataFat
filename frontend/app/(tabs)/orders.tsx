@@ -298,8 +298,8 @@ export default function OrdersScreen() {
                         <View style={styles.itemTextContainer}>
                           <View style={styles.itemNameRow}>
                             {isVeg !== undefined && (
-                              <View style={[styles.vegSquare, { borderColor: isVeg ? '#16A34A' : '#DC2626' }]}>
-                                <View style={[styles.vegDot, { backgroundColor: isVeg ? '#16A34A' : '#DC2626' }]} />
+                              <View style={[styles.vegSquare, { borderColor: isVeg ? Colors.success : Colors.error }]}>
+                                <View style={[styles.vegDot, { backgroundColor: isVeg ? Colors.success : Colors.error }]} />
                               </View>
                             )}
                             <Text style={styles.itemName} numberOfLines={1}>{it.name}</Text>
@@ -327,7 +327,7 @@ export default function OrdersScreen() {
                   <View style={styles.actionButtons}>
                     {isDelivered && (
                       <TouchableOpacity style={styles.rateBtn} onPress={() => Alert.alert('Rate Order', 'Rate this delivery (Feature coming soon)')}>
-                        <Ionicons name="star" size={14} color="#EA580C" />
+                        <Ionicons name="star" size={14} color={Colors.accent} />
                         <Text style={styles.rateText}>Rate</Text>
                       </TouchableOpacity>
                     )}
@@ -365,7 +365,7 @@ const styles = StyleSheet.create({
   refreshButton: { padding: 6 },
   scrollContainer: { flex: 1 },
   scrollContent: { paddingHorizontal: 16, paddingVertical: 14, paddingBottom: 130 },
-  activeCard: { backgroundColor: Colors.surface, borderRadius: 20, padding: 18, marginBottom: 18, borderWidth: 2, borderColor: '#FED7AA', shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.05, shadowRadius: 6, elevation: 3 },
+  activeCard: { backgroundColor: Colors.surface, borderRadius: 20, padding: 18, marginBottom: 18, borderWidth: 2, borderColor: Colors.primary, shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.05, shadowRadius: 6, elevation: 3 },
   activeHeaderRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 },
   badgeRow: { flexDirection: 'row', alignItems: 'center' },
   greenDot: { width: 8, height: 8, borderRadius: 4, backgroundColor: Colors.success, marginRight: 6 },
@@ -379,8 +379,8 @@ const styles = StyleSheet.create({
   stepLabel: { ...Typography.caption, textAlign: 'center', fontSize: 10 },
   stepLabelPassed: { color: Colors.text },
   stepLabelCurrent: { color: Colors.primary, fontWeight: '900' },
-  riderAlertBox: { backgroundColor: Colors.primaryLight, padding: 10, borderRadius: 12, marginTop: 8, flexDirection: 'row', alignItems: 'center', borderWidth: 1, borderColor: '#FFEDD5' },
-  riderAlertText: { ...Typography.subtitle, color: '#C2410C', fontSize: 12, flex: 1 },
+  riderAlertBox: { backgroundColor: Colors.primaryLight, padding: 10, borderRadius: 12, marginTop: 8, flexDirection: 'row', alignItems: 'center', borderWidth: 1, borderColor: '#99F6E4' },
+  riderAlertText: { ...Typography.subtitle, color: Colors.primaryDark, fontSize: 12, flex: 1 },
   activeOrderFooter: { marginTop: 12, paddingTop: 12, borderTopWidth: 1, borderTopColor: Colors.border, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
   itemsPreviewText: { ...Typography.bodySmall, flex: 1, marginRight: 8 },
   priceHighlight: { ...Typography.title, fontSize: 15 },
@@ -393,7 +393,7 @@ const styles = StyleSheet.create({
   statusPill: { paddingHorizontal: 10, paddingVertical: 4, borderRadius: 12, backgroundColor: Colors.primaryLight, alignSelf: 'flex-start' },
   statusDelivered: { backgroundColor: '#DCFCE7' },
   statusCancelled: { backgroundColor: '#FEE2E2' },
-  statusPillText: { ...Typography.button, fontSize: 10, color: '#C2410C' },
+  statusPillText: { ...Typography.button, fontSize: 10, color: Colors.primaryDark },
   statusDeliveredText: { color: Colors.success },
   statusCancelledText: { color: Colors.error },
   itemList: { marginVertical: 4 },
@@ -406,12 +406,12 @@ const styles = StyleSheet.create({
   itemName: { ...Typography.subtitle, fontSize: 14, flex: 1 },
   itemQuantity: { ...Typography.caption, color: Colors.textSecondary },
   itemPrice: { ...Typography.title, fontSize: 14, color: Colors.text },
-  orderCardFooter: { marginTop: 4, paddingTop: 14, borderTopWidth: 1, borderTopStyle: 'dashed', borderTopColor: '#E5E7EB', flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
+  orderCardFooter: { marginTop: 4, paddingTop: 14, borderTopWidth: 1, borderTopColor: '#E5E7EB', flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
   orderDate: { ...Typography.caption, color: Colors.textSecondary, marginTop: 2, fontSize: 11 },
   orderTotal: { ...Typography.heading, fontSize: 16 },
   actionButtons: { flexDirection: 'row', alignItems: 'center' },
-  rateBtn: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#FFEDD5', paddingHorizontal: 12, paddingVertical: 6, borderRadius: 8, marginRight: 8 },
-  rateText: { ...Typography.button, color: '#EA580C', fontSize: 12, marginLeft: 4 },
+  rateBtn: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#F3E8FF', paddingHorizontal: 12, paddingVertical: 6, borderRadius: 8, marginRight: 8 },
+  rateText: { ...Typography.button, color: Colors.accent, fontSize: 12, marginLeft: 4 },
   reorderBtn: { flexDirection: 'row', alignItems: 'center', backgroundColor: Colors.primary, paddingHorizontal: 14, paddingVertical: 6, borderRadius: 8 },
   reorderText: { ...Typography.button, color: Colors.white, fontSize: 12, marginLeft: 4 },
 });

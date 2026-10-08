@@ -23,7 +23,7 @@ import { orderService } from '../../services/order.service';
 import { addressService } from '../../services/address.service';
 import { formatPaise } from '../../utils/formatters';
 import { Address, PaymentMethod } from '../../types';
-import { Typography, Colors } from '../../constants/Theme';
+import { Typography, Colors, BOLD_FONT, STYLISH_FONT } from '../../constants/Theme';
 import { EmptyState } from '../../components/ui/EmptyState';
 import { useGroceryStore } from '../../store/grocery.store';
 import { useConfigStore } from '../../store/config.store';
@@ -190,7 +190,7 @@ function FoodCartContent() {
           quantity: i.quantity,
           selectedModifiers: i.selectedModifiers,
         })),
-        deliveryAddress: addressToUse,
+        deliveryAddress: addressToUse as unknown as Address,
         deliveryInstructions: deliveryInstructions.trim() || undefined,
         paymentMethod,
       };
@@ -272,8 +272,8 @@ function FoodCartContent() {
                 <View style={styles.itemInfo}>
                   <View style={styles.itemNameRow}>
                     {isVeg !== undefined && (
-                      <View style={[styles.vegSquare, { borderColor: isVeg ? '#16A34A' : '#DC2626' }]}>
-                        <View style={[styles.vegDot, { backgroundColor: isVeg ? '#16A34A' : '#DC2626' }]} />
+                      <View style={[styles.vegSquare, { borderColor: isVeg ? Colors.success : Colors.error }]}>
+                        <View style={[styles.vegDot, { backgroundColor: isVeg ? Colors.success : Colors.error }]} />
                       </View>
                     )}
                     <Text style={styles.itemName} numberOfLines={2}>{item.menuItem.name}</Text>
@@ -488,8 +488,8 @@ function FoodCartContent() {
                 <View style={styles.modalInfo}>
                   <View style={styles.itemNameRow}>
                     {selectedItemForDetails.isVeg !== undefined && (
-                      <View style={[styles.vegSquare, { borderColor: selectedItemForDetails.isVeg ? '#16A34A' : '#DC2626' }]}>
-                        <View style={[styles.vegDot, { backgroundColor: selectedItemForDetails.isVeg ? '#16A34A' : '#DC2626' }]} />
+                      <View style={[styles.vegSquare, { borderColor: selectedItemForDetails.isVeg ? Colors.success : Colors.error }]}>
+                        <View style={[styles.vegDot, { backgroundColor: selectedItemForDetails.isVeg ? Colors.success : Colors.error }]} />
                       </View>
                     )}
                     <Text style={styles.modalTitle}>{selectedItemForDetails.name}</Text>
@@ -537,7 +537,7 @@ const styles = StyleSheet.create({
   navLeft: { flexDirection: 'row', alignItems: 'center' },
   navTitle: { ...Typography.heading, fontSize: 18 },
   navSubtitle: { ...Typography.caption, fontSize: 12, color: Colors.primary },
-  clearBtn: { backgroundColor: '#FEF2F2', paddingHorizontal: 10, paddingVertical: 6, borderRadius: 8 },
+  clearBtn: { backgroundColor: '#FEE2E2', paddingHorizontal: 10, paddingVertical: 6, borderRadius: 8 },
   clearText: { ...Typography.button, color: Colors.error, fontSize: 11 },
   scrollContainer: { flex: 1 },
   scrollContent: { padding: 16, paddingBottom: 180 },
@@ -565,9 +565,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     backgroundColor: Colors.primaryLight,
     borderRadius: 10,
-    borderWidth: 1,
-    borderColor: '#FED7AA',
-    paddingHorizontal: 4,
+    borderColor: Colors.primary,
     paddingVertical: 4,
   },
   counterBtn: { padding: 4 },
@@ -636,7 +634,7 @@ const styles = StyleSheet.create({
   },
   placeOrderBtnInner: { flexDirection: 'row', alignItems: 'center' },
   placeOrderText: { ...Typography.button, color: Colors.white, fontSize: 14 },
-  deliveryEstText: { ...Typography.caption, color: '#16A34A', fontSize: 10, marginTop: 4, fontWeight: '600' },
+  deliveryEstText: { ...Typography.caption, color: Colors.success, fontSize: 10, marginTop: 4, fontWeight: '600' },
   modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'flex-end' },
   modalContent: { backgroundColor: Colors.surface, borderTopLeftRadius: 24, borderTopRightRadius: 24, paddingBottom: 40, maxHeight: '80%' },
   closeModalBtn: { position: 'absolute', top: 12, right: 16, zIndex: 10, backgroundColor: 'rgba(255,255,255,0.7)', borderRadius: 16 },
@@ -654,7 +652,7 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.primaryLight,
     borderRadius: 12,
     borderWidth: 1,
-    borderColor: '#FED7AA',
+    borderColor: Colors.primary,
   },
   showAllDetailsText: { ...Typography.button, color: Colors.primary, fontSize: 14, marginRight: 6 },
 });

@@ -1,4 +1,4 @@
-import { Tabs, Redirect } from 'expo-router';
+import { Tabs, Redirect, usePathname } from 'expo-router';
 import { useAuthStore } from '../../store/auth.store';
 import { useGroceryStore } from '../../store/grocery.store';
 import { useConfigStore } from '../../store/config.store';
@@ -20,7 +20,12 @@ export default function TabsLayout() {
     return <Redirect href="/(auth)/login" />;
   }
 
+  const pathname = usePathname();
+
   const isShowingGrocery = isGroceryEnabled && (!isFoodEnabled || activeSection === 'grocery');
+  
+  // Hide custom tab bar on specific screens
+  const shouldHideTabBar = pathname.includes('/search');
 
   return (
     <>
@@ -42,7 +47,7 @@ export default function TabsLayout() {
       </Tabs>
 
       {/* Custom Tab Bar — Food or Grocery based on activeSection & flags */}
-      {isShowingGrocery ? <GroceryTabBar /> : <FoodTabBar />}
+      {!shouldHideTabBar && (isShowingGrocery ? <GroceryTabBar /> : <FoodTabBar />)}
     </>
   );
 }

@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { View, Text, ScrollView, TouchableOpacity, Image, StyleSheet, Dimensions, NativeSyntheticEvent, NativeScrollEvent, RefreshControl, ImageBackground, Animated, Easing, ActivityIndicator } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { Ionicons } from '@expo/vector-icons';
+import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
 import { useAuthStore, useLocationStore } from '../../store';
@@ -30,7 +30,7 @@ const TypewriterText = ({ texts, style }: { texts: string[], style: any }) => {
   const [typingSpeed, setTypingSpeed] = useState(100);
 
   useEffect(() => {
-    let timer: NodeJS.Timeout;
+    let timer: ReturnType<typeof setTimeout>;
     const currentWord = texts[index];
 
     const handleTyping = () => {
@@ -79,13 +79,68 @@ const getFallbackCategoryImage = (name: string) => {
 };
 
 const BANNERS = [
-  { id: 1, title: 'Cravings?', subtitle: 'Ftafat!', desc: 'Delicious food delivered\nto your doorstep.', image: 'https://images.pexels.com/photos/2983101/pexels-photo-2983101.jpeg', bgColor: '#FFF0E6', textColor: '#D94E1B' },
+  { id: 1, title: 'Cravings?', subtitle: 'Ftafat!', desc: 'Delicious food delivered\nto your doorstep.', image: 'https://images.pexels.com/photos/2983101/pexels-photo-2983101.jpeg', bgColor: Colors.primaryLight, textColor: Colors.primary },
   { id: 2, title: 'Midnight', subtitle: 'Hunger?', desc: 'Hot meals delivered\nin just 15 minutes!', image: 'https://images.pexels.com/photos/1146760/pexels-photo-1146760.jpeg', bgColor: '#EEF2FF', textColor: '#4F46E5' },
   { id: 3, title: 'Party', subtitle: 'Time!', desc: 'Flat 50% Off on\nlarge group orders.', image: 'https://images.pexels.com/photos/1639557/pexels-photo-1639557.jpeg', bgColor: '#FDF7EC', textColor: '#D97706' },
   { id: 4, title: 'Healthy', subtitle: 'Eats', desc: 'Fresh salads &\njuices for you.', image: 'https://images.pexels.com/photos/1640777/pexels-photo-1640777.jpeg', bgColor: '#ECFDF5', textColor: '#059669' },
   { id: 5, title: 'Spicy', subtitle: 'Desires!', desc: 'Sizzling hot dishes\nstraight from the tandoor.', image: 'https://images.pexels.com/photos/2474661/pexels-photo-2474661.jpeg', bgColor: '#FEF2F2', textColor: '#DC2626' },
   { id: 6, title: 'Sweet', subtitle: 'Tooth?', desc: 'Indulge in desserts\nand fresh pastries.', image: 'https://images.pexels.com/photos/1099680/pexels-photo-1099680.jpeg', bgColor: '#FDF4FF', textColor: '#C026D3' },
 ];
+
+// ── Feature Accordion Card (standalone component so useState is valid) ──
+function FeatureAccordionCard({ item, onPress }: { item: any; onPress: () => void }) {
+  const [expanded, setExpanded] = useState(false);
+  const router = useRouter();
+  return (
+    <TouchableOpacity
+      activeOpacity={0.92}
+      onPress={() => setExpanded(!expanded)}
+      style={{
+        marginHorizontal: 16,
+        marginBottom: 12,
+        backgroundColor: item.bg,
+        borderRadius: 20,
+        borderWidth: 1.5,
+        borderColor: item.border,
+        overflow: 'hidden',
+        shadowColor: item.color,
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.1,
+        shadowRadius: 10,
+        elevation: 3,
+      }}
+    >
+      <View style={{ flexDirection: 'row', alignItems: 'center', padding: 18 }}>
+        <View style={{ width: 52, height: 52, borderRadius: 16, backgroundColor: item.color, justifyContent: 'center', alignItems: 'center', marginRight: 14 }}>
+          <Text style={{ fontSize: 26 }}>{item.emoji}</Text>
+        </View>
+        <View style={{ flex: 1 }}>
+          <Text style={{ fontFamily: BOLD_FONT, fontSize: 16, color: Colors.text }}>{item.title}</Text>
+          <Text style={{ fontFamily: STYLISH_FONT, fontSize: 13, color: Colors.textSecondary, marginTop: 2 }}>{item.tagline}</Text>
+        </View>
+        <View style={{ alignItems: 'flex-end' }}>
+          <View style={{ backgroundColor: item.color, paddingHorizontal: 8, paddingVertical: 4, borderRadius: 8, marginBottom: 6 }}>
+            <Text style={{ fontFamily: BOLD_FONT, fontSize: 10, color: '#FFF' }}>{item.highlight}</Text>
+          </View>
+          <Ionicons name={expanded ? 'chevron-up' : 'chevron-down'} size={18} color={item.color} />
+        </View>
+      </View>
+      {expanded && (
+        <View style={{ paddingHorizontal: 18, paddingBottom: 18, borderTopWidth: 1, borderTopColor: item.border }}>
+          <Text style={{ fontFamily: STYLISH_FONT, fontSize: 14, color: Colors.text, lineHeight: 22, marginTop: 14 }}>{item.detail}</Text>
+          <TouchableOpacity
+            style={{ flexDirection: 'row', alignItems: 'center', marginTop: 14, alignSelf: 'flex-start', backgroundColor: item.color, paddingHorizontal: 14, paddingVertical: 8, borderRadius: 12 }}
+            onPress={() => router.push('/(tabs)/search')}
+            activeOpacity={0.85}
+          >
+            <Text style={{ fontFamily: BOLD_FONT, fontSize: 12, color: '#FFFFFF', marginRight: 4 }}>Order Now</Text>
+            <Ionicons name="arrow-forward" size={14} color="#FFF" />
+          </TouchableOpacity>
+        </View>
+      )}
+    </TouchableOpacity>
+  );
+}
 
 export default function HomeScreen() {
   const router = useRouter();
@@ -179,6 +234,8 @@ export default function HomeScreen() {
 
   const [categories, setCategories] = useState<any[]>([]);
   const [restaurants, setRestaurants] = useState<Restaurant[]>([]);
+  const [mustTryProducts, setMustTryProducts] = useState<MenuItem[]>([]);
+  const [favorites, setFavorites] = useState<Record<string, boolean>>({});
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [fetchError, setFetchError] = useState(false);
@@ -202,15 +259,30 @@ export default function HomeScreen() {
       setFetchError(false);
       const lat = currentLocation?.latitude || 28.6139;
       const lng = currentLocation?.longitude || 77.2090;
-      const data = await restaurantService.getNearbyRestaurants({
-        lat,
-        lng,
-        radius: 50,
+      
+      const [restData, ...prodResults] = await Promise.all([
+        restaurantService.getNearbyRestaurants({ lat, lng, radius: 50 }),
+        restaurantService.searchMenuItems('chicken').catch(() => []),
+        restaurantService.searchMenuItems('pizza').catch(() => []),
+        restaurantService.searchMenuItems('biryani').catch(() => []),
+        restaurantService.searchMenuItems('dessert').catch(() => []),
+      ]);
+      
+      // Merge all product results and deduplicate by _id
+      const merged = prodResults.flat();
+      const seen = new Set<string>();
+      const unique = merged.filter((p: any) => {
+        if (seen.has(p._id)) return false;
+        seen.add(p._id);
+        return true;
       });
-      setRestaurants(Array.isArray(data) ? data : []);
+      
+      setRestaurants(Array.isArray(restData) ? restData : []);
+      setMustTryProducts(unique.slice(0, 10));
     } catch (err: any) {
       setFetchError(true);
       setRestaurants([]);
+      setMustTryProducts([]);
     } finally {
       setLoading(false);
       setRefreshing(false);
@@ -283,95 +355,66 @@ export default function HomeScreen() {
       {isFoodEnabled && (activeSection === 'food' || !isGroceryEnabled) && (
         <View style={{ flex: 1, backgroundColor: '#FFFFFF' }}>
 
-          {/* Top Peach-Orange Gradient matching Grocery design */}
+          {/* Top Mint Gradient matching Snitch design */}
           <LinearGradient
-            colors={['#FFDBC7', '#FFE4D6', '#FFF5F0', '#FFFFFF']}
-            locations={[0, 0.3, 0.65, 1]}
-            style={{ position: 'absolute', top: 0, left: 0, right: 0, height: insets.top + 280 }}
+            colors={[Colors.primaryLight, '#F9FAFB', '#FFFFFF']}
+            locations={[0, 0.5, 1]}
+            style={{ position: 'absolute', top: 0, left: 0, right: 0, height: insets.top + 200 }}
           />
 
-          {/* Fixed Navbar (Like Grocery) */}
-          <View style={{ paddingTop: insets.top + 6, paddingBottom: 12 }}>
-            {/* Main Top Header (Logo + Bell) */}
-            <View style={[styles.mainHeaderRow, { paddingBottom: 12, alignItems: 'center' }]}>
-              {/* Logo Left */}
-              <View style={{ flex: 1, justifyContent: 'center' }}>
-                <Image source={require('../../assets/images/logo_transparent.png')} style={styles.brandLogo} resizeMode="contain" />
-                <Text style={{ fontFamily: STYLISH_FONT, fontSize: 11, color: '#D94E1B', marginLeft: 6, marginTop: -4 }}>
-                  Good Food. Fast Delivery.
-                </Text>
-              </View>
-
-              {/* Bell Icon */}
+          {/* Fixed Navbar (Snitch Style) */}
+          <View style={{ paddingTop: insets.top + 10, paddingBottom: 12 }}>
+            {/* Main Top Header (Location Left, Profile/Bell Right) */}
+            <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16, paddingHorizontal: 16 }}>
+              {/* Location Left */}
               <TouchableOpacity
-                style={styles.bellBtn}
-                activeOpacity={0.7}
-                onPress={() => router.push('/notifications')}
+                style={{ flexDirection: 'row', alignItems: 'center', flex: 1 }}
+                onPress={() => router.push('/address')}
+                activeOpacity={0.8}
               >
-                <Ionicons name="notifications-outline" size={24} color="#111827" />
-                {unreadNotifications > 0 && <View style={styles.bellBadge} />}
+                <Ionicons name="location" size={24} color={Colors.primary} style={{ marginRight: 6 }} />
+                <View style={{ flex: 1 }}>
+                  <Text style={{ fontFamily: BOLD_FONT, fontSize: 16, color: Colors.text, display: 'flex', alignItems: 'center' }}>
+                    {(locationTitle || selectedAddress?.label || activeCity || 'Home').toUpperCase()}{' '}
+                    <Ionicons name="chevron-down" size={14} color={Colors.text} />
+                  </Text>
+                  <Text style={{ fontFamily: STYLISH_FONT, fontSize: 12, color: Colors.textSecondary, marginTop: -2 }} numberOfLines={1}>
+                    {locationSubtitle ? locationSubtitle.split(',')[0] : (activeCity || 'Tap to select location')}
+                  </Text>
+                </View>
               </TouchableOpacity>
+
+              {/* Icons Right */}
+              <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                <TouchableOpacity
+                  style={{ width: 40, height: 40, borderRadius: 20, backgroundColor: '#FFFFFF', justifyContent: 'center', alignItems: 'center', shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.05, shadowRadius: 4, elevation: 2 }}
+                  activeOpacity={0.7}
+                  onPress={() => router.push('/notifications')}
+                >
+                  <Ionicons name="notifications-outline" size={20} color={Colors.text} />
+                  {unreadNotifications > 0 && <View style={{ position: 'absolute', top: 8, right: 10, width: 8, height: 8, borderRadius: 4, backgroundColor: Colors.error }} />}
+                </TouchableOpacity>
+              </View>
             </View>
 
-            {/* Premium Search Bar with Integrated Location (Grocery Style Shadow) */}
+            {/* Premium Search Bar (Snitch Style: Grey pill) */}
             <TouchableOpacity
               style={{
-                flexDirection: 'row',
-                alignItems: 'center',
-                backgroundColor: '#FFFFFF',
-                borderRadius: 18,
-                paddingHorizontal: 16,
-                height: 56,
-                marginHorizontal: 16,
-                marginBottom: 12,
-                shadowColor: '#000',
-                shadowOffset: { width: 0, height: 6 },
-                shadowOpacity: 0.08,
-                shadowRadius: 16,
-                elevation: 4,
-                borderWidth: 1,
-                borderColor: 'rgba(217, 78, 27, 0.15)'
+                flexDirection: 'row', alignItems: 'center', backgroundColor: '#F3F4F6',
+                borderRadius: 12, paddingHorizontal: 16, height: 50, marginHorizontal: 16, marginBottom: 12
               }}
               onPress={() => router.push('/(tabs)/search')}
               activeOpacity={0.9}
             >
-              {/* Search Side */}
-              <Ionicons name="search" size={24} color="#D94E1B" style={{ marginRight: 12 }} />
+              <Ionicons name="search" size={20} color={Colors.textSecondary} style={{ marginRight: 10 }} />
               <View style={{ flex: 1, justifyContent: 'center' }}>
                 <TypewriterText
-                  texts={['Search "Biryani"']}
-                  style={{ fontFamily: BOLD_FONT, fontSize: 14, color: '#1F2937' }}
+                  texts={['Search "Biryani"', 'Search "Pizza"', 'Search "Burger"']}
+                  style={{ fontFamily: STYLISH_FONT, fontSize: 14, color: Colors.textSecondary }}
                 />
               </View>
-
-              {/* Vertical Divider */}
-              <View style={{ width: 1, height: 28, backgroundColor: '#E5E7EB', marginHorizontal: 8 }} />
-
-              {/* Location Side */}
-              <TouchableOpacity
-                style={{ flexDirection: 'row', alignItems: 'center', paddingLeft: 4, paddingVertical: 4, maxWidth: 140 }}
-                onPress={() => router.push('/address')}
-                activeOpacity={0.8}
-              >
-                <View style={{ alignItems: 'flex-end', marginRight: 6, flexShrink: 1 }}>
-                  <Text
-                    style={{ fontFamily: BOLD_FONT, fontSize: 11, color: '#D94E1B', marginBottom: 1 }}
-                    numberOfLines={1}
-                  >
-                    {(locationTitle || selectedAddress?.label || activeCity || 'Location').toUpperCase()}{' '}
-                    <Ionicons name="chevron-down" size={10} color="#D94E1B" />
-                  </Text>
-                  <Text
-                    style={{ fontFamily: STYLISH_FONT, fontSize: 9, color: '#6B7280', maxWidth: 90 }}
-                    numberOfLines={1}
-                  >
-                    {locationSubtitle ? locationSubtitle.split(',')[0] : (activeCity || 'New Delhi')}
-                  </Text>
-                </View>
-                <View style={styles.locationIconBg}>
-                  <Ionicons name="location" size={14} color="#FFFFFF" />
-                </View>
-              </TouchableOpacity>
+              <View style={{ width: 1, height: 24, backgroundColor: '#E5E7EB', marginHorizontal: 10 }} />
+              <Ionicons name="mic" size={20} color={Colors.primary} />
             </TouchableOpacity>
 
             {/* Mode Switcher - only visible when Grocery is enabled */}
@@ -382,6 +425,7 @@ export default function HomeScreen() {
 
           <ScrollView
             showsVerticalScrollIndicator={false}
+            contentContainerStyle={{ paddingBottom: 120 }}
             refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={[Colors.primary]} tintColor={Colors.primary} />}
             bounces={false}
             onScroll={(e) => setScrollY(e.nativeEvent.contentOffset.y)}
@@ -391,29 +435,56 @@ export default function HomeScreen() {
             {/* Main Hero Banners (Auto Scrolling) */}
             <AutoScrollHeroBanners />
 
-            {/* WHAT'S ON YOUR MIND? */}
+            {/* Quick Filters — Vibrant Bold Pills */}
+            <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ paddingHorizontal: 16, paddingVertical: 14, gap: 10 }}>
+              {[
+                { label: 'Trending',      icon: 'fire-circle',            bg: '#EF4444' },
+                { label: 'Fast Delivery', icon: 'moped-electric-outline', bg: '#0D9488' },
+                { label: 'Top Rated',     icon: 'crown-outline',          bg: '#F59E0B' },
+                { label: 'Offers',        icon: 'ticket-percent-outline', bg: '#8B5CF6' },
+                { label: 'Healthy',       icon: 'leaf-circle-outline',    bg: '#10B981' },
+                { label: 'Pure Veg',      icon: 'sprout-outline',         bg: '#06B6D4' },
+              ].map((f, idx) => (
+                <TouchableOpacity
+                  key={idx}
+                  activeOpacity={0.8}
+                  onPress={() => router.push({ pathname: '/(tabs)/search', params: { q: f.label } })}
+                  style={{
+                    flexDirection: 'row',
+                    alignItems: 'center',
+                    paddingHorizontal: 16,
+                    paddingVertical: 11,
+                    borderRadius: 24,
+                    backgroundColor: f.bg,
+                    shadowColor: f.bg,
+                    shadowOffset: { width: 0, height: 4 },
+                    shadowOpacity: 0.35,
+                    shadowRadius: 8,
+                    elevation: 4,
+                  }}
+                >
+                  <MaterialCommunityIcons name={f.icon as any} size={15} color="#FFF" style={{ marginRight: 7 }} />
+                  <Text style={{ fontFamily: BOLD_FONT, fontSize: 13, color: '#FFF', letterSpacing: 0.2 }}>{f.label}</Text>
+                </TouchableOpacity>
+              ))}
+            </ScrollView>
+
+            {/* WHAT'S ON YOUR MIND? (Circular Icons) */}
             {categories.length > 0 && (
-              <View style={styles.categoriesSection}>
-                <View style={styles.sectionHeader}>
-                  <Text style={styles.sectionTitle}>What's on your mind?</Text>
-                  <TouchableOpacity activeOpacity={0.7}>
-                    <Text style={styles.seeAllText}>See All <Ionicons name="arrow-forward" size={12} /></Text>
-                  </TouchableOpacity>
+              <View style={{ marginTop: 12, marginBottom: 16 }}>
+                <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: 16, marginBottom: 16 }}>
+                  <Text style={{ fontFamily: BOLD_FONT, fontSize: 18, color: Colors.text, letterSpacing: -0.5 }}>What's on your mind?</Text>
                 </View>
-                <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.categoriesContent}>
+                <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ paddingHorizontal: 16, gap: 16 }}>
                   {categories.map((cat, idx) => {
                     const fallbackImage = getFallbackCategoryImage(cat.name);
                     const imageSource = cat.image && cat.image.startsWith('http') ? { uri: cat.image } : { uri: fallbackImage };
-
                     return (
-                      <TouchableOpacity
-                        key={cat._id || cat.id || idx}
-                        style={styles.foodItemWrapper}
-                        onPress={() => router.push({ pathname: '/(tabs)/search', params: { q: cat.name } })}
-                        activeOpacity={0.8}
-                      >
-                        <Image source={imageSource} style={styles.foodItemImage} />
-                        <Text style={styles.foodItemName} numberOfLines={1}>{cat.name}</Text>
+                      <TouchableOpacity key={cat._id || cat.id || idx} style={{ alignItems: 'center', width: 75 }} onPress={() => router.push({ pathname: '/(tabs)/search', params: { q: cat.name } })} activeOpacity={0.8}>
+                        <View style={{ width: 75, height: 75, borderRadius: 37.5, overflow: 'hidden', backgroundColor: '#F3F4F6', marginBottom: 8 }}>
+                          <Image source={imageSource} style={{ width: '100%', height: '100%' }} />
+                        </View>
+                        <Text style={{ fontFamily: BOLD_FONT, fontSize: 12, color: Colors.text, textAlign: 'center' }} numberOfLines={1}>{cat.name}</Text>
                       </TouchableOpacity>
                     );
                   })}
@@ -421,112 +492,127 @@ export default function HomeScreen() {
               </View>
             )}
 
-            {/* TOP RESTAURANTS NEAR YOU (HORIZONTAL SCROLL) */}
-            <View style={styles.sectionContainer}>
-              <View style={styles.sectionHeader}>
-                <Text style={styles.sectionTitle}>Top Restaurants Near You</Text>
-                <TouchableOpacity activeOpacity={0.7}>
-                  <Text style={styles.seeAllText}>See All <Ionicons name="arrow-forward" size={12} /></Text>
-                </TouchableOpacity>
-              </View>
+            {/* Grey Divider */}
+            <View style={{ height: 8, backgroundColor: '#F3F4F6', marginVertical: 16 }} />
+
+            {/* TOP RESTAURANTS NEAR YOU (VERTICAL FULL WIDTH) */}
+            <View style={{ paddingHorizontal: 16 }}>
+              <Text style={{ fontFamily: BOLD_FONT, fontSize: 18, color: Colors.text, letterSpacing: -0.5, marginBottom: 16 }}>Restaurants Near You</Text>
 
               {loading ? (
-                <View style={{ padding: 40, alignItems: 'center' }}>
-                  <Loading />
-                </View>
+                <View style={{ padding: 40, alignItems: 'center' }}><Loading /></View>
               ) : fetchError ? (
-                <View style={styles.emptyState}>
-                  <Text style={styles.emptyTitle}>Could not load restaurants</Text>
-                </View>
+                <View style={styles.emptyState}><Text style={styles.emptyTitle}>Could not load restaurants</Text></View>
               ) : restaurants.length === 0 ? (
-                <View style={styles.emptyState}>
-                  <Text style={styles.emptyTitle}>No Restaurants Nearby</Text>
-                </View>
+                <View style={styles.emptyState}><Text style={styles.emptyTitle}>No Restaurants Nearby</Text></View>
               ) : (
-                <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: 10, gap: 16 }}>
-                  {restaurants.map((r) => (
+                <View style={{ gap: 24, paddingBottom: 16 }}>
+                  {restaurants.map((r) => {
+                    const isFavorite = favorites[r._id];
+                    return (
                     <TouchableOpacity
                       key={r._id}
-                      style={styles.horizontalRestaurantCard}
+                      style={{ backgroundColor: '#FFF', borderRadius: 20, overflow: 'hidden', shadowColor: '#000', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.05, shadowRadius: 10, elevation: 3, borderWidth: 1, borderColor: '#F3F4F6' }}
                       onPress={() => router.push(`/restaurant/${r._id}`)}
                       activeOpacity={0.95}
                     >
-                      <View style={styles.hCardImageContainer}>
-                        <Image
-                          source={{ uri: r.images?.[0] || 'https://images.pexels.com/photos/260922/pexels-photo-260922.jpeg' }}
-                          style={styles.hCardImage}
-                        />
-                        <TouchableOpacity style={styles.hCardFav}>
-                          <Ionicons name="heart-outline" size={16} color="#FFF" />
+                      <View style={{ width: '100%', height: 190, backgroundColor: '#F3F4F6', position: 'relative' }}>
+                        <Image source={{ uri: r.images?.[0] || 'https://images.pexels.com/photos/260922/pexels-photo-260922.jpeg' }} style={{ width: '100%', height: '100%' }} />
+
+                        <TouchableOpacity 
+                          style={{ position: 'absolute', top: 12, right: 12, width: 32, height: 32, borderRadius: 16, backgroundColor: 'rgba(255,255,255,0.9)', justifyContent: 'center', alignItems: 'center' }}
+                          onPress={() => setFavorites(prev => ({ ...prev, [r._id]: !prev[r._id] }))}
+                          activeOpacity={0.7}
+                        >
+                          <Ionicons name={isFavorite ? "heart" : "heart-outline"} size={18} color={Colors.error} />
                         </TouchableOpacity>
-                      </View>
-                      <View style={styles.hCardDetails}>
-                        <Text style={styles.hCardName} numberOfLines={1}>{r.name}</Text>
-                        <View style={styles.hCardRatingRow}>
-                          <Ionicons name="star" size={12} color="#D94E1B" />
-                          <Text style={styles.hCardRatingText}>{r.rating?.average?.toFixed(1) || '4.0'} <Text style={{ color: '#9CA3AF' }}>(1k+)</Text></Text>
-                          <Text style={styles.hCardDot}>•</Text>
-                          <Text style={styles.hCardCuisines} numberOfLines={1}>{r.cuisines?.slice(0, 2).join(', ') || 'Fast Food'}</Text>
+
+                        {/* Teal Discount Badge */}
+                        <View style={{ position: 'absolute', bottom: 12, left: 12, backgroundColor: Colors.primary, paddingHorizontal: 10, paddingVertical: 4, borderRadius: 8 }}>
+                          <Text style={{ fontFamily: BOLD_FONT, color: '#FFF', fontSize: 13 }}>60% OFF / UPTO ₹120</Text>
                         </View>
-                        <Text style={styles.hCardTags} numberOfLines={1}>{r.cuisines?.join(' • ') || 'Burger • Fries'}</Text>
+                      </View>
+
+                      <View style={{ padding: 16 }}>
+                        <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 6 }}>
+                          <Text style={{ fontFamily: BOLD_FONT, fontSize: 18, color: Colors.text, flex: 1, marginRight: 8 }} numberOfLines={1}>{r.name}</Text>
+                          <View style={{ flexDirection: 'row', alignItems: 'center', backgroundColor: Colors.success, paddingHorizontal: 6, paddingVertical: 2, borderRadius: 6 }}>
+                            <Text style={{ fontFamily: BOLD_FONT, color: '#FFF', fontSize: 12, marginRight: 2 }}>{r.rating?.average?.toFixed(1) || '4.0'}</Text>
+                            <Ionicons name="star" size={10} color="#FFF" />
+                          </View>
+                        </View>
+
+                        <Text style={{ fontFamily: STYLISH_FONT, fontSize: 14, color: Colors.textSecondary, marginBottom: 8 }} numberOfLines={1}>
+                          {r.cuisines?.join(', ') || 'North Indian, Chinese'}
+                        </Text>
+
+                        <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                          <Ionicons name="time-outline" size={14} color={Colors.textSecondary} />
+                          <Text style={{ fontFamily: BOLD_FONT, fontSize: 12, color: Colors.textSecondary, marginLeft: 4, marginRight: 12 }}>30-35 min</Text>
+                          <Ionicons name="location-outline" size={14} color={Colors.textSecondary} />
+                          <Text style={{ fontFamily: BOLD_FONT, fontSize: 12, color: Colors.textSecondary, marginLeft: 4 }}>{formatDistance(r.distance) || '2.5 km'}</Text>
+                        </View>
+
+                        <View style={{ height: 1, backgroundColor: '#F3F4F6', marginVertical: 12 }} />
+                        <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                          <Ionicons name="pricetag-outline" size={14} color={Colors.primary} style={{ marginRight: 6 }} />
+                          <Text style={{ fontFamily: STYLISH_FONT, fontSize: 12, color: Colors.textSecondary }}>Free delivery on orders above ₹199</Text>
+                        </View>
                       </View>
                     </TouchableOpacity>
-                  ))}
-                </ScrollView>
+                  )})}
+                </View>
               )}
             </View>
 
-            {/* OFFERS FOR YOU */}
-            <View style={styles.categoriesSection}>
-              <View style={styles.sectionHeader}>
-                <Text style={styles.sectionTitle}>Offers for You</Text>
-                <TouchableOpacity activeOpacity={0.7}>
-                  <Text style={styles.seeAllText}>See All <Ionicons name="arrow-forward" size={12} /></Text>
+            {/* OFFERS FOR YOU (Premium Swiggy/Cred Style) */}
+            <View style={{ marginTop: 24, marginBottom: 16 }}>
+              <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: 16, marginBottom: 16 }}>
+                <Text style={{ fontFamily: BOLD_FONT, fontSize: 18, color: Colors.text, letterSpacing: -0.5 }}>Offers for You</Text>
+                <TouchableOpacity activeOpacity={0.7} style={{ backgroundColor: '#F3F4F6', paddingHorizontal: 12, paddingVertical: 6, borderRadius: 12 }}>
+                  <Text style={{ fontFamily: BOLD_FONT, fontSize: 12, color: Colors.text }}>See All</Text>
                 </TouchableOpacity>
               </View>
-              <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: 10, gap: 12 }}>
-                <View style={[styles.offerCard, { backgroundColor: '#FFEDD5' }]}>
-                  <View style={{ flex: 1, padding: 12, paddingRight: 0 }}>
-                    <Text style={styles.offerTag}>FLAT</Text>
-                    <Text style={styles.offerTitle}>50% OFF</Text>
-                    <Text style={styles.offerSub}>on your favourite food!</Text>
-                    <View style={styles.offerArrowBtn}><Ionicons name="arrow-forward" size={14} color="#FFF" /></View>
+
+              <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: 10, gap: 14 }}>
+                {/* Card 1 */}
+                <TouchableOpacity activeOpacity={0.9} style={{ width: 280, height: 130, borderRadius: 24, backgroundColor: '#0D9488', overflow: 'hidden' }}>
+                  <Image source={{ uri: 'https://images.unsplash.com/photo-1513104890138-7c749659a591?w=400&q=80' }} style={{ position: 'absolute', right: -20, top: -20, width: 140, height: 140, borderRadius: 70, opacity: 0.9 }} />
+                  <LinearGradient colors={['rgba(13,148,136,0.9)', 'transparent']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={{ position: 'absolute', width: '100%', height: '100%' }} />
+                  <View style={{ padding: 20, flex: 1, justifyContent: 'center' }}>
+                    <View style={{ backgroundColor: 'rgba(255,255,255,0.2)', alignSelf: 'flex-start', paddingHorizontal: 8, paddingVertical: 4, borderRadius: 8, marginBottom: 8 }}>
+                      <Text style={{ fontFamily: BOLD_FONT, fontSize: 10, color: '#FFF' }}>FLAT DEAL</Text>
+                    </View>
+                    <Text style={{ fontFamily: BOLD_FONT, fontSize: 24, color: '#FFF', lineHeight: 28 }}>50% OFF</Text>
+                    <Text style={{ fontFamily: STYLISH_FONT, fontSize: 13, color: 'rgba(255,255,255,0.8)', marginTop: 2 }}>on your favourite food</Text>
                   </View>
-                  <Image source={{ uri: 'https://images.unsplash.com/photo-1513104890138-7c749659a591?w=400&q=80' }} style={styles.offerImage} />
-                </View>
-                <View style={[styles.offerCard, { backgroundColor: '#FEE2E2' }]}>
-                  <View style={{ flex: 1, padding: 12, paddingRight: 0 }}>
-                    <Text style={styles.offerTitle}>Free{"\n"}Delivery</Text>
-                    <Text style={styles.offerSub}>on orders above ₹199</Text>
-                    <View style={[styles.offerArrowBtn, { backgroundColor: '#DC2626' }]}><Ionicons name="arrow-forward" size={14} color="#FFF" /></View>
+                </TouchableOpacity>
+
+                {/* Card 2 */}
+                <TouchableOpacity activeOpacity={0.9} style={{ width: 280, height: 130, borderRadius: 24, backgroundColor: '#F59E0B', overflow: 'hidden' }}>
+                  <Image source={{ uri: 'https://images.unsplash.com/photo-1551024506-0bccd828d307?w=400&q=80' }} style={{ position: 'absolute', right: -20, top: -20, width: 140, height: 140, borderRadius: 70, opacity: 0.9 }} />
+                  <LinearGradient colors={['rgba(245,158,11,0.9)', 'transparent']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={{ position: 'absolute', width: '100%', height: '100%' }} />
+                  <View style={{ padding: 20, flex: 1, justifyContent: 'center' }}>
+                    <View style={{ backgroundColor: 'rgba(255,255,255,0.2)', alignSelf: 'flex-start', paddingHorizontal: 8, paddingVertical: 4, borderRadius: 8, marginBottom: 8 }}>
+                      <Text style={{ fontFamily: BOLD_FONT, fontSize: 10, color: '#FFF' }}>MEGA OFFER</Text>
+                    </View>
+                    <Text style={{ fontFamily: BOLD_FONT, fontSize: 24, color: '#FFF', lineHeight: 28 }}>Buy 1 Get 1</Text>
+                    <Text style={{ fontFamily: STYLISH_FONT, fontSize: 13, color: 'rgba(255,255,255,0.8)', marginTop: 2 }}>on selected desserts</Text>
                   </View>
-                  <Image source={{ uri: 'https://cdn3d.iconscout.com/3d/premium/thumb/delivery-boy-riding-scooter-5727926-4800366.png' }} style={styles.offerImageFull} resizeMode="contain" />
-                </View>
-                <View style={[styles.offerCard, { backgroundColor: '#E0E7FF' }]}>
-                  <View style={{ flex: 1, padding: 12, paddingRight: 0 }}>
-                    <Text style={styles.offerTag}>MEGA</Text>
-                    <Text style={styles.offerTitle}>Buy 1{"\n"}Get 1</Text>
-                    <Text style={styles.offerSub}>on selected desserts</Text>
-                    <View style={[styles.offerArrowBtn, { backgroundColor: '#4F46E5' }]}><Ionicons name="arrow-forward" size={14} color="#FFF" /></View>
+                </TouchableOpacity>
+
+                {/* Card 3 */}
+                <TouchableOpacity activeOpacity={0.9} style={{ width: 280, height: 130, borderRadius: 24, backgroundColor: '#E11D48', overflow: 'hidden' }}>
+                  <Image source={{ uri: 'https://images.unsplash.com/photo-1512621776951-a57141f2eefd?w=400&q=80' }} style={{ position: 'absolute', right: -20, top: -20, width: 140, height: 140, borderRadius: 70, opacity: 0.9 }} />
+                  <LinearGradient colors={['rgba(225,29,72,0.9)', 'transparent']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={{ position: 'absolute', width: '100%', height: '100%' }} />
+                  <View style={{ padding: 20, flex: 1, justifyContent: 'center' }}>
+                    <View style={{ backgroundColor: 'rgba(255,255,255,0.2)', alignSelf: 'flex-start', paddingHorizontal: 8, paddingVertical: 4, borderRadius: 8, marginBottom: 8 }}>
+                      <Text style={{ fontFamily: BOLD_FONT, fontSize: 10, color: '#FFF' }}>HEALTHY</Text>
+                    </View>
+                    <Text style={{ fontFamily: BOLD_FONT, fontSize: 24, color: '#FFF', lineHeight: 28 }}>30% OFF</Text>
+                    <Text style={{ fontFamily: STYLISH_FONT, fontSize: 13, color: 'rgba(255,255,255,0.8)', marginTop: 2 }}>on fresh salads</Text>
                   </View>
-                  <Image source={{ uri: 'https://images.unsplash.com/photo-1551024506-0bccd828d307?w=400&q=80' }} style={styles.offerImage} />
-                </View>
-                <View style={[styles.offerCard, { backgroundColor: '#DCFCE7' }]}>
-                  <View style={{ flex: 1, padding: 12, paddingRight: 0 }}>
-                    <Text style={styles.offerTitle}>Healthy{"\n"}Salads</Text>
-                    <Text style={styles.offerSub}>Up to 30% OFF</Text>
-                    <View style={[styles.offerArrowBtn, { backgroundColor: '#16A34A' }]}><Ionicons name="arrow-forward" size={14} color="#FFF" /></View>
-                  </View>
-                  <Image source={{ uri: 'https://images.unsplash.com/photo-1512621776951-a57141f2eefd?w=400&q=80' }} style={styles.offerImage} />
-                </View>
-                <View style={[styles.offerCard, { backgroundColor: '#FCE7F3' }]}>
-                  <View style={{ flex: 1, padding: 12, paddingRight: 0 }}>
-                    <Text style={styles.offerTitle}>₹100{"\n"}Cashback</Text>
-                    <Text style={styles.offerSub}>on 3 orders</Text>
-                    <View style={[styles.offerArrowBtn, { backgroundColor: '#DB2777' }]}><Ionicons name="arrow-forward" size={14} color="#FFF" /></View>
-                  </View>
-                  <Image source={{ uri: 'https://cdn3d.iconscout.com/3d/premium/thumb/gift-box-4993510-4160032.png' }} style={styles.offerImageFull} resizeMode="contain" />
-                </View>
+                </TouchableOpacity>
               </ScrollView>
             </View>
 
@@ -538,30 +624,232 @@ export default function HomeScreen() {
                   <Text style={styles.seeAllText}>Explore <Ionicons name="arrow-forward" size={12} /></Text>
                 </TouchableOpacity>
               </View>
-              <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: 10, gap: 16 }}>
-                {[
-                  { img: 'https://images.unsplash.com/photo-1550547660-d9450f859349?w=400&q=80', title: 'Gourmet Burgers' },
-                  { img: 'https://images.unsplash.com/photo-1560801619-01d6973e87fb?w=400&q=80', title: 'Cheesy Pizzas' },
-                  { img: 'https://images.unsplash.com/photo-1615719413546-198b25453f85?w=400&q=80', title: 'Asian Noodles' },
-                  { img: 'https://images.unsplash.com/photo-1563379926898-05f4575a45d8?w=400&q=80', title: 'Pasta Bowls' },
-                ].map((item, idx) => (
-                  <TouchableOpacity key={idx} style={{ width: 140, height: 180, borderRadius: 16, overflow: 'hidden' }} activeOpacity={0.9}>
-                    <ImageBackground source={{ uri: item.img }} style={{ width: '100%', height: '100%' }}>
-                      <LinearGradient
-                        colors={['transparent', 'rgba(0,0,0,0.8)']}
-                        style={{ flex: 1, justifyContent: 'flex-end', padding: 12 }}
-                      >
-                        <Text style={{ fontFamily: BOLD_FONT, color: '#FFF', fontSize: 14 }}>{item.title}</Text>
-                        <Text style={{ fontFamily: STYLISH_FONT, color: '#D1D5DB', fontSize: 11, marginTop: 4 }}>Up to 40% OFF</Text>
-                      </LinearGradient>
-                    </ImageBackground>
+              <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: 16, gap: 16 }}>
+                {restaurants.slice(0, 4).map((item, idx) => (
+                  <TouchableOpacity key={idx} onPress={() => router.push(`/restaurant/${item._id}`)} style={{ width: 220, height: 260, borderRadius: 24, overflow: 'hidden', backgroundColor: '#FFF', shadowColor: '#000', shadowOffset: { width: 0, height: 8 }, shadowOpacity: 0.1, shadowRadius: 12, elevation: 6 }} activeOpacity={0.9}>
+                    <Image source={{ uri: item.coverImage || 'https://images.unsplash.com/photo-1550547660-d9450f859349?w=400&q=80' }} style={{ width: '100%', height: '100%', position: 'absolute' }} />
+                    <LinearGradient
+                      colors={['rgba(0,0,0,0.1)', 'rgba(0,0,0,0.85)']}
+                      style={{ flex: 1, justifyContent: 'flex-end', padding: 16 }}
+                    >
+                      <View style={{ backgroundColor: 'rgba(255,255,255,0.2)', alignSelf: 'flex-start', paddingHorizontal: 10, paddingVertical: 4, borderRadius: 10, marginBottom: 8, backdropFilter: 'blur(10px)' }}>
+                        <Text style={{ fontFamily: BOLD_FONT, color: '#FFF', fontSize: 10, textTransform: 'uppercase', letterSpacing: 1 }}>{idx === 0 ? 'Bestseller' : idx === 1 ? 'Trending' : 'Must Try'}</Text>
+                      </View>
+                      <Text style={{ fontFamily: BOLD_FONT, color: '#FFF', fontSize: 20, marginBottom: 4, textShadowColor: 'rgba(0,0,0,0.5)', textShadowOffset: { width: 0, height: 2 }, textShadowRadius: 4 }}>{item.name}</Text>
+                      <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                        <Ionicons name="flame" size={14} color="#F59E0B" />
+                        <Text style={{ fontFamily: STYLISH_FONT, color: '#FCD34D', fontSize: 12, marginLeft: 4 }}>Up to 40% OFF</Text>
+                      </View>
+                    </LinearGradient>
                   </TouchableOpacity>
                 ))}
               </ScrollView>
             </View>
 
-            {/* WHY CHOOSE FTAFAT */}
-            <AutoScrollWhyChoose />
+            {/* 🏆 THIS WEEK'S BESTSELLERS */}
+            <View style={{ marginTop: 8, marginBottom: 8 }}>
+              {/* Header */}
+              <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: 16, marginBottom: 16 }}>
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                  <View style={{ width: 32, height: 32, borderRadius: 16, backgroundColor: '#FEF3C7', justifyContent: 'center', alignItems: 'center' }}>
+                    <MaterialCommunityIcons name="trophy-outline" size={18} color="#D97706" />
+                  </View>
+                  <View>
+                    <Text style={{ fontFamily: BOLD_FONT, fontSize: 18, color: Colors.text, letterSpacing: -0.5 }}>This Week's Bestsellers</Text>
+                    <Text style={{ fontFamily: BOLD_FONT, fontSize: 11, color: Colors.textSecondary }}>Most ordered by your neighbors</Text>
+                  </View>
+                </View>
+                <TouchableOpacity activeOpacity={0.7} onPress={() => router.push('/(tabs)/search')} style={{ backgroundColor: '#FEF3C7', paddingHorizontal: 12, paddingVertical: 6, borderRadius: 12 }}>
+                  <Text style={{ fontFamily: BOLD_FONT, fontSize: 12, color: '#D97706' }}>See All</Text>
+                </TouchableOpacity>
+              </View>
+
+              {/* Ranked List */}
+              <View style={{ paddingHorizontal: 16, gap: 12 }}>
+                {restaurants.slice(0, 5).map((r, idx) => {
+                  const medals = ['🥇', '🥈', '🥉', '4️⃣', '5️⃣'];
+                  const rankColors = ['#F59E0B', '#94A3B8', '#CD7F32', '#6B7280', '#6B7280'];
+                  return (
+                    <TouchableOpacity
+                      key={r._id}
+                      activeOpacity={0.9}
+                      onPress={() => router.push(`/restaurant/${r._id}`)}
+                      style={{
+                        flexDirection: 'row',
+                        alignItems: 'center',
+                        backgroundColor: idx === 0 ? '#FFFBEB' : '#FFF',
+                        borderRadius: 18,
+                        padding: 12,
+                        borderWidth: 1.5,
+                        borderColor: idx === 0 ? '#FDE68A' : '#F3F4F6',
+                        shadowColor: idx === 0 ? '#F59E0B' : '#000',
+                        shadowOffset: { width: 0, height: 3 },
+                        shadowOpacity: idx === 0 ? 0.15 : 0.04,
+                        shadowRadius: 8,
+                        elevation: idx === 0 ? 4 : 2,
+                      }}
+                    >
+                      {/* Rank */}
+                      <View style={{ width: 36, alignItems: 'center' }}>
+                        <Text style={{ fontSize: 22 }}>{medals[idx]}</Text>
+                      </View>
+
+                      {/* Image */}
+                      <View style={{ width: 58, height: 58, borderRadius: 14, overflow: 'hidden', marginRight: 12 }}>
+                        <Image
+                          source={{ uri: r.images?.[0] || 'https://images.pexels.com/photos/260922/pexels-photo-260922.jpeg' }}
+                          style={{ width: '100%', height: '100%' }}
+                        />
+                      </View>
+
+                      {/* Info */}
+                      <View style={{ flex: 1 }}>
+                        <Text style={{ fontFamily: BOLD_FONT, fontSize: 15, color: Colors.text }} numberOfLines={1}>{r.name}</Text>
+                        <Text style={{ fontFamily: BOLD_FONT, fontSize: 12, color: Colors.textSecondary, marginTop: 2 }} numberOfLines={1}>
+                          {r.cuisines?.join(', ') || 'Multi-Cuisine'}
+                        </Text>
+                        <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 6, gap: 10 }}>
+                          <View style={{ flexDirection: 'row', alignItems: 'center', backgroundColor: '#DCFCE7', paddingHorizontal: 7, paddingVertical: 3, borderRadius: 8 }}>
+                            <Ionicons name="star" size={10} color="#16A34A" />
+                            <Text style={{ fontFamily: BOLD_FONT, fontSize: 11, color: '#16A34A', marginLeft: 3 }}>{r.rating?.average?.toFixed(1) || '4.5'}</Text>
+                          </View>
+                          <Text style={{ fontFamily: BOLD_FONT, fontSize: 11, color: Colors.textSecondary }}>
+                            <Ionicons name="time-outline" size={11} color={Colors.textSecondary} /> {r.estimatedDeliveryTime || 30} min
+                          </Text>
+                        </View>
+                      </View>
+
+                      {/* Rank number badge */}
+                      <View style={{ width: 28, height: 28, borderRadius: 14, backgroundColor: rankColors[idx] + '20', justifyContent: 'center', alignItems: 'center' }}>
+                        <Text style={{ fontFamily: BOLD_FONT, fontSize: 12, color: rankColors[idx] }}>#{idx + 1}</Text>
+                      </View>
+                    </TouchableOpacity>
+                  );
+                })}
+              </View>
+            </View>
+
+            {/* Grey Divider */}
+            <View style={{ height: 8, backgroundColor: '#F3F4F6', marginVertical: 16 }} />
+
+            {/* ── FTAFAT LIVE STATS + INTERACTIVE FEATURES ── */}
+            <View style={{ paddingBottom: 32 }}>
+
+              {/* LIVE STATS TICKER */}
+              <View style={{ marginHorizontal: 16, marginBottom: 20, backgroundColor: '#0D9488', borderRadius: 20, padding: 18, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+                <View style={{ alignItems: 'center', flex: 1 }}>
+                  <Text style={{ fontFamily: BOLD_FONT, fontSize: 22, color: '#FFFFFF' }}>4.9 ⭐</Text>
+                  <Text style={{ fontFamily: STYLISH_FONT, fontSize: 11, color: 'rgba(255,255,255,0.75)', marginTop: 2 }}>Avg Rating</Text>
+                </View>
+                <View style={{ width: 1, height: 40, backgroundColor: 'rgba(255,255,255,0.2)' }} />
+                <View style={{ alignItems: 'center', flex: 1 }}>
+                  <Text style={{ fontFamily: BOLD_FONT, fontSize: 22, color: '#FFFFFF' }}>18 min</Text>
+                  <Text style={{ fontFamily: STYLISH_FONT, fontSize: 11, color: 'rgba(255,255,255,0.75)', marginTop: 2 }}>Avg Delivery</Text>
+                </View>
+                <View style={{ width: 1, height: 40, backgroundColor: 'rgba(255,255,255,0.2)' }} />
+                <View style={{ alignItems: 'center', flex: 1 }}>
+                  <Text style={{ fontFamily: BOLD_FONT, fontSize: 22, color: '#FFFFFF' }}>50k+</Text>
+                  <Text style={{ fontFamily: STYLISH_FONT, fontSize: 11, color: 'rgba(255,255,255,0.75)', marginTop: 2 }}>Happy Users</Text>
+                </View>
+              </View>
+
+              {/* FEATURED PRODUCTS (NEW) */}
+              <View style={{ marginBottom: 16 }}>
+                <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: 16, marginBottom: 16 }}>
+                  <View>
+                    <Text style={{ fontFamily: BOLD_FONT, fontSize: 18, color: Colors.text, letterSpacing: -0.5 }}>Must-Try Products</Text>
+                    <Text style={{ fontFamily: BOLD_FONT, fontSize: 11, color: Colors.textSecondary }}>Handpicked just for you</Text>
+                  </View>
+                  <TouchableOpacity activeOpacity={0.7} onPress={() => router.push('/(tabs)/search')} style={{ backgroundColor: '#F0FDFA', paddingHorizontal: 12, paddingVertical: 6, borderRadius: 12, borderWidth: 1, borderColor: '#99F6E4' }}>
+                    <Text style={{ fontFamily: BOLD_FONT, fontSize: 12, color: Colors.primary }}>See All</Text>
+                  </TouchableOpacity>
+                </View>
+                <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ paddingHorizontal: 16, gap: 14 }}>
+                  {(mustTryProducts.length > 0 ? mustTryProducts : [
+                    { name: 'Peri Peri Fries', price: '120', images: ['https://images.unsplash.com/photo-1573080496219-bb080dd4f877?w=400&q=80'], tag: '🍟 Snacks' },
+                    { name: 'Cold Coffee', price: '150', images: ['https://images.unsplash.com/photo-1461023058943-07fcbe16d735?w=400&q=80'], tag: '☕ Beverages' },
+                    { name: 'Chicken Wrap', price: '180', images: ['https://images.unsplash.com/photo-1626804475297-41609ae0f4dc?w=400&q=80'], tag: '🌯 Wraps' },
+                    { name: 'Choco Lava Cake', price: '140', images: ['https://images.unsplash.com/photo-1541783245831-57d6fb0926d3?w=400&q=80'], tag: '🍫 Desserts' },
+                    { name: 'Veg Biryani', price: '160', images: ['https://images.unsplash.com/photo-1563379926898-05f4575a45d8?w=400&q=80'], tag: '🍛 Rice' },
+                    { name: 'Margherita Pizza', price: '220', images: ['https://images.unsplash.com/photo-1513104890138-7c749659a591?w=400&q=80'], tag: '🍕 Pizza' },
+                    { name: 'Mango Smoothie', price: '99', images: ['https://images.unsplash.com/photo-1553530666-ba11a7da3888?w=400&q=80'], tag: '🥭 Drinks' },
+                    { name: 'Paneer Tikka', price: '200', images: ['https://images.unsplash.com/photo-1567188040759-fb8a883dc6d8?w=400&q=80'], tag: '🧆 Starters' },
+                  ] as any[]).map((prod: any, idx: number) => (
+                    <TouchableOpacity
+                      key={prod._id || `p-${idx}`}
+                      activeOpacity={0.9}
+                      style={{
+                        width: 148,
+                        backgroundColor: '#FFF',
+                        borderRadius: 20,
+                        padding: 12,
+                        shadowColor: '#000',
+                        shadowOffset: { width: 0, height: 4 },
+                        shadowOpacity: 0.06,
+                        shadowRadius: 8,
+                        elevation: 3,
+                        borderWidth: 1,
+                        borderColor: '#F3F4F6',
+                      }}
+                    >
+                      {/* Image */}
+                      <View style={{ width: '100%', height: 110, borderRadius: 12, backgroundColor: '#F9FAFB', overflow: 'hidden', marginBottom: 10 }}>
+                        <Image
+                          source={{ uri: (prod.images?.[0] || prod.image) || 'https://images.unsplash.com/photo-1541783245831-57d6fb0926d3?w=400&q=80' }}
+                          style={{ width: '100%', height: '100%' }}
+                        />
+                        {/* Category Tag */}
+                        <View style={{ position: 'absolute', top: 8, left: 8, backgroundColor: 'rgba(0,0,0,0.55)', paddingHorizontal: 7, paddingVertical: 3, borderRadius: 8 }}>
+                          <Text style={{ fontFamily: BOLD_FONT, fontSize: 10, color: '#FFF' }}>{prod.tag || '🍽️ Food'}</Text>
+                        </View>
+                        {/* Time Badge */}
+                        <View style={{ position: 'absolute', top: 8, right: 8, backgroundColor: 'rgba(255,255,255,0.92)', paddingHorizontal: 6, paddingVertical: 2, borderRadius: 8 }}>
+                          <Text style={{ fontFamily: BOLD_FONT, fontSize: 10, color: Colors.text }}><Ionicons name="time" size={10} color={Colors.primary} /> 20 min</Text>
+                        </View>
+                      </View>
+
+                      {/* Name */}
+                      <Text style={{ fontFamily: BOLD_FONT, fontSize: 13, color: Colors.text, marginBottom: 8 }} numberOfLines={1}>{prod.name}</Text>
+
+                      {/* Price + Add Button */}
+                      <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+                        <Text style={{ fontFamily: BOLD_FONT, fontSize: 15, color: Colors.primary }}>₹{prod.price}</Text>
+                        <TouchableOpacity style={{ width: 30, height: 30, backgroundColor: '#0D9488', borderRadius: 15, justifyContent: 'center', alignItems: 'center', shadowColor: '#0D9488', shadowOffset: { width: 0, height: 3 }, shadowOpacity: 0.3, shadowRadius: 5, elevation: 3 }}>
+                          <Ionicons name="add" size={18} color="#FFF" />
+                        </TouchableOpacity>
+                      </View>
+                    </TouchableOpacity>
+                  ))}
+                </ScrollView>
+              </View>
+
+              {/* ── Flash Deal Strip ── */}
+              <View style={{ marginHorizontal: 16, marginTop: 8, borderRadius: 20, overflow: 'hidden' }}>
+                <LinearGradient
+                  colors={['#111827', '#1F2937']}
+                  start={{ x: 0, y: 0 }}
+                  end={{ x: 1, y: 0 }}
+                  style={{ padding: 20, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}
+                >
+                  <View style={{ flex: 1 }}>
+                    <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 6 }}>
+                      <Text style={{ fontSize: 16, marginRight: 8 }}>⚡</Text>
+                      <Text style={{ fontFamily: BOLD_FONT, fontSize: 11, color: '#CCFBF1', letterSpacing: 1, textTransform: 'uppercase' }}>Flash Deal</Text>
+                    </View>
+                    <Text style={{ fontFamily: BOLD_FONT, fontSize: 22, color: '#FFFFFF', letterSpacing: -0.5 }}>₹0 Delivery Fee</Text>
+                    <Text style={{ fontFamily: STYLISH_FONT, fontSize: 13, color: 'rgba(255,255,255,0.6)', marginTop: 4 }}>On your next 3 orders today</Text>
+                  </View>
+                  <TouchableOpacity
+                    style={{ backgroundColor: '#0D9488', paddingHorizontal: 18, paddingVertical: 12, borderRadius: 16 }}
+                    activeOpacity={0.8}
+                    onPress={() => router.push('/(tabs)/search')}
+                  >
+                    <Text style={{ fontFamily: BOLD_FONT, fontSize: 13, color: '#FFFFFF' }}>Grab It ⚡</Text>
+                  </TouchableOpacity>
+                </LinearGradient>
+              </View>
+
+            </View>
 
           </ScrollView>
         </View>
@@ -583,17 +871,27 @@ export default function HomeScreen() {
           />
 
           <View style={[styles.groceryHeaderContainer, { paddingTop: insets.top + 6 }]}>
-            {/* Main Top Header (Logo + Bag) */}
+            {/* Main Top Header — Greeting + Delivery Location */}
             <View style={[styles.mainHeaderRow, { paddingBottom: 12, alignItems: 'center' }]}>
-              {/* Logo Left */}
-              <View style={{ flex: 1, justifyContent: 'center' }}>
-                <Image source={require('../../assets/images/logo_transparent.png')} style={styles.brandLogo} resizeMode="contain" />
-                <Text style={{ fontFamily: STYLISH_FONT, fontSize: 11, color: '#16A34A', marginLeft: 6, marginTop: -4 }}>
-                  Fresh Groceries. Fast Delivery.
-                </Text>
-              </View>
+              {/* Location Left */}
+              <TouchableOpacity
+                style={{ flexDirection: 'row', alignItems: 'center', flex: 1 }}
+                onPress={() => router.push('/address')}
+                activeOpacity={0.8}
+              >
+                <Ionicons name="location" size={24} color={Colors.primary} style={{ marginRight: 6 }} />
+                <View style={{ flex: 1 }}>
+                  <Text style={{ fontFamily: BOLD_FONT, fontSize: 16, color: Colors.text, display: 'flex', alignItems: 'center' }}>
+                    {(locationTitle || selectedAddress?.label || activeCity || 'Home').toUpperCase()}{' '}
+                    <Ionicons name="chevron-down" size={14} color={Colors.text} />
+                  </Text>
+                  <Text style={{ fontFamily: STYLISH_FONT, fontSize: 12, color: Colors.textSecondary, marginTop: -2 }} numberOfLines={1}>
+                    {locationSubtitle ? locationSubtitle.split(',')[0] : (activeCity || 'Tap to select location')}
+                  </Text>
+                </View>
+              </TouchableOpacity>
 
-              {/* Notifications Icon */}
+              {/* Right: Notification bell */}
               <TouchableOpacity
                 style={styles.bellBtn}
                 activeOpacity={0.7}
@@ -682,10 +980,10 @@ const styles = StyleSheet.create({
     borderRadius: 20,
     marginRight: 12,
     borderWidth: 1,
-    borderColor: '#FFE4D6',
+    borderColor: Colors.primaryLight,
   },
   locationIconBg: {
-    backgroundColor: '#D94E1B',
+    backgroundColor: Colors.primary,
     width: 24,
     height: 24,
     borderRadius: 12,
@@ -726,7 +1024,7 @@ const styles = StyleSheet.create({
   seeAllText: {
     fontFamily: BOLD_FONT,
     fontSize: 13,
-    color: '#D94E1B',
+    color: Colors.primary,
   },
   heroBanner: {
     marginHorizontal: 16,
@@ -734,7 +1032,7 @@ const styles = StyleSheet.create({
     borderRadius: 16,
     overflow: 'hidden',
     height: 160,
-    backgroundColor: '#FFE4D6',
+    backgroundColor: Colors.primaryLight,
   },
   heroBannerImg: {
     width: '100%',
@@ -757,7 +1055,7 @@ const styles = StyleSheet.create({
   heroTitleBrand: {
     fontFamily: BOLD_FONT,
     fontSize: 32,
-    color: '#D94E1B',
+    color: Colors.primary,
     lineHeight: 36,
   },
   heroSub: {
@@ -770,7 +1068,7 @@ const styles = StyleSheet.create({
   orderNowBtn: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#D94E1B',
+    backgroundColor: Colors.primary,
     alignSelf: 'flex-start',
     paddingHorizontal: 14,
     paddingVertical: 8,
@@ -791,7 +1089,7 @@ const styles = StyleSheet.create({
     width: 64,
     height: 64,
     borderRadius: 32,
-    backgroundColor: '#FFE4D6',
+    backgroundColor: Colors.primaryLight,
     marginBottom: 8,
   },
   foodItemName: {
@@ -915,7 +1213,7 @@ const styles = StyleSheet.create({
   hCardPromoTextOrange: {
     fontFamily: BOLD_FONT,
     fontSize: 10,
-    color: '#D94E1B',
+    color: Colors.primary,
     marginLeft: 4,
   },
   offerCard: {
@@ -933,7 +1231,7 @@ const styles = StyleSheet.create({
   offerTitle: {
     fontFamily: BOLD_FONT,
     fontSize: 22,
-    color: '#D94E1B',
+    color: Colors.primary,
     lineHeight: 24,
   },
   offerSub: {
@@ -944,7 +1242,7 @@ const styles = StyleSheet.create({
     lineHeight: 12,
   },
   offerArrowBtn: {
-    backgroundColor: '#D94E1B',
+    backgroundColor: Colors.primary,
     width: 24,
     height: 24,
     borderRadius: 12,
@@ -1165,7 +1463,7 @@ const styles = StyleSheet.create({
     marginBottom: 6,
   },
   pillIconBg: {
-    backgroundColor: '#D94E1B',
+    backgroundColor: Colors.primary,
     width: 24,
     height: 24,
     borderRadius: 12,
@@ -1182,7 +1480,7 @@ const styles = StyleSheet.create({
   pillTitleText: {
     fontFamily: BOLD_FONT,
     fontSize: 15,
-    color: '#D94E1B',
+    color: Colors.primary,
     maxWidth: 140,
   },
   stylishSubtitle: {
@@ -1206,7 +1504,7 @@ const styles = StyleSheet.create({
     borderWidth: 1.5,
     borderColor: '#FED7AA',
     position: 'relative',
-    shadowColor: '#D94E1B',
+    shadowColor: Colors.primary,
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.08,
     shadowRadius: 4,
@@ -1272,7 +1570,7 @@ const styles = StyleSheet.create({
 
   categoryItemWrapper: {
     marginRight: 16,
-    shadowColor: '#D94E1B',
+    shadowColor: Colors.primary,
     shadowOffset: { width: 0, height: 8 },
     shadowOpacity: 0.15,
     shadowRadius: 12,
@@ -1349,7 +1647,7 @@ const styles = StyleSheet.create({
   cardCuisines: { fontFamily: STYLISH_FONT, fontSize: 13, color: '#6B7280', flex: 1 },
   cardDistance: { fontFamily: BOLD_FONT, fontSize: 12, color: '#9CA3AF' },
   promoRow: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#FEF2F2', padding: 10, borderRadius: 10 },
-  promoText: { fontFamily: BOLD_FONT, fontSize: 11, color: '#D94E1B', marginLeft: 6 },
+  promoText: { fontFamily: BOLD_FONT, fontSize: 11, color: Colors.primary, marginLeft: 6 },
 
   emptyState: {
     alignItems: 'center', justifyContent: 'center',

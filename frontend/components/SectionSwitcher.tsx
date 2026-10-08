@@ -14,7 +14,7 @@ import { useConfigStore } from '../store/config.store';
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
 const GROCERY_COLOR = '#1E3D34'; // Deep Forest Pine
-const FOOD_COLOR = '#D94E1B';    // Deep Brand Orange
+const FOOD_COLOR = '#0D9488';    // Deep Teal
 
 interface SectionSwitcherProps {
   activeSection: 'food' | 'grocery';
@@ -126,7 +126,7 @@ const styles = StyleSheet.create({
     height: 48,
     alignItems: 'center',
     borderWidth: 1,
-    borderColor: '#FFE4D6',
+    borderColor: '#CCFBF1',
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.05,

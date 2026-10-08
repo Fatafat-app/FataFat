@@ -5,59 +5,64 @@ import { Ionicons } from '@expo/vector-icons';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 const BOLD_FONT = 'PlusJakartaSans-Bold';
+const REGULAR_FONT = 'PlusJakartaSans-Regular';
 
 const bannersData = [
   {
     id: '1',
-    title: 'Only on',
-    titleBrand: 'FtaFat!',
-    sub: 'Lightning fast delivery.\nHot & fresh at your door.',
-    img: 'https://images.unsplash.com/photo-1565299624946-b28f40a0ae38?w=800&q=80',
-    colors: ['#FFE4D6', 'rgba(255,228,214,0.9)', 'transparent'],
-    textColor: '#5E2B16',
+    tag: 'LIMITED TIME',
+    title: 'Midnight',
+    titleBrand: 'Cravings?',
+    sub: 'Hot & fresh food delivered\nin 20 mins flat.',
+    img: 'https://images.unsplash.com/photo-1565299624946-b28f40a0ae38?w=500&q=80',
+    colors: ['#0D9488', '#0F766E'], // Deep Teal
+    accent: '#CCFBF1',
+    actionText: 'Order Now',
+    watermark: 'CRAVE',
   },
   {
     id: '2',
-    title: 'FtaFat',
-    titleBrand: 'Exclusive',
-    sub: 'Flat 50% OFF on your\nfavorite local meals.',
-    img: 'https://images.unsplash.com/photo-1513104890138-7c749659a591?w=800&q=80',
-    colors: ['#FFF0E5', 'rgba(255,240,229,0.9)', 'transparent'],
-    textColor: '#D94E1B',
+    tag: 'EXCLUSIVE',
+    title: 'Flat 50%',
+    titleBrand: 'OFF TODAY',
+    sub: 'On your favorite pizzas\nand local meals.',
+    img: 'https://images.unsplash.com/photo-1513104890138-7c749659a591?w=500&q=80',
+    colors: ['#F59E0B', '#D97706'], // Amber
+    accent: '#FEF3C7',
+    actionText: 'Claim Offer',
+    watermark: 'DEALS',
   },
   {
     id: '3',
-    title: 'Craving',
-    titleBrand: 'FtaFat?',
-    sub: 'Authentic Indian flavors\ndelivered in minutes.',
-    img: 'https://images.unsplash.com/photo-1589302168068-964664d93dc0?w=800&q=80',
-    colors: ['#FFFBEB', 'rgba(255,251,235,0.9)', 'transparent'],
-    textColor: '#92400E',
+    tag: 'HEALTHY',
+    title: 'Fresh',
+    titleBrand: 'Salads',
+    sub: 'Crafted for your healthy\nlifestyle & diet.',
+    img: 'https://images.unsplash.com/photo-1512621776951-a57141f2eefd?w=500&q=80',
+    colors: ['#10B981', '#059669'], // Emerald
+    accent: '#D1FAE5',
+    actionText: 'View Menu',
+    watermark: 'FRESH',
   },
   {
     id: '4',
-    title: 'Trust',
-    titleBrand: 'FtaFat',
-    sub: 'For 100% hygienic and\nsafe food handling.',
-    img: 'https://images.unsplash.com/photo-1551024506-0bccd828d307?w=800&q=80',
-    colors: ['#FCE7F3', 'rgba(252,231,243,0.9)', 'transparent'],
-    textColor: '#9D174D',
-  },
-  {
-    id: '5',
-    title: 'FtaFat',
-    titleBrand: 'Specials',
-    sub: 'Healthy bowls & salads\ncrafted just for you.',
-    img: 'https://images.unsplash.com/photo-1512621776951-a57141f2eefd?w=800&q=80',
-    colors: ['#DCFCE7', 'rgba(220,252,231,0.9)', 'transparent'],
-    textColor: '#166534',
+    tag: 'DESSERTS',
+    title: 'Sweet',
+    titleBrand: 'Tooth?',
+    sub: 'Buy 1 Get 1 on all\npremium desserts.',
+    img: 'https://images.unsplash.com/photo-1551024506-0bccd828d307?w=500&q=80',
+    colors: ['#6366F1', '#4F46E5'], // Indigo
+    accent: '#E0E7FF',
+    actionText: 'Grab Now',
+    watermark: 'SWEET',
   }
 ];
 
 export function AutoScrollHeroBanners() {
   const scrollViewRef = useRef<ScrollView>(null);
   const [currentIndex, setCurrentIndex] = useState(0);
-  const BANNER_WIDTH = SCREEN_WIDTH - 32;
+  const BANNER_WIDTH = SCREEN_WIDTH - 24;
+  const ITEM_WIDTH = BANNER_WIDTH + 12;
 
   useEffect(() => {
     const interval = setInterval(() => {
@@ -65,64 +70,77 @@ export function AutoScrollHeroBanners() {
       if (nextIndex >= bannersData.length) {
         nextIndex = 0;
       }
-      
-      const xOffset = nextIndex * (BANNER_WIDTH + 16);
+
+      const xOffset = nextIndex * ITEM_WIDTH;
       scrollViewRef.current?.scrollTo({ x: xOffset, animated: true });
       setCurrentIndex(nextIndex);
-    }, 3500); 
+    }, 4000);
 
     return () => clearInterval(interval);
   }, [currentIndex]);
 
   const handleScrollEnd = (e: any) => {
     const x = e.nativeEvent.contentOffset.x;
-    const itemWidth = BANNER_WIDTH + 16;
-    const index = Math.round(x / itemWidth);
+    const index = Math.round(x / ITEM_WIDTH);
     setCurrentIndex(index);
   };
 
   return (
     <View style={styles.container}>
-      <ScrollView 
+      <ScrollView
         ref={scrollViewRef}
-        horizontal 
-        showsHorizontalScrollIndicator={false} 
-        contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: 10, gap: 16 }}
+        horizontal
+        showsHorizontalScrollIndicator={false}
+        contentContainerStyle={{ paddingHorizontal: 12, paddingBottom: 10, gap: 12 }}
         onMomentumScrollEnd={handleScrollEnd}
         decelerationRate="fast"
-        snapToInterval={BANNER_WIDTH + 16}
+        snapToInterval={ITEM_WIDTH}
       >
         {bannersData.map((banner) => (
-          <View key={banner.id} style={[styles.heroBanner, { width: BANNER_WIDTH, backgroundColor: banner.colors[0] }]}>
-             <View style={styles.heroBannerContent}>
-                <View style={styles.brandPill}>
-                  <Text style={styles.brandText}>{banner.title}</Text>
+          <TouchableOpacity activeOpacity={0.95} key={banner.id}>
+            <View style={[styles.heroBanner, { width: BANNER_WIDTH, backgroundColor: banner.colors[0] }]}>
+              {/* Vibrant Gradient Background */}
+              <LinearGradient
+                colors={banner.colors as any}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 1 }}
+                style={StyleSheet.absoluteFill}
+              />
+
+              {/* Huge Background Watermark Text */}
+              <Text style={[styles.watermarkText, { color: banner.accent }]}>
+                {banner.watermark}
+              </Text>
+
+              {/* Dynamic Rotated Floating Image */}
+              <View style={styles.rotatedImageContainer}>
+                <Image source={{ uri: banner.img }} style={styles.rotatedImage} />
+              </View>
+
+              <View style={styles.contentWrapper}>
+                <View style={[styles.tagPill, { backgroundColor: banner.accent }]}>
+                  <Text style={[styles.tagText, { color: banner.colors[1] }]}>{banner.tag}</Text>
                 </View>
-                <Text style={[styles.heroTitle, { color: banner.textColor }]}>{banner.titleBrand}</Text>
-                <Text style={styles.heroSub}>{banner.sub}</Text>
-                
-                <TouchableOpacity style={[styles.orderNowBtn, { backgroundColor: banner.textColor }]} activeOpacity={0.8}>
-                  <Text style={styles.orderNowText}>Order Now</Text>
-                </TouchableOpacity>
-             </View>
-             <View style={styles.imageSide}>
-               <Image source={{ uri: banner.img }} style={styles.heroBannerImg} />
-               <LinearGradient
-                  colors={['transparent', banner.colors[0]]}
-                  start={{ x: 1, y: 0 }}
-                  end={{ x: 0, y: 0 }}
-                  style={styles.fadeGradient}
-               />
-             </View>
-          </View>
+
+                <Text style={styles.titleText}>{banner.title}</Text>
+                <Text style={styles.brandText}>{banner.titleBrand}</Text>
+                <Text style={styles.subText}>{banner.sub}</Text>
+
+                <View style={styles.actionBtn}>
+                  <Text style={[styles.actionBtnText, { color: banner.colors[1] }]}>{banner.actionText}</Text>
+                  <Ionicons name="arrow-forward" size={14} color={banner.colors[1]} />
+                </View>
+              </View>
+            </View>
+          </TouchableOpacity>
         ))}
       </ScrollView>
 
-      {/* Pagination Dots */}
+      {/* Pagination */}
       <View style={styles.paginationRow}>
-         {bannersData.map((_, idx) => (
-           <View key={idx} style={[styles.dot, currentIndex === idx ? styles.activeDot : null]} />
-         ))}
+        {bannersData.map((_, idx) => (
+          <View key={idx} style={[styles.dot, currentIndex === idx ? styles.activeDot : null]} />
+        ))}
       </View>
     </View>
   );
@@ -133,86 +151,131 @@ const styles = StyleSheet.create({
     marginBottom: 24,
   },
   heroBanner: {
-    height: 180,
-    borderRadius: 24,
+    height: 200,
+    borderTopLeftRadius: 48,
+    borderBottomRightRadius: 48,
+    borderTopRightRadius: 16,
+    borderBottomLeftRadius: 16,
     overflow: 'hidden',
-    flexDirection: 'row',
-    shadowColor: '#5E2B16',
-    shadowOffset: { width: 0, height: 6 },
-    shadowOpacity: 0.1,
-    shadowRadius: 10,
-    elevation: 4,
-  },
-  heroBannerContent: {
-    flex: 1.3,
-    padding: 20,
-    justifyContent: 'center',
-    zIndex: 2,
-  },
-  brandPill: {
-    backgroundColor: '#FFFFFF',
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 12,
-    alignSelf: 'flex-start',
-    marginBottom: 8,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.05,
-    shadowRadius: 4,
-    elevation: 1,
-  },
-  brandText: {
-    fontFamily: BOLD_FONT,
-    fontSize: 10,
-    color: '#D94E1B',
-    textTransform: 'uppercase',
-  },
-  heroTitle: {
-    fontFamily: BOLD_FONT,
-    fontSize: 26,
-    marginTop: 4,
-    letterSpacing: -1,
-    lineHeight: 30,
-  },
-  heroSub: {
-    fontFamily: 'PlusJakartaSans-Regular',
-    fontSize: 12,
-    color: '#4B5563',
-    marginTop: 8,
-    lineHeight: 16,
-  },
-  orderNowBtn: {
-    alignSelf: 'flex-start',
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    borderRadius: 24,
-    marginTop: 12,
-  },
-  orderNowText: {
-    fontFamily: BOLD_FONT,
-    fontSize: 12,
-    color: '#FFFFFF',
-  },
-  imageSide: {
-    flex: 1,
     position: 'relative',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 12 },
+    shadowOpacity: 0.25,
+    shadowRadius: 20,
+    elevation: 8,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.4)',
   },
-  heroBannerImg: {
-    flex: 1,
+  watermarkText: {
+    position: 'absolute',
+    right: -20,
+    bottom: -20,
+    fontFamily: BOLD_FONT,
+    fontSize: 90,
+    opacity: 0.15,
+    transform: [{ rotate: '-10deg' }],
+  },
+  rotatedImageContainer: {
+    position: 'absolute',
+    right: -30,
+    top: 5,
+    width: 185,
+    height: 220,
+    borderRadius: 28,
+    transform: [{ rotate: '-12deg' }],
+    overflow: 'hidden',
+    borderWidth: 4,
+    borderColor: 'rgba(255,255,255,0.25)',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 10 },
+    shadowOpacity: 0.4,
+    shadowRadius: 15,
+    elevation: 10,
+    backgroundColor: '#F3F4F6',
+  },
+  imageFallback: {
+    ...StyleSheet.absoluteFill as any,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: '#F9FAFB',
+  },
+  fallbackText: {
+    fontFamily: BOLD_FONT,
+    fontSize: 20,
+    opacity: 0.3,
+    transform: [{ rotate: '12deg' }], // Counteract parent rotation so text is straight
+  },
+  rotatedImage: {
+    width: '100%',
     height: '100%',
     resizeMode: 'cover',
   },
-  fadeGradient: {
-    position: 'absolute',
-    top: 0, left: 0, bottom: 0,
-    width: 60,
+  contentWrapper: {
+    flex: 1,
+    padding: 24,
+    justifyContent: 'center',
+    maxWidth: '62%',
+    zIndex: 5,
+  },
+  tagPill: {
+    alignSelf: 'flex-start',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 6,
+    marginBottom: 10,
+  },
+  tagText: {
+    fontFamily: BOLD_FONT,
+    fontSize: 9,
+    textTransform: 'uppercase',
+    letterSpacing: 0.8,
+  },
+  titleText: {
+    fontFamily: REGULAR_FONT,
+    fontSize: 22,
+    color: '#FFFFFF',
+    letterSpacing: -0.5,
+    lineHeight: 24,
+  },
+  brandText: {
+    fontFamily: BOLD_FONT,
+    fontSize: 28,
+    color: '#FFFFFF',
+    letterSpacing: -1,
+    lineHeight: 32,
+    marginBottom: 6,
+  },
+  subText: {
+    fontFamily: REGULAR_FONT,
+    fontSize: 12,
+    color: 'rgba(255,255,255,0.9)',
+    lineHeight: 16,
+    marginBottom: 16,
+  },
+  actionBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#FFFFFF',
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 20,
+    alignSelf: 'flex-start',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.1,
+    shadowRadius: 5,
+    elevation: 3,
+  },
+  actionBtnText: {
+    fontFamily: BOLD_FONT,
+    fontSize: 12,
+    marginRight: 4,
   },
   paginationRow: {
     flexDirection: 'row',
     justifyContent: 'center',
     alignItems: 'center',
-    marginTop: -2,
+    marginTop: 6,
   },
   dot: {
     width: 6,
@@ -222,7 +285,7 @@ const styles = StyleSheet.create({
     marginHorizontal: 4,
   },
   activeDot: {
-    width: 14,
-    backgroundColor: '#D94E1B',
+    width: 24,
+    backgroundColor: '#0D9488',
   }
 });
