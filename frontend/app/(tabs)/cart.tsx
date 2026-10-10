@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -79,6 +79,9 @@ function FoodCartContent() {
     getGrandTotal,
     feeConfig,
     fetchFeeConfig,
+    toggleItemSelection,
+    getSelectedItems,
+    buyNowItem,
   } = useCartStore();
 
   const { user, isAuthenticated } = useAuthStore();
@@ -90,6 +93,7 @@ function FoodCartContent() {
   const [deliveryInstructions, setDeliveryInstructions] = useState('');
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>('COD');
   const [placingOrder, setPlacingOrder] = useState(false);
+  const [placingBuyNow, setPlacingBuyNow] = useState(false);
   const [selectedItemForDetails, setSelectedItemForDetails] = useState<any>(null);
 
   // Calculate generic delivery estimate (45 mins from now)
@@ -169,21 +173,43 @@ function FoodCartContent() {
       return;
     }
 
+    const coords = selectedAddress.location?.coordinates ||
+      (selectedAddress as any).coordinates ||
+      [77.2090, 28.6139];
+
     const addressToUse = {
+      // Send both formats so backend is happy regardless of which it checks
       line1: selectedAddress.line1 || (selectedAddress as any)?.street || 'Main Road',
+      street: selectedAddress.line1 || (selectedAddress as any)?.street || 'Main Road',
       line2: selectedAddress.line2 || '',
       city: selectedAddress.city || 'New Delhi',
       state: selectedAddress.state || 'Delhi',
-      pincode: selectedAddress.pincode || '110001',
-      location: selectedAddress.location || { type: 'Point', coordinates: [77.2090, 28.6139] },
+      pincode: selectedAddress.pincode || (selectedAddress as any)?.postalCode || '110001',
+      postalCode: selectedAddress.pincode || (selectedAddress as any)?.postalCode || '110001',
+      country: 'India',
+      location: { type: 'Point', coordinates: coords },
+      coordinates: coords,
     };
+
+    // Normalize paymentMethod to lowercase for backend (COD -> cod, ONLINE -> razorpay)
+    const normalizedPayment =
+      paymentMethod === 'COD' ? 'cod' :
+        paymentMethod === 'ONLINE' ? 'razorpay' :
+          (paymentMethod as string).toLowerCase();
+
+    const itemsToOrder = getSelectedItems();
+
+    if (itemsToOrder.length === 0) {
+      Alert.alert('No Items Selected', 'Please select at least one item to place an order.');
+      return;
+    }
 
     try {
       setPlacingOrder(true);
 
       const orderPayload = {
         restaurantId: restaurant._id,
-        items: items.map((i) => ({
+        items: itemsToOrder.map((i) => ({
           menuItemId: i.menuItem._id,
           name: i.menuItem.name,
           price: i.menuItem.price,
@@ -192,7 +218,7 @@ function FoodCartContent() {
         })),
         deliveryAddress: addressToUse as unknown as Address,
         deliveryInstructions: deliveryInstructions.trim() || undefined,
-        paymentMethod,
+        paymentMethod: normalizedPayment as any,
       };
 
       const { order, payment } = await orderService.createOrder(orderPayload);
@@ -216,6 +242,13 @@ function FoodCartContent() {
     } finally {
       setPlacingOrder(false);
     }
+  };
+
+  // Flipkart-style Buy Now: select only that item and instantly place order
+  const handleBuyNow = async (menuItemId: string) => {
+    buyNowItem(menuItemId);
+    // Give zustand a tick to update state before placing order
+    setTimeout(() => handlePlaceOrder(), 50);
   };
 
   if (items.length === 0) {
@@ -259,48 +292,101 @@ function FoodCartContent() {
           {items.map((item, idx) => {
             const imageUrl = item.menuItem.images?.[0] || 'https://images.pexels.com/photos/1639557/pexels-photo-1639557.jpeg';
             const isVeg = item.menuItem.isVeg;
-            
+            const desc = item.menuItem.description;
+            const category = item.menuItem.category;
+            // Don't show raw MongoDB ObjectIds as category
+            const showCategory = category && !/^[a-f\d]{24}$/i.test(category);
+            const prepTime = item.menuItem.preparationTime;
+            const unitPrice = item.menuItem.price;
+
             return (
+              // @ts-ignore
               <View
                 key={item.menuItem._id}
-                style={[styles.itemRow, idx !== items.length - 1 && styles.itemRowBorder]}
+                style={[
+                  styles.itemCard,
+                  idx !== items.length - 1 && { marginBottom: 12 },
+                ]}
               >
-                <TouchableOpacity onPress={() => setSelectedItemForDetails(item.menuItem)} activeOpacity={0.8}>
-                  <Image source={{ uri: imageUrl }} style={styles.itemImage} />
-                </TouchableOpacity>
-                
-                <View style={styles.itemInfo}>
-                  <View style={styles.itemNameRow}>
-                    {isVeg !== undefined && (
+                {/* Top Row: Image + Info */}
+                <View style={styles.itemRow}>
+                  <TouchableOpacity onPress={() => setSelectedItemForDetails(item.menuItem)} activeOpacity={0.85}>
+                    <Image source={{ uri: imageUrl }} style={styles.itemImage} />
+                  </TouchableOpacity>
+
+                  <View style={styles.itemInfo}>
+                    {/* Veg/Non-veg label + Category */}
+                    <View style={styles.itemTopBadgeRow}>
                       <View style={[styles.vegSquare, { borderColor: isVeg ? Colors.success : Colors.error }]}>
                         <View style={[styles.vegDot, { backgroundColor: isVeg ? Colors.success : Colors.error }]} />
                       </View>
-                    )}
+                      <Text style={[styles.vegLabel, { color: isVeg ? Colors.success : Colors.error }]}>
+                        {isVeg ? 'Veg' : 'Non-Veg'}
+                      </Text>
+                      {showCategory ? (
+                        <Text style={styles.categoryLabel}> · {category}</Text>
+                      ) : null}
+                    </View>
+
+                    {/* Name */}
                     <Text style={styles.itemName} numberOfLines={2}>{item.menuItem.name}</Text>
+
+                    {/* Description */}
+                    {desc ? (
+                      <Text style={styles.itemDesc} numberOfLines={2}>{desc}</Text>
+                    ) : null}
+
+                    {/* Modifiers */}
+                    {item.selectedModifiers && item.selectedModifiers.length > 0 && (
+                      <Text style={styles.itemModifiers}>
+                        + {item.selectedModifiers.map((m) => m.name).join(', ')}
+                      </Text>
+                    )}
+
+                    {/* Price row: unit price × qty = total */}
+                    <View style={styles.priceRow}>
+                      <Text style={styles.itemPrice}>{formatPaise(item.totalItemPrice)}</Text>
+                      <Text style={styles.unitPriceText}>
+                        {formatPaise(unitPrice)} × {item.quantity}
+                      </Text>
+                    </View>
+
+                    {/* Delivery estimate + prep time */}
+                    <View style={styles.metaRow}>
+                      <Ionicons name="time-outline" size={11} color={Colors.success} />
+                      <Text style={styles.deliveryEstText}>
+                        {prepTime ? `Ready in ${prepTime} min  ·  ` : ''}{getDeliveryEstimate()}
+                      </Text>
+                    </View>
                   </View>
-                  
-                  {item.selectedModifiers && item.selectedModifiers.length > 0 && (
-                    <Text style={styles.itemModifiers}>
-                      {item.selectedModifiers.map((m) => m.name).join(', ')}
-                    </Text>
-                  )}
-                  <Text style={styles.itemPrice}>{formatPaise(item.totalItemPrice)}</Text>
-                  <Text style={styles.deliveryEstText}>{getDeliveryEstimate()}</Text>
                 </View>
 
-                <View style={styles.counterBox}>
+                {/* Bottom Row: Qty Counter + Buy Now */}
+                <View style={styles.itemActionRow}>
+                  <View style={styles.counterBox}>
+                    <TouchableOpacity
+                      onPress={() => updateQuantity(item.menuItem._id, -1)}
+                      style={styles.counterBtn}
+                    >
+                      <Ionicons name="remove" size={16} color={Colors.primary} />
+                    </TouchableOpacity>
+                    <Text style={styles.counterValue}>{item.quantity}</Text>
+                    <TouchableOpacity
+                      onPress={() => updateQuantity(item.menuItem._id, 1)}
+                      style={styles.counterBtn}
+                    >
+                      <Ionicons name="add" size={16} color={Colors.primary} />
+                    </TouchableOpacity>
+                  </View>
+
                   <TouchableOpacity
-                    onPress={() => updateQuantity(item.menuItem._id, -1)}
-                    style={styles.counterBtn}
+                    style={styles.buyNowBtn}
+                    onPress={() => handleBuyNow(item.menuItem._id)}
+                    disabled={placingBuyNow || placingOrder}
+                    activeOpacity={0.82}
                   >
-                    <Ionicons name="remove" size={16} color={Colors.primary} />
-                  </TouchableOpacity>
-                  <Text style={styles.counterValue}>{item.quantity}</Text>
-                  <TouchableOpacity
-                    onPress={() => updateQuantity(item.menuItem._id, 1)}
-                    style={styles.counterBtn}
-                  >
-                    <Ionicons name="add" size={16} color={Colors.primary} />
+                    <Ionicons name="cart-outline" size={15} color="#FFFFFF" style={{ marginRight: 5 }} />
+                    <Text style={styles.buyNowText}>Buy Now</Text>
                   </TouchableOpacity>
                 </View>
               </View>
@@ -427,6 +513,7 @@ function FoodCartContent() {
             </View>
           )}
           {feeConfig?.customFees?.filter((f) => f.isEnabled && f.amount > 0).map((f, idx) => (
+            // @ts-ignore
             <View key={idx} style={styles.billRow}>
               <Text style={styles.billLabel}>{f.name}</Text>
               <Text style={styles.billValue}>{formatPaise(f.amount)}</Text>
@@ -472,18 +559,18 @@ function FoodCartContent() {
       >
         <View style={styles.modalOverlay}>
           <View style={styles.modalContent}>
-            <TouchableOpacity 
-              style={styles.closeModalBtn} 
+            <TouchableOpacity
+              style={styles.closeModalBtn}
               onPress={() => setSelectedItemForDetails(null)}
             >
               <Ionicons name="close-circle" size={28} color={Colors.textSecondary} />
             </TouchableOpacity>
-            
+
             {selectedItemForDetails && (
               <>
-                <Image 
-                  source={{ uri: selectedItemForDetails.images?.[0] || 'https://images.pexels.com/photos/1639557/pexels-photo-1639557.jpeg' }} 
-                  style={styles.modalImage} 
+                <Image
+                  source={{ uri: selectedItemForDetails.images?.[0] || 'https://images.pexels.com/photos/1639557/pexels-photo-1639557.jpeg' }}
+                  style={styles.modalImage}
                 />
                 <View style={styles.modalInfo}>
                   <View style={styles.itemNameRow}>
@@ -499,7 +586,7 @@ function FoodCartContent() {
                     <Text style={styles.modalDesc}>{selectedItemForDetails.description}</Text>
                   ) : null}
 
-                  <TouchableOpacity 
+                  <TouchableOpacity
                     style={styles.showAllDetailsBtn}
                     onPress={() => {
                       setSelectedItemForDetails(null);
@@ -540,7 +627,7 @@ const styles = StyleSheet.create({
   clearBtn: { backgroundColor: '#FEE2E2', paddingHorizontal: 10, paddingVertical: 6, borderRadius: 8 },
   clearText: { ...Typography.button, color: Colors.error, fontSize: 11 },
   scrollContainer: { flex: 1 },
-  scrollContent: { padding: 16, paddingBottom: 180 },
+  scrollContent: { padding: 16, paddingBottom: 220 },
   card: {
     backgroundColor: Colors.surface,
     borderRadius: 18,
@@ -550,16 +637,45 @@ const styles = StyleSheet.create({
     borderColor: Colors.border,
   },
   cardHeading: { ...Typography.label, letterSpacing: 0.5, marginBottom: 12, color: Colors.textSecondary },
-  itemRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingVertical: 14 },
+  itemCard: {
+    backgroundColor: '#FAFAFA',
+    borderRadius: 14,
+    padding: 12,
+    borderWidth: 1,
+    borderColor: '#F0F0F0',
+  },
+  itemRow: { flexDirection: 'row', alignItems: 'flex-start' },
+  itemActionRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginTop: 12,
+    paddingTop: 10,
+    borderTopWidth: 1,
+    borderTopColor: '#F0F0F0',
+  },
   itemRowBorder: { borderBottomWidth: 1, borderBottomColor: '#F3F4F6' },
-  itemImage: { width: 56, height: 56, borderRadius: 12, backgroundColor: Colors.border },
-  itemInfo: { flex: 1, marginLeft: 12, marginRight: 10 },
+  itemImage: { width: 72, height: 72, borderRadius: 12, backgroundColor: Colors.border },
+  vegBadge: {
+    width: 14, height: 14, borderWidth: 1.5, borderRadius: 2,
+    alignItems: 'center', justifyContent: 'center',
+    marginTop: 4, backgroundColor: '#fff',
+  },
+  itemInfo: { flex: 1, marginLeft: 12 },
   itemNameRow: { flexDirection: 'row', alignItems: 'flex-start', marginBottom: 2 },
-  vegSquare: { width: 12, height: 12, borderWidth: 1, borderRadius: 2, alignItems: 'center', justifyContent: 'center', marginRight: 6, marginTop: 3 },
+  itemTopBadgeRow: { flexDirection: 'row', alignItems: 'center', marginBottom: 5 },
+  vegSquare: { width: 12, height: 12, borderWidth: 1.5, borderRadius: 2, alignItems: 'center', justifyContent: 'center', marginRight: 5 },
   vegDot: { width: 6, height: 6, borderRadius: 3 },
-  itemName: { ...Typography.subtitle, fontSize: 14, flex: 1, color: Colors.text, lineHeight: 18 },
-  itemModifiers: { ...Typography.caption, color: Colors.textSecondary, marginTop: 4, fontSize: 11 },
-  itemPrice: { ...Typography.title, color: Colors.text, marginTop: 4, fontSize: 14 },
+  vegLabel: { fontSize: 11, fontWeight: '600', letterSpacing: 0.2 },
+  categoryLabel: { fontSize: 11, color: Colors.textSecondary, marginLeft: 2 },
+  itemName: { ...Typography.subtitle, fontSize: 15, color: Colors.text, lineHeight: 20, marginBottom: 3 },
+  itemDesc: { ...Typography.caption, fontSize: 12, color: Colors.textSecondary, lineHeight: 17, marginBottom: 4 },
+  itemModifiers: { ...Typography.caption, color: Colors.primary, marginBottom: 4, fontSize: 11 },
+  priceRow: { flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: 2 },
+  itemPrice: { ...Typography.title, color: Colors.text, fontSize: 15, fontWeight: '700' },
+  unitPriceText: { fontSize: 12, color: Colors.textSecondary },
+  metaRow: { flexDirection: 'row', alignItems: 'center', gap: 4, marginTop: 5 },
+  deliveryEstText: { ...Typography.caption, color: Colors.success, fontSize: 11, fontWeight: '600' },
   counterBox: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -606,7 +722,7 @@ const styles = StyleSheet.create({
   grandTotalValue: { ...Typography.heading, fontSize: 18, color: Colors.primary },
   bottomBar: {
     position: 'absolute',
-    bottom: Platform.OS === 'ios' ? 98 : 90,
+    bottom: Platform.OS === 'ios' ? 110 : 105,
     left: 16,
     right: 16,
     backgroundColor: Colors.surface,
@@ -620,9 +736,10 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.1,
-    shadowRadius: 10,
-    elevation: 8,
+    shadowOpacity: 0.12,
+    shadowRadius: 14,
+    elevation: 12,
+    zIndex: 100,
   },
   bottomTotalLabel: { ...Typography.caption, fontSize: 11 },
   bottomTotalPrice: { ...Typography.heading, fontSize: 18, color: Colors.primary },
@@ -655,4 +772,18 @@ const styles = StyleSheet.create({
     borderColor: Colors.primary,
   },
   showAllDetailsText: { ...Typography.button, color: Colors.primary, fontSize: 14, marginRight: 6 },
+  buyNowBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#059669',
+    paddingHorizontal: 16,
+    paddingVertical: 9,
+    borderRadius: 12,
+    shadowColor: '#059669',
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.3,
+    shadowRadius: 6,
+    elevation: 4,
+  },
+  buyNowText: { ...Typography.button, color: '#FFFFFF', fontSize: 13, letterSpacing: 0.3 },
 });

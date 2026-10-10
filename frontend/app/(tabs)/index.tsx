@@ -1,5 +1,5 @@
-import React, { useState, useEffect, useCallback, useRef } from 'react';
-import { View, Text, ScrollView, TouchableOpacity, Image, StyleSheet, Dimensions, NativeSyntheticEvent, NativeScrollEvent, RefreshControl, ImageBackground, Animated, Easing, ActivityIndicator } from 'react-native';
+import { useState, useEffect, useCallback, useRef } from 'react';
+import { View, Text, ScrollView, TouchableOpacity, Image, StyleSheet, Dimensions, NativeSyntheticEvent, NativeScrollEvent, RefreshControl, ImageBackground, Animated, Easing, ActivityIndicator, Alert } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -7,7 +7,7 @@ import { useRouter } from 'expo-router';
 import { useAuthStore, useLocationStore } from '../../store';
 import { useCartStore } from '../../store/cart.store';
 import { restaurantService } from '../../services/restaurant.service';
-import { Restaurant } from '../../types';
+import { Restaurant, MenuItem } from '../../types';
 import { Loading } from '../../components/ui/Loading';
 import { Typography, BOLD_FONT, STYLISH_FONT, Colors } from '../../constants/Theme';
 import { SectionSwitcher } from '../../components/SectionSwitcher';
@@ -19,6 +19,7 @@ import { GroceryTabBar } from '../../components/grocery/GroceryTabBar';
 import { useGroceryStore } from '../../store/grocery.store';
 import { useConfigStore } from '../../store/config.store';
 import { useNotificationStore } from '../../store/notification.store';
+import { useFavoritesStore } from '../../store/favorites.store';
 
 const { width } = Dimensions.get('window');
 
@@ -147,6 +148,8 @@ export default function HomeScreen() {
   const user = useAuthStore((state) => state.user);
   const cartCount = useCartStore((state) => state.items.reduce((s, i) => s + i.quantity, 0));
   const unreadNotifications = useNotificationStore((state) => state.unreadCount);
+  const favoritesCount = useFavoritesStore((state) => state.favorites.length);
+  const { toggleFavorite, isFavorite } = useFavoritesStore();
   const { locationTitle, locationSubtitle, isDetectingLocation, detectCurrentLocation, currentLocation, selectedAddress, activeCity } = useLocationStore();
   const insets = useSafeAreaInsets();
   const { width: SCREEN_WIDTH } = Dimensions.get('window');
@@ -198,6 +201,7 @@ export default function HomeScreen() {
 
   const [activeBanner, setActiveBanner] = useState(0);
   const bannerScrollRef = useRef<ScrollView>(null);
+  const [vegOnly, setVegOnly] = useState(false);
   const [scrollY, setScrollY] = useState(0);
   const isScrolled = scrollY > 80;
 
@@ -240,6 +244,46 @@ export default function HomeScreen() {
   const [refreshing, setRefreshing] = useState(false);
   const [fetchError, setFetchError] = useState(false);
 
+  const { addItem, restaurant: cartRestaurant, clearCart } = useCartStore();
+
+  const handleAddMustTryProduct = (prod: any) => {
+    const mockRestaurant = prod.restaurant || {
+      _id: 'ftft-kitchen-must-try',
+      name: 'FataFat Must-Try Kitchen',
+      image: 'https://images.unsplash.com/photo-1541783245831-57d6fb0926d3?w=400&q=80',
+      address: { street: 'Local Kitchen' }
+    };
+    
+    const formattedItem = {
+      _id: prod._id || `mt-${prod.name.replace(/\s+/g, '-')}`,
+      name: prod.name,
+      price: parseInt(prod.price),
+      description: prod.description || 'A must try signature dish!',
+      images: prod.images || (prod.image ? [prod.image] : []),
+      isVeg: prod.isVeg !== false
+    };
+
+    const success = addItem(formattedItem as any, mockRestaurant as any, []);
+    
+    if (!success) {
+      Alert.alert(
+        'Replace cart items?',
+        `Your cart contains dishes from ${cartRestaurant?.name || 'another restaurant'}. Do you want to discard your previous selection and start a new order?`,
+        [
+          { text: 'Cancel', style: 'cancel' },
+          {
+            text: 'Yes, Replace',
+            style: 'destructive',
+            onPress: () => {
+              clearCart();
+              addItem(formattedItem as any, mockRestaurant as any, []);
+            },
+          },
+        ]
+      );
+    }
+  };
+
   const fetchCategories = async () => {
     try {
       const { api } = require('../../services/api');
@@ -266,6 +310,9 @@ export default function HomeScreen() {
         restaurantService.searchMenuItems('pizza').catch(() => []),
         restaurantService.searchMenuItems('biryani').catch(() => []),
         restaurantService.searchMenuItems('dessert').catch(() => []),
+        restaurantService.searchMenuItems('margherita').catch(() => []),
+        restaurantService.searchMenuItems('burger').catch(() => []),
+        restaurantService.searchMenuItems('pasta').catch(() => []),
       ]);
       
       // Merge all product results and deduplicate by _id
@@ -278,7 +325,7 @@ export default function HomeScreen() {
       });
       
       setRestaurants(Array.isArray(restData) ? restData : []);
-      setMustTryProducts(unique.slice(0, 10));
+      setMustTryProducts(unique.slice(0, 14));
     } catch (err: any) {
       setFetchError(true);
       setRestaurants([]);
@@ -379,13 +426,28 @@ export default function HomeScreen() {
                     <Ionicons name="chevron-down" size={14} color={Colors.text} />
                   </Text>
                   <Text style={{ fontFamily: STYLISH_FONT, fontSize: 12, color: Colors.textSecondary, marginTop: -2 }} numberOfLines={1}>
-                    {locationSubtitle ? locationSubtitle.split(',')[0] : (activeCity || 'Tap to select location')}
+                    {locationSubtitle ? Array.from(new Set(locationSubtitle.split(',').map(s => s.trim()))).join(', ') : (activeCity || 'Tap to select location')}
                   </Text>
                 </View>
               </TouchableOpacity>
 
               {/* Icons Right */}
-              <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                {/* Favorites Heart Icon */}
+                <TouchableOpacity
+                  style={{ width: 40, height: 40, borderRadius: 20, backgroundColor: '#FFFFFF', justifyContent: 'center', alignItems: 'center', shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.05, shadowRadius: 4, elevation: 2 }}
+                  activeOpacity={0.7}
+                  onPress={() => router.push('/(tabs)/saved')}
+                >
+                  <Ionicons name={favoritesCount > 0 ? 'heart' : 'heart-outline'} size={20} color={favoritesCount > 0 ? '#EF4444' : Colors.text} />
+                  {favoritesCount > 0 && (
+                    <View style={{ position: 'absolute', top: 4, right: 4, minWidth: 16, height: 16, borderRadius: 8, backgroundColor: '#EF4444', justifyContent: 'center', alignItems: 'center', paddingHorizontal: 3, borderWidth: 1.5, borderColor: '#FFFFFF' }}>
+                      <Text style={{ fontFamily: BOLD_FONT, fontSize: 8, color: '#FFFFFF', fontWeight: '800' }}>{favoritesCount > 9 ? '9+' : favoritesCount}</Text>
+                    </View>
+                  )}
+                </TouchableOpacity>
+
+                {/* Notifications Bell Icon */}
                 <TouchableOpacity
                   style={{ width: 40, height: 40, borderRadius: 20, backgroundColor: '#FFFFFF', justifyContent: 'center', alignItems: 'center', shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.05, shadowRadius: 4, elevation: 2 }}
                   activeOpacity={0.7}
@@ -406,11 +468,11 @@ export default function HomeScreen() {
               onPress={() => router.push('/(tabs)/search')}
               activeOpacity={0.9}
             >
-              <Ionicons name="search" size={20} color={Colors.textSecondary} style={{ marginRight: 10 }} />
+              <Ionicons name="search" size={20} color="#4B5563" style={{ marginRight: 10 }} />
               <View style={{ flex: 1, justifyContent: 'center' }}>
                 <TypewriterText
                   texts={['Search "Biryani"', 'Search "Pizza"', 'Search "Burger"']}
-                  style={{ fontFamily: STYLISH_FONT, fontSize: 14, color: Colors.textSecondary }}
+                  style={{ fontFamily: STYLISH_FONT, fontSize: 14, color: '#4B5563' }}
                 />
               </View>
               <View style={{ width: 1, height: 24, backgroundColor: '#E5E7EB', marginHorizontal: 10 }} />
@@ -435,15 +497,41 @@ export default function HomeScreen() {
             {/* Main Hero Banners (Auto Scrolling) */}
             <AutoScrollHeroBanners />
 
-            {/* Quick Filters — Vibrant Bold Pills */}
+            {/* Quick Filters — Unified Style with Veg Toggle */}
             <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ paddingHorizontal: 16, paddingVertical: 14, gap: 10 }}>
+              
+              {/* Veg Toggle Chip */}
+              <TouchableOpacity
+                activeOpacity={0.8}
+                onPress={() => setVegOnly(!vegOnly)}
+                style={{
+                  flexDirection: 'row',
+                  alignItems: 'center',
+                  paddingHorizontal: 16,
+                  paddingVertical: 11,
+                  borderRadius: 24,
+                  backgroundColor: vegOnly ? Colors.primary : '#FFF',
+                  borderWidth: 1,
+                  borderColor: vegOnly ? Colors.primary : '#E5E7EB',
+                  shadowColor: '#000',
+                  shadowOffset: { width: 0, height: 2 },
+                  shadowOpacity: 0.05,
+                  shadowRadius: 4,
+                  elevation: 2,
+                }}
+              >
+                <View style={{ width: 12, height: 12, borderWidth: 1.5, borderColor: vegOnly ? '#FFF' : '#16A34A', alignItems: 'center', justifyContent: 'center', borderRadius: 2, marginRight: 6 }}>
+                  <View style={{ width: 6, height: 6, borderRadius: 3, backgroundColor: vegOnly ? '#FFF' : '#16A34A' }} />
+                </View>
+                <Text style={{ fontFamily: BOLD_FONT, fontSize: 13, color: vegOnly ? '#FFF' : '#374151', letterSpacing: 0.2 }}>Veg</Text>
+              </TouchableOpacity>
+
+              {/* Standard Filter Chips */}
               {[
-                { label: 'Trending',      icon: 'fire-circle',            bg: '#EF4444' },
-                { label: 'Fast Delivery', icon: 'moped-electric-outline', bg: '#0D9488' },
-                { label: 'Top Rated',     icon: 'crown-outline',          bg: '#F59E0B' },
-                { label: 'Offers',        icon: 'ticket-percent-outline', bg: '#8B5CF6' },
-                { label: 'Healthy',       icon: 'leaf-circle-outline',    bg: '#10B981' },
-                { label: 'Pure Veg',      icon: 'sprout-outline',         bg: '#06B6D4' },
+                { label: 'Trending',      icon: 'fire-circle' },
+                { label: 'Fast Delivery', icon: 'moped-electric-outline' },
+                { label: 'Top Rated',     icon: 'crown-outline' },
+                { label: 'Healthy',       icon: 'leaf-circle-outline' },
               ].map((f, idx) => (
                 <TouchableOpacity
                   key={idx}
@@ -455,16 +543,18 @@ export default function HomeScreen() {
                     paddingHorizontal: 16,
                     paddingVertical: 11,
                     borderRadius: 24,
-                    backgroundColor: f.bg,
-                    shadowColor: f.bg,
-                    shadowOffset: { width: 0, height: 4 },
-                    shadowOpacity: 0.35,
-                    shadowRadius: 8,
-                    elevation: 4,
+                    backgroundColor: '#FFF',
+                    borderWidth: 1,
+                    borderColor: '#E5E7EB',
+                    shadowColor: '#000',
+                    shadowOffset: { width: 0, height: 2 },
+                    shadowOpacity: 0.05,
+                    shadowRadius: 4,
+                    elevation: 2,
                   }}
                 >
-                  <MaterialCommunityIcons name={f.icon as any} size={15} color="#FFF" style={{ marginRight: 7 }} />
-                  <Text style={{ fontFamily: BOLD_FONT, fontSize: 13, color: '#FFF', letterSpacing: 0.2 }}>{f.label}</Text>
+                  <MaterialCommunityIcons name={f.icon as any} size={15} color="#4B5563" style={{ marginRight: 7 }} />
+                  <Text style={{ fontFamily: BOLD_FONT, fontSize: 13, color: '#374151', letterSpacing: 0.2 }}>{f.label}</Text>
                 </TouchableOpacity>
               ))}
             </ScrollView>
@@ -627,7 +717,7 @@ export default function HomeScreen() {
               <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: 16, gap: 16 }}>
                 {restaurants.slice(0, 4).map((item, idx) => (
                   <TouchableOpacity key={idx} onPress={() => router.push(`/restaurant/${item._id}`)} style={{ width: 220, height: 260, borderRadius: 24, overflow: 'hidden', backgroundColor: '#FFF', shadowColor: '#000', shadowOffset: { width: 0, height: 8 }, shadowOpacity: 0.1, shadowRadius: 12, elevation: 6 }} activeOpacity={0.9}>
-                    <Image source={{ uri: item.coverImage || 'https://images.unsplash.com/photo-1550547660-d9450f859349?w=400&q=80' }} style={{ width: '100%', height: '100%', position: 'absolute' }} />
+                    <Image source={{ uri: item.images?.[0] || 'https://images.unsplash.com/photo-1550547660-d9450f859349?w=400&q=80' }} style={{ width: '100%', height: '100%', position: 'absolute' }} />
                     <LinearGradient
                       colors={['rgba(0,0,0,0.1)', 'rgba(0,0,0,0.85)']}
                       style={{ flex: 1, justifyContent: 'flex-end', padding: 16 }}
@@ -768,16 +858,31 @@ export default function HomeScreen() {
                   {(mustTryProducts.length > 0 ? mustTryProducts : [
                     { name: 'Peri Peri Fries', price: '120', images: ['https://images.unsplash.com/photo-1573080496219-bb080dd4f877?w=400&q=80'], tag: '🍟 Snacks' },
                     { name: 'Cold Coffee', price: '150', images: ['https://images.unsplash.com/photo-1461023058943-07fcbe16d735?w=400&q=80'], tag: '☕ Beverages' },
-                    { name: 'Chicken Wrap', price: '180', images: ['https://images.unsplash.com/photo-1626804475297-41609ae0f4dc?w=400&q=80'], tag: '🌯 Wraps' },
+                    { name: 'Chicken Wrap', price: '180', images: ['https://images.unsplash.com/photo-1626804475297-41609ae0f4dc?w=400&q=80'], tag: '🌯 Wraps', isVeg: false },
                     { name: 'Choco Lava Cake', price: '140', images: ['https://images.unsplash.com/photo-1541783245831-57d6fb0926d3?w=400&q=80'], tag: '🍫 Desserts' },
                     { name: 'Veg Biryani', price: '160', images: ['https://images.unsplash.com/photo-1563379926898-05f4575a45d8?w=400&q=80'], tag: '🍛 Rice' },
                     { name: 'Margherita Pizza', price: '220', images: ['https://images.unsplash.com/photo-1513104890138-7c749659a591?w=400&q=80'], tag: '🍕 Pizza' },
                     { name: 'Mango Smoothie', price: '99', images: ['https://images.unsplash.com/photo-1553530666-ba11a7da3888?w=400&q=80'], tag: '🥭 Drinks' },
                     { name: 'Paneer Tikka', price: '200', images: ['https://images.unsplash.com/photo-1567188040759-fb8a883dc6d8?w=400&q=80'], tag: '🧆 Starters' },
-                  ] as any[]).map((prod: any, idx: number) => (
+                    { name: 'Chicken Wings', price: '250', images: ['https://images.unsplash.com/photo-1569058242253-92a9c755a0ec?w=400&q=80'], tag: '🍗 Non-Veg', isVeg: false },
+                    { name: 'Veg Momos', price: '110', images: ['https://images.unsplash.com/photo-1625220194771-7ebdea0b70b9?w=400&q=80'], tag: '🥟 Snacks' },
+                    { name: 'Butter Chicken', price: '320', images: ['https://images.unsplash.com/photo-1603894584373-5ac82b6ae398?w=400&q=80'], tag: '🥘 Curry', isVeg: false },
+                    { name: 'Masala Dosa', price: '130', images: ['https://images.unsplash.com/photo-1589301760014-d929f39ce9b1?w=400&q=80'], tag: '🥞 South' },
+                  ] as any[]).map((prod: any, idx: number) => {
+                    const handleCardPress = () => {
+                      const restId = prod.restaurant?._id || (typeof prod.restaurant === 'string' ? prod.restaurant : null) || prod.restaurantId;
+                      if (restId) {
+                        router.push(`/restaurant/${restId}`);
+                      } else {
+                        handleAddMustTryProduct(prod);
+                      }
+                    };
+
+                    return (
                     <TouchableOpacity
                       key={prod._id || `p-${idx}`}
                       activeOpacity={0.9}
+                      onPress={handleCardPress}
                       style={{
                         width: 148,
                         backgroundColor: '#FFF',
@@ -798,14 +903,42 @@ export default function HomeScreen() {
                           source={{ uri: (prod.images?.[0] || prod.image) || 'https://images.unsplash.com/photo-1541783245831-57d6fb0926d3?w=400&q=80' }}
                           style={{ width: '100%', height: '100%' }}
                         />
+                        {/* FSSAI Veg/Non-Veg Indicator */}
+                        <View style={{ position: 'absolute', bottom: 6, left: 6, backgroundColor: 'rgba(255,255,255,0.95)', padding: 3, borderRadius: 4 }}>
+                          <View style={{ width: 10, height: 10, borderWidth: 1.5, borderColor: prod.isVeg !== false ? '#16A34A' : '#DC2626', alignItems: 'center', justifyContent: 'center', borderRadius: 2 }}>
+                            <View style={{ width: 5, height: 5, borderRadius: 2.5, backgroundColor: prod.isVeg !== false ? '#16A34A' : '#DC2626' }} />
+                          </View>
+                        </View>
                         {/* Category Tag */}
                         <View style={{ position: 'absolute', top: 8, left: 8, backgroundColor: 'rgba(0,0,0,0.55)', paddingHorizontal: 7, paddingVertical: 3, borderRadius: 8 }}>
                           <Text style={{ fontFamily: BOLD_FONT, fontSize: 10, color: '#FFF' }}>{prod.tag || '🍽️ Food'}</Text>
                         </View>
-                        {/* Time Badge */}
-                        <View style={{ position: 'absolute', top: 8, right: 8, backgroundColor: 'rgba(255,255,255,0.92)', paddingHorizontal: 6, paddingVertical: 2, borderRadius: 8 }}>
-                          <Text style={{ fontFamily: BOLD_FONT, fontSize: 10, color: Colors.text }}><Ionicons name="time" size={10} color={Colors.primary} /> 20 min</Text>
-                        </View>
+                        {/* Favorite Heart Toggle */}
+                        <TouchableOpacity
+                          onPress={(e) => {
+                            e.stopPropagation();
+                            const prodId = prod._id || `mt-${prod.name.replace(/\s+/g, '-')}`;
+                            toggleFavorite({
+                              _id: prodId,
+                              name: prod.name,
+                              price: prod.price,
+                              images: prod.images,
+                              image: prod.image,
+                              tag: prod.tag,
+                              isVeg: prod.isVeg,
+                              type: 'product' as const,
+                              addedAt: Date.now(),
+                            });
+                          }}
+                          style={{ position: 'absolute', top: 6, right: 6, width: 28, height: 28, borderRadius: 14, backgroundColor: 'rgba(255,255,255,0.92)', justifyContent: 'center', alignItems: 'center', shadowColor: '#000', shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.1, shadowRadius: 2, elevation: 2 }}
+                          activeOpacity={0.7}
+                        >
+                          <Ionicons
+                            name={isFavorite(prod._id || `mt-${prod.name.replace(/\s+/g, '-')}`) ? 'heart' : 'heart-outline'}
+                            size={16}
+                            color={isFavorite(prod._id || `mt-${prod.name.replace(/\s+/g, '-')}`) ? '#EF4444' : '#9CA3AF'}
+                          />
+                        </TouchableOpacity>
                       </View>
 
                       {/* Name */}
@@ -814,39 +947,13 @@ export default function HomeScreen() {
                       {/* Price + Add Button */}
                       <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
                         <Text style={{ fontFamily: BOLD_FONT, fontSize: 15, color: Colors.primary }}>₹{prod.price}</Text>
-                        <TouchableOpacity style={{ width: 30, height: 30, backgroundColor: '#0D9488', borderRadius: 15, justifyContent: 'center', alignItems: 'center', shadowColor: '#0D9488', shadowOffset: { width: 0, height: 3 }, shadowOpacity: 0.3, shadowRadius: 5, elevation: 3 }}>
+                        <TouchableOpacity onPress={() => handleAddMustTryProduct(prod)} style={{ width: 30, height: 30, backgroundColor: '#0D9488', borderRadius: 15, justifyContent: 'center', alignItems: 'center', shadowColor: '#0D9488', shadowOffset: { width: 0, height: 3 }, shadowOpacity: 0.3, shadowRadius: 5, elevation: 3 }}>
                           <Ionicons name="add" size={18} color="#FFF" />
                         </TouchableOpacity>
                       </View>
                     </TouchableOpacity>
-                  ))}
+                  ); })}
                 </ScrollView>
-              </View>
-
-              {/* ── Flash Deal Strip ── */}
-              <View style={{ marginHorizontal: 16, marginTop: 8, borderRadius: 20, overflow: 'hidden' }}>
-                <LinearGradient
-                  colors={['#111827', '#1F2937']}
-                  start={{ x: 0, y: 0 }}
-                  end={{ x: 1, y: 0 }}
-                  style={{ padding: 20, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}
-                >
-                  <View style={{ flex: 1 }}>
-                    <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 6 }}>
-                      <Text style={{ fontSize: 16, marginRight: 8 }}>⚡</Text>
-                      <Text style={{ fontFamily: BOLD_FONT, fontSize: 11, color: '#CCFBF1', letterSpacing: 1, textTransform: 'uppercase' }}>Flash Deal</Text>
-                    </View>
-                    <Text style={{ fontFamily: BOLD_FONT, fontSize: 22, color: '#FFFFFF', letterSpacing: -0.5 }}>₹0 Delivery Fee</Text>
-                    <Text style={{ fontFamily: STYLISH_FONT, fontSize: 13, color: 'rgba(255,255,255,0.6)', marginTop: 4 }}>On your next 3 orders today</Text>
-                  </View>
-                  <TouchableOpacity
-                    style={{ backgroundColor: '#0D9488', paddingHorizontal: 18, paddingVertical: 12, borderRadius: 16 }}
-                    activeOpacity={0.8}
-                    onPress={() => router.push('/(tabs)/search')}
-                  >
-                    <Text style={{ fontFamily: BOLD_FONT, fontSize: 13, color: '#FFFFFF' }}>Grab It ⚡</Text>
-                  </TouchableOpacity>
-                </LinearGradient>
               </View>
 
             </View>

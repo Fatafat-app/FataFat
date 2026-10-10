@@ -211,7 +211,8 @@ async function placeOrder(userId, payload = {}) {
     amount: totalAmount,
     idempotencyKey: key,
     method: paymentMethod,
-    status: paymentMethod === 'COD' ? 'pending' : 'created',
+    // 'created' is not a valid PAYMENT_STATUS — use 'pending' for all cases
+    status: paymentMethod === 'COD' || paymentMethod === 'cod' ? 'pending' : 'pending',
   });
 
   let order;

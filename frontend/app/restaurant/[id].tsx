@@ -14,6 +14,7 @@ import { useLocalSearchParams, router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { restaurantService } from '../../services/restaurant.service';
 import { useCartStore } from '../../store/cart.store';
+import { useFavoritesStore } from '../../store/favorites.store';
 import { Restaurant, MenuItem, MenuCategory, MenuItemModifierGroup, MenuItemModifierOption } from '../../types';
 import { formatPaise, formatDeliveryTime } from '../../utils/formatters';
 import { Typography, Colors } from '../../constants/Theme';
@@ -38,6 +39,9 @@ export default function RestaurantScreen() {
   const clearCart = useCartStore((state) => state.clearCart);
   const getItemsCount = useCartStore((state) => state.getItemsCount);
   const getItemsTotal = useCartStore((state) => state.getItemsTotal);
+
+  // Favorites Store hooks
+  const { toggleFavorite, isFavorite } = useFavoritesStore();
 
   // Modifier Modal State
   const [modModalVisible, setModModalVisible] = useState(false);
@@ -201,8 +205,28 @@ export default function RestaurantScreen() {
               <Ionicons name="arrow-back" size={22} color="#1C1C1C" />
             </TouchableOpacity>
             <View style={styles.navActions}>
-              <TouchableOpacity style={styles.navCircle} activeOpacity={0.8}>
-                <Ionicons name="heart-outline" size={22} color="#1C1C1C" />
+              <TouchableOpacity
+                style={styles.navCircle}
+                activeOpacity={0.8}
+                onPress={() => {
+                  if (!restaurant) return;
+                  toggleFavorite({
+                    _id: restaurant._id,
+                    name: restaurant.name,
+                    price: 0,
+                    image: restaurant.coverImage,
+                    type: 'restaurant',
+                    cuisine: restaurant.cuisines?.join(', '),
+                    rating: restaurant.rating?.average,
+                    addedAt: Date.now(),
+                  });
+                }}
+              >
+                <Ionicons
+                  name={restaurant && isFavorite(restaurant._id) ? 'heart' : 'heart-outline'}
+                  size={22}
+                  color={restaurant && isFavorite(restaurant._id) ? '#EF4444' : '#1C1C1C'}
+                />
               </TouchableOpacity>
               <TouchableOpacity style={styles.navCircle} activeOpacity={0.8}>
                 <Ionicons name="share-social-outline" size={20} color="#1C1C1C" />
@@ -322,6 +346,29 @@ export default function RestaurantScreen() {
                       <View style={styles.itemImageContainer}>
                         <View style={styles.itemImageWrapper}>
                           <Image source={{ uri: item.images?.[0] || 'https://images.pexels.com/photos/1639557/pexels-photo-1639557.jpeg' }} style={styles.itemImage} />
+                          {/* Favorite Heart Toggle */}
+                          <TouchableOpacity
+                            onPress={(e) => {
+                              e.stopPropagation();
+                              toggleFavorite({
+                                _id: item._id,
+                                name: item.name,
+                                price: item.price,
+                                images: item.images,
+                                isVeg: item.isVeg,
+                                type: 'product',
+                                addedAt: Date.now(),
+                              });
+                            }}
+                            style={{ position: 'absolute', top: 6, right: 6, width: 28, height: 28, borderRadius: 14, backgroundColor: 'rgba(255,255,255,0.92)', justifyContent: 'center', alignItems: 'center', shadowColor: '#000', shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.1, shadowRadius: 2, elevation: 2 }}
+                            activeOpacity={0.7}
+                          >
+                            <Ionicons
+                              name={isFavorite(item._id) ? 'heart' : 'heart-outline'}
+                              size={16}
+                              color={isFavorite(item._id) ? '#EF4444' : '#9CA3AF'}
+                            />
+                          </TouchableOpacity>
                         </View>
 
                         {qty > 0 && (!item.modifierGroups || item.modifierGroups.length === 0) ? (
@@ -362,6 +409,23 @@ export default function RestaurantScreen() {
             <View style={styles.detailHandle} />
             <View style={styles.detailImageWrapper}>
               <Image source={{ uri: detailItem.images?.[0] || 'https://images.pexels.com/photos/1639557/pexels-photo-1639557.jpeg' }} style={styles.detailImage} resizeMode="cover" />
+              <TouchableOpacity
+                onPress={() => setDetailSheetVisible(false)}
+                style={{
+                  position: 'absolute',
+                  top: 12,
+                  right: 12,
+                  width: 32,
+                  height: 32,
+                  borderRadius: 16,
+                  backgroundColor: 'rgba(0,0,0,0.5)',
+                  justifyContent: 'center',
+                  alignItems: 'center',
+                }}
+                activeOpacity={0.8}
+              >
+                <Ionicons name="close" size={20} color="#FFFFFF" />
+              </TouchableOpacity>
             </View>
 
             <ScrollView style={styles.detailBody} showsVerticalScrollIndicator={false}>

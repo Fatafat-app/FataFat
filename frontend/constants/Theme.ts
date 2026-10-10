@@ -1,6 +1,6 @@
 export const Colors = {
-  primary: '#0D9488',      // Deep Teal
-  primaryDark: '#0F766E',  // Darker Teal
+  primary: '#0B7A75',      // New Teal (Passes AA contrast)
+  primaryDark: '#09635E',  // Darker Teal
   primaryLight: '#F0FDFA', // Mint Background
   cream: '#FFFBEB',        // Warm Amber tint
   background: '#F9FAFB',   // App background

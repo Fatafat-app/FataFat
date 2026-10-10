@@ -1,11 +1,14 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { View, ScrollView, Text, Image, StyleSheet, Dimensions, TouchableOpacity } from 'react-native';
+import { View, ScrollView, Text, Image, StyleSheet, Dimensions, TouchableOpacity, Platform } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
-const BOLD_FONT = 'PlusJakartaSans-Bold';
-const REGULAR_FONT = 'PlusJakartaSans-Regular';
+
+// Premium fonts for banners
+const BOLD_FONT = Platform.select({ ios: 'System', android: 'sans-serif-medium', default: 'System' });
+const REGULAR_FONT = Platform.select({ ios: 'System', android: 'sans-serif', default: 'System' });
+const STYLISH_SERIF = Platform.OS === 'ios' ? 'Georgia' : 'serif';
 
 const bannersData = [
   {
@@ -34,6 +37,30 @@ const bannersData = [
   },
   {
     id: '3',
+    tag: 'HOT & SPICY',
+    title: 'Desi',
+    titleBrand: 'Flavors',
+    sub: 'Authentic Indian curries\n& tandoori specials.',
+    img: 'https://images.unsplash.com/photo-1585937421612-70a008356fbe?w=500&q=80',
+    colors: ['#EA580C', '#C2410C'], // Deep Orange
+    accent: '#FFEDD5',
+    actionText: 'Spice it Up',
+    watermark: 'SPICY',
+  },
+  {
+    id: '4',
+    tag: 'FESTIVE',
+    title: 'Maha',
+    titleBrand: 'Thali',
+    sub: 'Enjoy our grand veg thali\nwith family & friends.',
+    img: 'https://images.unsplash.com/photo-1626777552726-4a6b54c97e46?w=500&q=80',
+    colors: ['#F97316', '#EA580C'], // Bright Orange
+    accent: '#FFF7ED',
+    actionText: 'Feast Now',
+    watermark: 'THALI',
+  },
+  {
+    id: '5',
     tag: 'HEALTHY',
     title: 'Fresh',
     titleBrand: 'Salads',
@@ -45,7 +72,7 @@ const bannersData = [
     watermark: 'FRESH',
   },
   {
-    id: '4',
+    id: '6',
     tag: 'DESSERTS',
     title: 'Sweet',
     titleBrand: 'Tooth?',
@@ -96,44 +123,42 @@ export function AutoScrollHeroBanners() {
         decelerationRate="fast"
         snapToInterval={ITEM_WIDTH}
       >
-        {bannersData.map((banner) => (
-          <TouchableOpacity activeOpacity={0.95} key={banner.id}>
-            <View style={[styles.heroBanner, { width: BANNER_WIDTH, backgroundColor: banner.colors[0] }]}>
-              {/* Vibrant Gradient Background */}
-              <LinearGradient
-                colors={banner.colors as any}
-                start={{ x: 0, y: 0 }}
-                end={{ x: 1, y: 1 }}
-                style={StyleSheet.absoluteFill}
-              />
+        {bannersData.map((banner) => {
+          const isAmber = banner.id === '2'; // The 50% OFF banner
+          return (
+            <TouchableOpacity activeOpacity={0.95} key={banner.id}>
+              <View style={[styles.heroBanner, { width: BANNER_WIDTH, backgroundColor: banner.colors[0] }]}>
+                {/* Vibrant Gradient Background */}
+                <LinearGradient
+                  colors={banner.colors as any}
+                  start={{ x: 0, y: 0 }}
+                  end={{ x: 1, y: 1 }}
+                  style={StyleSheet.absoluteFill}
+                />
 
-              {/* Huge Background Watermark Text */}
-              <Text style={[styles.watermarkText, { color: banner.accent }]}>
-                {banner.watermark}
-              </Text>
-
-              {/* Dynamic Rotated Floating Image */}
-              <View style={styles.rotatedImageContainer}>
-                <Image source={{ uri: banner.img }} style={styles.rotatedImage} />
-              </View>
-
-              <View style={styles.contentWrapper}>
-                <View style={[styles.tagPill, { backgroundColor: banner.accent }]}>
-                  <Text style={[styles.tagText, { color: banner.colors[1] }]}>{banner.tag}</Text>
+                {/* Dynamic Rotated Floating Image */}
+                <View style={styles.rotatedImageContainer}>
+                  <Image source={{ uri: banner.img }} style={styles.rotatedImage} />
                 </View>
 
-                <Text style={styles.titleText}>{banner.title}</Text>
-                <Text style={styles.brandText}>{banner.titleBrand}</Text>
-                <Text style={styles.subText}>{banner.sub}</Text>
+                <View style={styles.contentWrapper}>
+                  <View style={[styles.tagPill, { backgroundColor: banner.accent }]}>
+                    <Text style={[styles.tagText, { color: banner.colors[1] }]}>{banner.tag}</Text>
+                  </View>
 
-                <View style={styles.actionBtn}>
-                  <Text style={[styles.actionBtnText, { color: banner.colors[1] }]}>{banner.actionText}</Text>
-                  <Ionicons name="arrow-forward" size={14} color={banner.colors[1]} />
+                  <Text style={[styles.titleText, isAmber && { color: '#1A1A1F' }]}>{banner.title}</Text>
+                  <Text style={[styles.brandText, isAmber && { color: '#1A1A1F' }]}>{banner.titleBrand}</Text>
+                  <Text style={[styles.subText, isAmber && { color: '#1A1A1F' }]}>{banner.sub}</Text>
+
+                  <View style={styles.actionBtn}>
+                    <Text style={[styles.actionBtnText, { color: '#0B7A75' }]}>{banner.actionText}</Text>
+                    <Ionicons name="arrow-forward" size={14} color="#0B7A75" />
+                  </View>
                 </View>
               </View>
-            </View>
-          </TouchableOpacity>
-        ))}
+            </TouchableOpacity>
+          );
+        })}
       </ScrollView>
 
       {/* Pagination */}
@@ -231,19 +256,21 @@ const styles = StyleSheet.create({
     letterSpacing: 0.8,
   },
   titleText: {
-    fontFamily: REGULAR_FONT,
+    fontFamily: STYLISH_SERIF,
     fontSize: 22,
     color: '#FFFFFF',
     letterSpacing: -0.5,
     lineHeight: 24,
+    fontStyle: 'italic',
   },
   brandText: {
-    fontFamily: BOLD_FONT,
+    fontFamily: STYLISH_SERIF,
     fontSize: 28,
     color: '#FFFFFF',
     letterSpacing: -1,
     lineHeight: 32,
     marginBottom: 6,
+    fontWeight: '700',
   },
   subText: {
     fontFamily: REGULAR_FONT,

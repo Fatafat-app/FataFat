@@ -7,6 +7,7 @@ export interface CartItem {
   quantity: number;
   selectedModifiers?: MenuItemModifierOption[];
   totalItemPrice: number; // in paise
+  isSelected?: boolean; // Whether to include in current order
 }
 
 export interface FeeConfigState {
@@ -32,9 +33,12 @@ interface CartState {
   addItem: (item: MenuItem, restaurant: Restaurant, modifiers?: MenuItemModifierOption[]) => boolean;
   removeItem: (menuItemId: string) => void;
   updateQuantity: (menuItemId: string, delta: number) => void;
+  toggleItemSelection: (menuItemId: string) => void;
+  buyNowItem: (menuItemId: string) => void;
   clearCart: () => void;
   
   // Computed values
+  getSelectedItems: () => CartItem[];
   getItemsCount: () => number;
   getItemsTotal: () => number; // in paise
   getDeliveryFee: () => number; // in paise
@@ -94,6 +98,7 @@ export const useCartStore = create<CartState>((set, get) => ({
               quantity: 1,
               selectedModifiers: modifiers,
               totalItemPrice: unitPrice,
+              isSelected: true,
             },
           ],
           restaurant,
@@ -147,14 +152,37 @@ export const useCartStore = create<CartState>((set, get) => ({
     });
   },
 
+  toggleItemSelection: (menuItemId) => {
+    set((state) => {
+      const updated = state.items.map(item => 
+        item.menuItem._id === menuItemId 
+          ? { ...item, isSelected: item.isSelected === false ? true : false } 
+          : item
+      );
+      return { items: updated };
+    });
+  },
+
+  buyNowItem: (menuItemId) => {
+    set((state) => {
+      const updated = state.items.map(item => ({
+        ...item,
+        isSelected: item.menuItem._id === menuItemId
+      }));
+      return { items: updated };
+    });
+  },
+
   clearCart: () => set({ items: [], restaurant: null }),
 
+  getSelectedItems: () => get().items.filter(item => item.isSelected !== false),
+
   getItemsCount: () => {
-    return get().items.reduce((sum, item) => sum + item.quantity, 0);
+    return get().getSelectedItems().reduce((sum, item) => sum + item.quantity, 0);
   },
 
   getItemsTotal: () => {
-    return get().items.reduce((sum, item) => sum + item.totalItemPrice, 0);
+    return get().getSelectedItems().reduce((sum, item) => sum + item.totalItemPrice, 0);
   },
 
   getDeliveryFee: () => {

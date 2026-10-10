@@ -16,6 +16,7 @@ import { useLocalSearchParams, useRouter } from 'expo-router';
 import { restaurantService } from '../../services/restaurant.service';
 import { useLocationStore } from '../../store';
 import { useCartStore } from '../../store/cart.store';
+import { useFavoritesStore } from '../../store/favorites.store';
 import { Restaurant, MenuItem } from '../../types';
 import { RestaurantCard } from '../../components/ui/RestaurantCard';
 import { EmptyState } from '../../components/ui/EmptyState';
@@ -53,6 +54,7 @@ export default function SearchScreen() {
   const cartItemsCount = useCartStore((state) => state.getItemsCount());
   const cartTotal = useCartStore((state) => state.getItemsTotal());
   const cartRestaurant = useCartStore((state) => state.restaurant);
+  const { toggleFavorite, isFavorite } = useFavoritesStore();
 
   const [query, setQuery] = useState(initialQuery);
   const [debouncedQuery, setDebouncedQuery] = useState(initialQuery);
@@ -404,6 +406,29 @@ export default function SearchScreen() {
                           <Ionicons name="fast-food-outline" size={28} color="#D1D5DB" />
                         </View>
                       )}
+                      {/* Favorite Heart Toggle */}
+                      <TouchableOpacity
+                        onPress={(e) => {
+                          e.stopPropagation();
+                          toggleFavorite({
+                            _id: item._id,
+                            name: item.name,
+                            price: item.price,
+                            images: item.images,
+                            isVeg: item.isVeg,
+                            type: 'product',
+                            addedAt: Date.now(),
+                          });
+                        }}
+                        style={{ position: 'absolute', top: 12, right: 12, width: 28, height: 28, borderRadius: 14, backgroundColor: 'rgba(255,255,255,0.92)', justifyContent: 'center', alignItems: 'center', shadowColor: '#000', shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.1, shadowRadius: 2, elevation: 2 }}
+                        activeOpacity={0.7}
+                      >
+                        <Ionicons
+                          name={isFavorite(item._id) ? 'heart' : 'heart-outline'}
+                          size={16}
+                          color={isFavorite(item._id) ? '#EF4444' : '#9CA3AF'}
+                        />
+                      </TouchableOpacity>
                     </TouchableOpacity>
                   );
                 })}
