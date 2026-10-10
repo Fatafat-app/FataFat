@@ -1,0 +1,43 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 820 180" width="100%" height="100%" preserveAspectRatio="none">
+  <defs>
+    <linearGradient id="brushGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#cc151d"/>
+      <stop offset="50%" stop-color="#eb232d"/>
+      <stop offset="100%" stop-color="#cc151d"/>
+    </linearGradient>
+    <filter id="brushRoughness" x="-5%" y="-10%" width="110%" height="120%">
+      <feTurbulence type="fractalNoise" baseFrequency="0.06 0.09" numOctaves="4" result="noise" />
+      <feDisplacementMap in="SourceGraphic" in2="noise" scale="9" xChannelSelector="R" yChannelSelector="G" />
+    </filter>
+  </defs>
+  <!-- Background brush stroke path with natural paint bristles and splatters -->
+  <g filter="url(#brushRoughness)">
+    <!-- Main thick stroke -->
+    <path d="M 35 24 
+             C 120 18, 280 22, 450 20 
+             C 610 18, 720 23, 785 30 
+             C 798 48, 802 75, 792 105 
+             C 785 125, 790 148, 770 156 
+             C 710 162, 530 158, 380 160 
+             C 210 162, 110 157, 48 152 
+             C 25 140, 18 115, 22 88 
+             C 18 62, 22 38, 35 24 Z" 
+          fill="url(#brushGrad)" />
+    
+    <!-- Left bristles and streaks -->
+    <path d="M 12 40 Q 30 45 60 48 Q 30 52 14 58 Z" fill="#eb232d" opacity="0.9" />
+    <path d="M 8 70 Q 25 72 55 76 Q 22 82 10 90 Z" fill="#cc151d" opacity="0.85" />
+    <path d="M 15 110 Q 35 115 70 120 Q 30 128 18 135 Z" fill="#eb232d" opacity="0.9" />
+    <path d="M 5 85 Q 20 88 40 90 Q 18 95 6 102 Z" fill="#ba131b" opacity="0.8" />
+    <circle cx="16" cy="30" r="3.5" fill="#eb232d" />
+    <circle cx="28" cy="148" r="2.5" fill="#eb232d" />
+
+    <!-- Right bristles and streaks -->
+    <path d="M 808 38 Q 785 45 750 48 Q 788 54 812 62 Z" fill="#eb232d" opacity="0.9" />
+    <path d="M 816 75 Q 790 80 760 84 Q 795 90 810 98 Z" fill="#cc151d" opacity="0.85" />
+    <path d="M 802 118 Q 780 122 745 126 Q 782 134 798 142 Z" fill="#eb232d" opacity="0.9" />
+    <path d="M 818 92 Q 800 95 775 97 Q 802 103 814 110 Z" fill="#ba131b" opacity="0.8" />
+    <circle cx="806" cy="28" r="3" fill="#eb232d" />
+    <circle cx="796" cy="152" r="3.5" fill="#eb232d" />
+  </g>
+</svg>
