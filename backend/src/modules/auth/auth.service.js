@@ -15,7 +15,7 @@ const {
   BusinessError,
 } = require('../../common/errors');
 const ERROR_CODES = require('../../common/constants/errorCodes');
-const ROLES = require('../../common/constants/roles');
+const { ROLES } = require('../../common/constants/roles');
 const logger = require('../../config/logger');
 
 const BCRYPT_COST = 12;
@@ -77,8 +77,12 @@ async function register({ name, phone, email, password, role = ROLES.CUSTOMER })
   return user;
 }
 
-async function loginWithPassword({ phone, password }) {
-  const user = await User.findOne({ phone }).select('+passwordHash');
+async function loginWithPassword({ phone, email, password }) {
+  const query = {};
+  if (phone) query.phone = phone;
+  else if (email) query.email = email;
+
+  const user = await User.findOne(query).select('+passwordHash');
 
   if (!user || !user.passwordHash) {
     throw new UnauthorizedError('Invalid credentials', ERROR_CODES.INVALID_CREDENTIALS);

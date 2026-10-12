@@ -15,6 +15,7 @@ import { router } from 'expo-router';
 import { useOwnerStore } from '../../store/owner.store';
 import { formatPaise } from '../../utils/formatters';
 import { Typography, Colors } from '../../constants/Theme';
+import { DashboardSkeleton } from '../../components/ui/Skeleton';
 
 export default function OwnerDashboardScreen() {
   const { restaurant, orders, isLoading, isOpen, fetchOwnerData, toggleStoreStatus } =
@@ -26,9 +27,8 @@ export default function OwnerDashboardScreen() {
 
   if (isLoading) {
     return (
-      <SafeAreaView style={styles.centerContainer}>
-        <ActivityIndicator size="large" color={Colors.primary} />
-        <Text style={styles.loadingText}>Loading owner dashboard...</Text>
+      <SafeAreaView style={styles.safeArea}>
+        <DashboardSkeleton />
       </SafeAreaView>
     );
   }
@@ -149,7 +149,9 @@ export default function OwnerDashboardScreen() {
               <Ionicons name="star" size={24} color="#4F46E5" />
             </View>
             <Text style={styles.metricValue}>
-              {restaurant?.rating?.average ? restaurant.rating.average.toFixed(1) : '4.8'} ⭐
+              {(restaurant?.rating?.count ?? 0) > 0 && restaurant?.rating?.average
+                ? `${restaurant.rating.average.toFixed(1)} ⭐`
+                : 'NEW ⭐'}
             </Text>
             <Text style={styles.metricLabel}>Store Rating</Text>
           </View>

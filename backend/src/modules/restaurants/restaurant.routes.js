@@ -5,7 +5,7 @@ const controller = require('./restaurant.controller');
 const { authenticate } = require('../../middlewares/auth.middleware');
 const { requireRole } = require('../../middlewares/rbac.middleware');
 const { optionalAuthenticate } = require('../../middlewares/auth.middleware');
-const ROLES = require('../../common/constants/roles');
+const { ROLES } = require('../../common/constants/roles');
 
 const router = Router();
 

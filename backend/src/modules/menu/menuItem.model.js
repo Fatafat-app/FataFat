@@ -32,6 +32,16 @@ const menuItemSchema = new mongoose.Schema(
     },
     images: [{ type: String }],
     isVeg: { type: Boolean, default: false },
+    dietaryTypeId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'DietaryType',
+      index: true,
+    },
+    foodCategoryId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'Category',
+      index: true,
+    },
     isAvailable: { type: Boolean, default: true },
     sortOrder: { type: Number, default: 0 },
     tags: [{ type: String, trim: true }],

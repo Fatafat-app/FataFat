@@ -19,16 +19,31 @@ import { Restaurant, MenuItem, MenuCategory, MenuItemModifierGroup, MenuItemModi
 import { formatPaise, formatDeliveryTime } from '../../utils/formatters';
 import { Typography, Colors } from '../../constants/Theme';
 import { Loading } from '../../components/ui/Loading';
+import { RestaurantDetailSkeleton } from '../../components/ui/Skeleton';
+import { useRestaurantDetailQuery, useRestaurantMenuQuery } from '../../hooks';
 import { ErrorState } from '../../components/ui/ErrorState';
 import { EmptyState } from '../../components/ui/EmptyState';
 import { Button } from '../../components/ui/Button';
 
 export default function RestaurantScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
-  const [restaurant, setRestaurant] = useState<Restaurant | null>(null);
-  const [menuCategories, setMenuCategories] = useState<MenuCategory[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState('');
+  // TanStack Query: Cached Restaurant Details & Menu
+  const {
+    data: restaurant,
+    isLoading: loadingRest,
+    isError: errorRest,
+    error: restErr,
+    refetch: refetchRest,
+  } = useRestaurantDetailQuery(id);
+
+  const {
+    data: menuCategories = [],
+    isLoading: loadingMenu,
+    refetch: refetchMenu,
+  } = useRestaurantMenuQuery(id);
+
+  const loading = (loadingRest || loadingMenu) && !restaurant;
+  const error = errorRest ? (restErr as any)?.message || 'Could not load restaurant menu' : '';
   const [vegOnly, setVegOnly] = useState(false);
 
   // Cart Store hooks
@@ -57,27 +72,10 @@ export default function RestaurantScreen() {
     setDetailSheetVisible(true);
   };
 
-  const fetchDetails = async () => {
-    if (!id) return;
-    try {
-      setLoading(true);
-      setError('');
-      const [restData, menuData] = await Promise.all([
-        restaurantService.getRestaurantById(id),
-        restaurantService.getRestaurantMenu(id),
-      ]);
-      setRestaurant(restData);
-      setMenuCategories(menuData);
-    } catch (err: any) {
-      setError(err.response?.data?.message || 'Could not load restaurant menu');
-    } finally {
-      setLoading(false);
-    }
+  const fetchDetails = () => {
+    refetchRest();
+    refetchMenu();
   };
-
-  useEffect(() => {
-    fetchDetails();
-  }, [id]);
 
   const handleAddToCart = (item: MenuItem, modifiers: MenuItemModifierOption[] = []) => {
     if (!restaurant) return;
@@ -161,9 +159,8 @@ export default function RestaurantScreen() {
 
   if (loading) {
     return (
-      <SafeAreaView style={styles.centerContainer}>
-        <Loading />
-        <Text style={[Typography.bodySmall, { marginTop: 12 }]}>Loading menu...</Text>
+      <SafeAreaView style={{ flex: 1, backgroundColor: Colors.background }} edges={['top']}>
+        <RestaurantDetailSkeleton />
       </SafeAreaView>
     );
   }
@@ -209,23 +206,25 @@ export default function RestaurantScreen() {
                 style={styles.navCircle}
                 activeOpacity={0.8}
                 onPress={() => {
-                  if (!restaurant) return;
+                  const targetId = restaurant?._id || id;
+                  if (!targetId) return;
                   toggleFavorite({
-                    _id: restaurant._id,
-                    name: restaurant.name,
+                    _id: targetId,
+                    name: restaurant?.name || 'Restaurant',
                     price: 0,
-                    image: restaurant.coverImage,
+                    image: restaurant?.coverImage || restaurant?.images?.[0] || '',
+                    images: restaurant?.images || [],
                     type: 'restaurant',
-                    cuisine: restaurant.cuisines?.join(', '),
-                    rating: restaurant.rating?.average,
+                    cuisine: restaurant?.cuisines?.join(', '),
+                    rating: restaurant?.rating?.average,
                     addedAt: Date.now(),
                   });
                 }}
               >
                 <Ionicons
-                  name={restaurant && isFavorite(restaurant._id) ? 'heart' : 'heart-outline'}
+                  name={isFavorite(restaurant?._id || id || '') ? 'heart' : 'heart-outline'}
                   size={22}
-                  color={restaurant && isFavorite(restaurant._id) ? '#EF4444' : '#1C1C1C'}
+                  color={isFavorite(restaurant?._id || id || '') ? '#EF4444' : '#1C1C1C'}
                 />
               </TouchableOpacity>
               <TouchableOpacity style={styles.navCircle} activeOpacity={0.8}>
@@ -252,13 +251,15 @@ export default function RestaurantScreen() {
               </View>
 
             </View>
-            <View style={styles.ratingBadge}>
+            <View style={[styles.ratingBadge, !(restaurant.rating?.count > 0 && restaurant.rating?.average) && { backgroundColor: '#6B7280' }]}>
               <Text style={styles.ratingText}>
-                {restaurant.rating?.average ? restaurant.rating.average.toFixed(1) : '4.5'}
+                {restaurant.rating?.count > 0 && restaurant.rating?.average ? restaurant.rating.average.toFixed(1) : 'NEW'}
               </Text>
-              <Ionicons name="star" size={11} color="#FFF" style={{ marginLeft: 3 }} />
+              {restaurant.rating?.count > 0 && restaurant.rating?.average ? (
+                <Ionicons name="star" size={11} color="#FFF" style={{ marginLeft: 3 }} />
+              ) : null}
               {restaurant.rating?.count > 0 && (
-                <Text style={styles.ratingCount}>({restaurant.rating.count}+)</Text>
+                <Text style={styles.ratingCount}>({restaurant.rating.count})</Text>
               )}
             </View>
           </View>

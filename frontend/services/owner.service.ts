@@ -173,5 +173,13 @@ export const ownerService = {
     const data = response.data.data;
     return data?.category || data;
   },
+
+  async deleteMenuItem(restaurantId: string, itemId: string): Promise<void> {
+    await api.delete(`/restaurants/${restaurantId}/menu/items/${itemId}`);
+  },
+
+  async deleteCategory(restaurantId: string, categoryId: string): Promise<void> {
+    await api.delete(`/restaurants/${restaurantId}/menu/categories/${categoryId}`);
+  },
 };
 

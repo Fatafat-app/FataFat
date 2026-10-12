@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import { MenuItem, MenuItemModifierOption, Restaurant } from '../types';
+import { MenuItem, MenuItemModifierOption, Restaurant, Coupon } from '../types';
 import { orderService } from '../services/order.service';
 
 export interface CartItem {
@@ -28,6 +28,8 @@ interface CartState {
   restaurant: Restaurant | null;
   items: CartItem[];
   feeConfig: FeeConfigState | null;
+  appliedCoupon: Coupon | null;
+  couponDiscount: number; // in paise
 
   fetchFeeConfig: () => Promise<void>;
   addItem: (item: MenuItem, restaurant: Restaurant, modifiers?: MenuItemModifierOption[]) => boolean;
@@ -36,6 +38,8 @@ interface CartState {
   toggleItemSelection: (menuItemId: string) => void;
   buyNowItem: (menuItemId: string) => void;
   clearCart: () => void;
+  applyCoupon: (coupon: Coupon, discountAmount: number) => void;
+  removeCoupon: () => void;
   
   // Computed values
   getSelectedItems: () => CartItem[];
@@ -54,6 +58,8 @@ export const useCartStore = create<CartState>((set, get) => ({
   restaurant: null,
   items: [],
   feeConfig: null,
+  appliedCoupon: null,
+  couponDiscount: 0,
 
   fetchFeeConfig: async () => {
     try {
@@ -173,7 +179,15 @@ export const useCartStore = create<CartState>((set, get) => ({
     });
   },
 
-  clearCart: () => set({ items: [], restaurant: null }),
+  clearCart: () => set({ items: [], restaurant: null, appliedCoupon: null, couponDiscount: 0 }),
+
+  applyCoupon: (coupon, discountAmount) => {
+    set({ appliedCoupon: coupon, couponDiscount: discountAmount });
+  },
+
+  removeCoupon: () => {
+    set({ appliedCoupon: null, couponDiscount: 0 });
+  },
 
   getSelectedItems: () => get().items.filter(item => item.isSelected !== false),
 
@@ -243,7 +257,7 @@ export const useCartStore = create<CartState>((set, get) => ({
   getGrandTotal: () => {
     const itemsTotal = get().getItemsTotal();
     if (itemsTotal === 0) return 0;
-    return (
+    const subtotalWithFees = (
       itemsTotal +
       get().getDeliveryFee() +
       get().getGstAndTaxes() +
@@ -252,5 +266,7 @@ export const useCartStore = create<CartState>((set, get) => ({
       get().getSurgeFee() +
       get().getCustomFeesTotal()
     );
+    const discount = get().couponDiscount || 0;
+    return Math.max(0, subtotalWithFees - discount);
   },
 }));

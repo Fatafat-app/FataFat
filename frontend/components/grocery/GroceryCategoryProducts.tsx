@@ -21,6 +21,9 @@ import { groceryService, BackendGroceryCategory, BackendGroceryProduct } from '.
 import { useGroceryStore, useGroceryCartCount, useGroceryCartTotal } from '../../store/grocery.store';
 import { useLocationStore } from '../../store/location.store';
 import { GroceryTabBar } from './GroceryTabBar';
+import { GroceryProductCardSkeleton } from '../ui/Skeleton';
+import { getImageForName } from './GroceryProductCard';
+import { useGroceryCategoriesQuery, useGroceryProductsQuery } from '../../hooks';
 
 const { width } = Dimensions.get('window');
 const CARD_WIDTH = (width - 16 * 2 - 12) / 2;
@@ -37,9 +40,6 @@ export function GroceryCategoryProducts() {
   const { locationSubtitle, locationTitle, selectedAddress } = useLocationStore();
   const { cart, addToCart, incrementQty, decrementQty, toggleWishlist, wishlist } = useGroceryStore();
 
-  const [category, setCategory] = useState<BackendGroceryCategory | null>(null);
-  const [products, setProducts] = useState<GroceryProduct[]>([]);
-  const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
 
   // Subcategory tabs & filters
@@ -49,58 +49,42 @@ export function GroceryCategoryProducts() {
 
   const categorySlug = params.slug || 'cooking-oils-ghee';
 
-  const fetchCategoryData = useCallback(async () => {
-    try {
-      const [allCats, prodsRes] = await Promise.all([
-        groceryService.getCategories(),
-        groceryService.getProducts({
-          category: categorySlug,
-          sort: activeSort,
-          filter: discountOnly ? 'deals' : undefined,
-        }),
-      ]);
+  // TanStack Query: Cached Categories
+  const { data: allCategories = [] } = useGroceryCategoriesQuery();
+  const category = allCategories.find((c) => c.slug === categorySlug || c._id === categorySlug) || null;
 
-      const matchedCat = allCats.find(
-        (c) => c.slug === categorySlug || c._id === categorySlug
-      );
-      if (matchedCat) {
-        setCategory(matchedCat);
-      }
+  // TanStack Query: Cached & Deduped Products
+  const {
+    data: productsData,
+    isLoading: loading,
+    refetch,
+  } = useGroceryProductsQuery({
+    category: categorySlug,
+    sort: activeSort,
+    filter: discountOnly ? 'deals' : undefined,
+  });
 
-      if (prodsRes && prodsRes.products) {
-        const mapped: GroceryProduct[] = prodsRes.products.map((p) => ({
-          id: p._id || p.slug,
-          _id: p._id,
-          name: p.name,
-          slug: p.slug,
-          price: p.price,
-          originalPrice: p.originalPrice,
-          unit: p.unit,
-          image:
-            p.images && p.images.length > 0
-              ? ( (!p.images[0] || p.images[0].includes('pexels')) ? getImageForName(p.name) : p.images[0] )
-              : 'https://images.unsplash.com/photo-1542838132-92c53300491e?w=400&q=80',
-          images: p.images,
-          badge: (p.badge as any) || undefined,
-          discount: p.discount,
-          rating: p.rating || 4.7,
-        }));
-        setProducts(mapped);
-      }
-    } catch (_err) {
-      // Error handling
-    } finally {
-      setLoading(false);
-    }
-  }, [categorySlug, activeSort, discountOnly]);
-
-  useEffect(() => {
-    fetchCategoryData();
-  }, [fetchCategoryData]);
+  const products: GroceryProduct[] = (productsData?.products || []).map((p) => ({
+    id: p._id || p.slug,
+    _id: p._id,
+    name: p.name,
+    slug: p.slug,
+    price: p.price,
+    originalPrice: p.originalPrice,
+    unit: p.unit,
+    image:
+      p.images && p.images.length > 0
+        ? (!p.images[0] || p.images[0].includes('pexels') ? getImageForName(p.name) : p.images[0])
+        : 'https://images.unsplash.com/photo-1542838132-92c53300491e?w=400&q=80',
+    images: p.images,
+    badge: (p.badge as any) || undefined,
+    discount: p.discount,
+    rating: p.rating || 4.7,
+  }));
 
   const onRefresh = async () => {
     setRefreshing(true);
-    await fetchCategoryData();
+    await refetch();
     setRefreshing(false);
   };
 
@@ -242,8 +226,13 @@ export function GroceryCategoryProducts() {
 
         {/* 2-Column Product Grid */}
         {loading ? (
-          <View style={styles.loaderContainer}>
-            <ActivityIndicator size="large" color="#1E3D34" />
+          <View style={styles.grid}>
+            <GroceryProductCardSkeleton />
+            <GroceryProductCardSkeleton />
+            <GroceryProductCardSkeleton />
+            <GroceryProductCardSkeleton />
+            <GroceryProductCardSkeleton />
+            <GroceryProductCardSkeleton />
           </View>
         ) : products.length > 0 ? (
           <View style={styles.grid}>
@@ -302,11 +291,15 @@ export function GroceryCategoryProducts() {
                   </View>
 
                   {/* Rating */}
-                  <View style={styles.ratingRow}>
-                    <Ionicons name="star" size={11} color="#F59E0B" />
-                    <Text style={styles.ratingValue}>{product.rating || '4.8'}</Text>
-                    <Text style={styles.ratingCount}>(94)</Text>
-                  </View>
+                  {product.rating ? (
+                    <View style={styles.ratingRow}>
+                      <Ionicons name="star" size={11} color="#F59E0B" />
+                      <Text style={styles.ratingValue}>{product.rating}</Text>
+                      {(product as any).ratingCount ? (
+                        <Text style={styles.ratingCount}>({(product as any).ratingCount})</Text>
+                      ) : null}
+                    </View>
+                  ) : null}
 
                   {/* Title & Unit */}
                   <Text style={styles.productName} numberOfLines={2}>

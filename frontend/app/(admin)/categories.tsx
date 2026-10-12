@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -32,6 +32,7 @@ const PRESET_IMAGES = [
 ];
 
 export default function AdminCategoriesScreen() {
+  const router = useRouter();
   const [categories, setCategories] = useState<CategoryItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [savingOrder, setSavingOrder] = useState(false);

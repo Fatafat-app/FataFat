@@ -25,7 +25,11 @@ async function getRestaurantOrders(req, res) {
 }
 
 async function updateStatus(req, res) {
-  const order = await orderService.updateOrderStatus(req.params.id, req.body.status, req.user);
+  const reason =
+    req.body.cancellationReason ||
+    req.body.reason ||
+    (String(req.body.status).toUpperCase() === 'CANCELLED' ? 'Cancelled by restaurant' : 'Status updated');
+  const order = await orderService.updateOrderStatus(req.params.id, req.body.status, req.user, { reason });
   success(res, { order }, 'Order status updated');
 }
 
@@ -39,7 +43,11 @@ async function getCurrentFees(req, res) {
 }
 
 async function cancelOrder(req, res) {
-  const order = await orderService.cancelOrder(req.params.id, req.body.reason, req.user);
+  const reasonPayload = {
+    reason: req.body.cancellationReason || req.body.reason || 'Cancelled by user',
+    cancellationReasonId: req.body.cancellationReasonId || null,
+  };
+  const order = await orderService.cancelOrder(req.params.id, reasonPayload, req.user);
   success(res, { order }, 'Order cancelled successfully');
 }
 

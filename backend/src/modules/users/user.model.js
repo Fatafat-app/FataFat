@@ -1,7 +1,7 @@
 'use strict';
 
 const mongoose = require('mongoose');
-const ROLES = require('../../common/constants/roles');
+const { ROLES } = require('../../common/constants/roles');
 
 const addressSchema = new mongoose.Schema(
   {

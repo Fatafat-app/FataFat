@@ -19,6 +19,7 @@ import * as Location from 'expo-location';
 import { useOwnerStore } from '../../store/owner.store';
 import { ownerService } from '../../services/owner.service';
 import { Typography, Colors } from '../../constants/Theme';
+import { useCuisinesQuery } from '../../hooks';
 
 const PRESET_BANNERS = [
   {
@@ -66,6 +67,9 @@ const POPULAR_CUISINES = [
 
 export default function OwnerProfileScreen() {
   const { restaurant, fetchOwnerData, isLoading } = useOwnerStore();
+  const { data: masterCuisines = [] } = useCuisinesQuery();
+  const availableCuisines =
+    masterCuisines.length > 0 ? masterCuisines.map((c) => c.name) : POPULAR_CUISINES;
 
   const [saving, setSaving] = useState(false);
   const [locating, setLocating] = useState(false);
@@ -478,7 +482,7 @@ export default function OwnerProfileScreen() {
           {/* Cuisines Chips */}
           <Text style={[styles.inputLabel, { marginTop: 12 }]}>Cuisines Served</Text>
           <View style={styles.chipsContainer}>
-            {POPULAR_CUISINES.map((c, idx) => {
+            {availableCuisines.map((c, idx) => {
               const isSelected = cuisines.includes(c);
               return (
                 <TouchableOpacity

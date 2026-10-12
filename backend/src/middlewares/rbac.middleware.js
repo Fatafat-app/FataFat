@@ -3,8 +3,30 @@
 const { ForbiddenError } = require('../common/errors');
 const { ROLE_PERMISSIONS, ROLES } = require('../common/constants/roles');
 
+// Expand equivalent roles (e.g. restaurant_owner === merchant_owner === merchant_staff)
+const ROLE_ALIASES = {
+  [ROLES.RESTAURANT_OWNER]: [ROLES.RESTAURANT_OWNER, ROLES.MERCHANT_OWNER, ROLES.MERCHANT_STAFF],
+  [ROLES.MERCHANT_OWNER]: [ROLES.RESTAURANT_OWNER, ROLES.MERCHANT_OWNER, ROLES.MERCHANT_STAFF],
+  [ROLES.MERCHANT_STAFF]: [ROLES.RESTAURANT_OWNER, ROLES.MERCHANT_OWNER, ROLES.MERCHANT_STAFF],
+  [ROLES.ADMIN]: [ROLES.ADMIN, ROLES.SUPER_ADMIN, ROLES.OPS_ADMIN],
+  [ROLES.SUPER_ADMIN]: [ROLES.ADMIN, ROLES.SUPER_ADMIN, ROLES.OPS_ADMIN],
+  [ROLES.OPS_ADMIN]: [ROLES.ADMIN, ROLES.SUPER_ADMIN, ROLES.OPS_ADMIN],
+  [ROLES.DELIVERY_PARTNER]: [ROLES.DELIVERY_PARTNER, 'rider'],
+};
+
+function expandRoles(roles) {
+  const expanded = new Set();
+  for (const role of roles) {
+    expanded.add(role);
+    if (ROLE_ALIASES[role]) {
+      ROLE_ALIASES[role].forEach((alias) => expanded.add(alias));
+    }
+  }
+  return Array.from(expanded);
+}
+
 function requireRole(...roles) {
-  const allowedRoles = roles.flat(Infinity);
+  const allowedRoles = expandRoles(roles.flat(Infinity));
   return (req, _res, next) => {
     if (!req.user) {
       throw new ForbiddenError('RBAC check run without authentication middleware');

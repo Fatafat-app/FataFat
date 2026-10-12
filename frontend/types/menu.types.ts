@@ -23,6 +23,8 @@ export interface MenuItem {
   isAvailable: boolean;
   preparationTime?: number; // in minutes
   calories?: number;
+  isBestseller?: boolean;
+  badge?: string;
   tags?: string[];
   modifierGroups?: MenuItemModifierGroup[];
   createdAt: string;

@@ -1,6 +1,7 @@
 import { create } from 'zustand';
-import { persist, createJSONStorage } from 'zustand/middleware';
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import { persist, createJSONStorage, StateStorage } from 'zustand/middleware';
+import * as SecureStore from 'expo-secure-store';
+import { Platform } from 'react-native';
 
 export type FavoriteItem = {
   _id: string;
@@ -25,13 +26,60 @@ type FavoritesStore = {
   clearFavorites: () => void;
 };
 
+const memoryFallback: Record<string, string> = {};
+
+const safeStorage: StateStorage = {
+  getItem: async (name: string): Promise<string | null> => {
+    try {
+      if (Platform.OS === 'web') {
+        if (typeof window !== 'undefined' && window.localStorage) {
+          return window.localStorage.getItem(name);
+        }
+        return memoryFallback[name] || null;
+      }
+      const val = await SecureStore.getItemAsync(name);
+      return val ?? memoryFallback[name] ?? null;
+    } catch {
+      return memoryFallback[name] || null;
+    }
+  },
+  setItem: async (name: string, value: string): Promise<void> => {
+    memoryFallback[name] = value;
+    try {
+      if (Platform.OS === 'web') {
+        if (typeof window !== 'undefined' && window.localStorage) {
+          window.localStorage.setItem(name, value);
+        }
+        return;
+      }
+      await SecureStore.setItemAsync(name, value);
+    } catch {
+      // Memory fallback is already saved
+    }
+  },
+  removeItem: async (name: string): Promise<void> => {
+    delete memoryFallback[name];
+    try {
+      if (Platform.OS === 'web') {
+        if (typeof window !== 'undefined' && window.localStorage) {
+          window.localStorage.removeItem(name);
+        }
+        return;
+      }
+      await SecureStore.deleteItemAsync(name);
+    } catch {
+      // Memory fallback is already deleted
+    }
+  },
+};
+
 export const useFavoritesStore = create<FavoritesStore>()(
   persist(
     (set, get) => ({
       favorites: [],
 
       isFavorite: (id: string) =>
-        get().favorites.some((f) => f._id === id),
+        get().favorites.some((f) => String(f._id) === String(id)),
 
       addFavorite: (item: FavoriteItem) => {
         if (get().isFavorite(item._id)) return;
@@ -42,7 +90,7 @@ export const useFavoritesStore = create<FavoritesStore>()(
 
       removeFavorite: (id: string) => {
         set((state) => ({
-          favorites: state.favorites.filter((f) => f._id !== id),
+          favorites: state.favorites.filter((f) => String(f._id) !== String(id)),
         }));
       },
 
@@ -61,7 +109,7 @@ export const useFavoritesStore = create<FavoritesStore>()(
     }),
     {
       name: 'ftafat-favorites',
-      storage: createJSONStorage(() => AsyncStorage),
+      storage: createJSONStorage(() => safeStorage),
     }
   )
 );

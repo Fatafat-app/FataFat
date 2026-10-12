@@ -1,28 +1,39 @@
+export type CouponDiscountType = 'percent' | 'flat' | 'percentage';
+
 export interface Coupon {
   _id: string;
   code: string;
   description?: string;
-  discountType: 'percent' | 'flat';
-  value: number; // percent (0-100) or flat paise amount
-  minOrderAmount: number; // in paise
+  discountType: CouponDiscountType;
+  value?: number; // percent (0-100) or flat paise amount
+  discountValue?: number;
+  minOrderAmount?: number; // in paise
+  minOrderValue?: number;
   maxDiscount?: number; // in paise
+  maxDiscountAmount?: number;
   usageLimit?: number;
-  usageCount: number;
+  usageCount?: number;
   perUserLimit?: number;
   restaurantId?: string;
-  expiresAt: string;
+  expiresAt?: string;
+  validUntil?: string;
   isActive: boolean;
-  createdAt: string;
+  createdAt?: string;
 }
 
 export interface CreateCouponPayload {
   code: string;
   description?: string;
-  discountType: 'percent' | 'flat';
-  value: number;
-  minOrderAmount: number; // in paise
+  discountType: CouponDiscountType;
+  value?: number;
+  discountValue?: number;
+  minOrderAmount?: number; // in paise
+  minOrderValue?: number;
   maxDiscount?: number; // in paise
-  expiresAt: string;
+  maxDiscountAmount?: number;
+  usageLimit?: number;
+  validUntil?: string;
+  expiresAt?: string;
   isActive?: boolean;
 }
 

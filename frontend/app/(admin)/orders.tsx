@@ -19,6 +19,7 @@ import { adminService } from '../../services/admin.service';
 import { formatPaise } from '../../utils/formatters';
 import { Typography, Colors } from '../../constants/Theme';
 import { EmptyState } from '../../components/ui/EmptyState';
+import { OrderCardSkeleton } from '../../components/ui/Skeleton';
 
 const STATUS_LIST = ['ALL', 'PLACED', 'ACCEPTED', 'PREPARING', 'READY', 'PICKED_UP', 'DELIVERED', 'CANCELLED'];
 const VERTICAL_LIST = ['ALL', 'FOOD', 'GROCERY'];
@@ -173,9 +174,11 @@ export default function AdminOrdersScreen() {
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={['#4F46E5']} />}
       >
         {loading && !refreshing ? (
-          <View style={styles.centerContainer}>
-            <ActivityIndicator size="large" color="#4F46E5" />
-            <Text style={styles.loadingText}>Loading orders...</Text>
+          <View style={{ paddingTop: 10 }}>
+            <OrderCardSkeleton />
+            <OrderCardSkeleton />
+            <OrderCardSkeleton />
+            <OrderCardSkeleton />
           </View>
         ) : orders.length === 0 ? (
           <EmptyState

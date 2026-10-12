@@ -1,19 +1,27 @@
 import React from 'react';
 import { Tabs, Redirect } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
-import { StyleSheet } from 'react-native';
+import { StyleSheet, View, ActivityIndicator } from 'react-native';
 import { useAuthStore } from '../../store/auth.store';
 import { Typography, Colors } from '../../constants/Theme';
 
 export default function RiderLayout() {
   const { user, isAuthenticated, isLoading } = useAuthStore();
 
-  if (!isLoading && !isAuthenticated) {
+  if (isLoading) {
+    return (
+      <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: Colors.background }}>
+        <ActivityIndicator size="large" color="#2563EB" />
+      </View>
+    );
+  }
+
+  if (!isAuthenticated) {
     return <Redirect href="/(auth)/login" />;
   }
-  
+
   const riderRoles = ['delivery_partner', 'rider'];
-  if (!isLoading && (!user || !riderRoles.includes(user.role))) {
+  if (!user || !riderRoles.includes(user.role)) {
     return <Redirect href="/(tabs)" />;
   }
 

@@ -18,55 +18,9 @@ import { GColors, GRadius, GSpacing, GShadow } from '../../constants/GroceryThem
 import { GroceryProduct } from '../../constants/GroceryData';
 import { groceryService, BackendGroceryProduct } from '../../services/grocery.service';
 import { useGroceryStore } from '../../store/grocery.store';
-
-
-const fallbackImages = [
-  'https://images.unsplash.com/photo-1610832958506-aa56368176cf?w=400&q=80', // fruits
-  'https://images.unsplash.com/photo-1604803932791-72f3e82cc872?w=400&q=80', // meat
-  'https://images.unsplash.com/photo-1622483767028-3f66f32aef97?w=400&q=80', // drinks
-  'https://images.unsplash.com/photo-1599490659213-e2b9527bd087?w=400&q=80', // snacks
-  'https://images.unsplash.com/photo-1584820927498-cafe4c239369?w=400&q=80', // household
-  'https://images.unsplash.com/photo-1550583724-b2692b85b150?w=400&q=80', // dairy
-  'https://images.unsplash.com/photo-1509440159596-0249088772ff?w=400&q=80', // bakery
-  'https://images.unsplash.com/photo-1542838132-92c53300491e?w=400&q=80', // organic/veg
-  'https://images.unsplash.com/photo-1571508601891-ca5e7a713859?w=400&q=80', // bananas
-  'https://images.unsplash.com/photo-1573246123716-6b1782bfc492?w=400&q=80', // spinach
-  'https://images.unsplash.com/photo-1560806887-1e4cd0b6fac6?w=400&q=80', // apples
-  'https://images.unsplash.com/photo-1459411621453-7b03977f4bfc?w=400&q=80', // broccoli
-  'https://images.unsplash.com/photo-1592924357228-91a4daadcfea?w=400&q=80', // tomato
-  'https://images.unsplash.com/photo-1517594422361-5e18a412072f?w=400&q=80', // jam
-  'https://images.unsplash.com/photo-1618512496248-a07fe83aa8cb?w=400&q=80', // onion
-  'https://images.unsplash.com/photo-1563565375-f3fdfdbefa8a?w=400&q=80', // peppers
-  'https://images.unsplash.com/photo-1598128558393-70ff21433be0?w=400&q=80', // bread
-  'https://images.unsplash.com/photo-1587486913049-53fc88980cfc?w=400&q=80', // eggs
-  'https://images.unsplash.com/photo-1518977676601-b53f82aba655?w=400&q=80', // potatoes
-];
-
-const getImageForName = (name) => {
-  if (!name) return fallbackImages[0];
-  const lower = name.toLowerCase();
-  if (lower.includes('fruit') || lower.includes('berry')) return fallbackImages[0];
-  if (lower.includes('meat') || lower.includes('chicken') || lower.includes('beef')) return fallbackImages[1];
-  if (lower.includes('drink') || lower.includes('juice') || lower.includes('water')) return fallbackImages[2];
-  if (lower.includes('snack') || lower.includes('chip') || lower.includes('biscuit')) return fallbackImages[3];
-  if (lower.includes('house') || lower.includes('clean')) return fallbackImages[4];
-  if (lower.includes('dairy') || lower.includes('milk') || lower.includes('cheese')) return fallbackImages[5];
-  if (lower.includes('bake') || lower.includes('bread') || lower.includes('cake')) return fallbackImages[6];
-  if (lower.includes('banana')) return fallbackImages[8];
-  if (lower.includes('spinach') || lower.includes('leaf')) return fallbackImages[9];
-  if (lower.includes('apple')) return fallbackImages[10];
-  if (lower.includes('broccoli') || lower.includes('cabbage')) return fallbackImages[11];
-  if (lower.includes('tomato')) return fallbackImages[12];
-  if (lower.includes('jam') || lower.includes('preserve')) return fallbackImages[13];
-  if (lower.includes('onion')) return fallbackImages[14];
-  if (lower.includes('pepper') || lower.includes('capsicum')) return fallbackImages[15];
-  if (lower.includes('egg')) return fallbackImages[17];
-  if (lower.includes('potato')) return fallbackImages[18];
-  
-  // deterministic fallback based on string length and first char
-  const hash = (name.length + name.charCodeAt(0)) % fallbackImages.length;
-  return fallbackImages[hash];
-};
+import { GroceryProductDetailSkeleton } from '../ui/Skeleton';
+import { getImageForName } from './GroceryProductCard';
+import { useGroceryProductDetailQuery, useGroceryProductsQuery } from '../../hooks';
 
 const { width } = Dimensions.get('window');
 
@@ -79,50 +33,29 @@ export function GroceryProductDetails() {
 
   const { addToCart, incrementQty, decrementQty, toggleWishlist, wishlist, cart } = useGroceryStore();
 
-  const [product, setProduct] = useState<BackendGroceryProduct | null>(null);
-  const [relatedProducts, setRelatedProducts] = useState<GroceryProduct[]>([]);
-  const [loading, setLoading] = useState(true);
   const [isBookmarked, setIsBookmarked] = useState(false);
   const [localQty, setLocalQty] = useState(1);
 
-  const fetchProductData = useCallback(async () => {
-    try {
-      const [prod, allProdsRes] = await Promise.all([
-        groceryService.getProduct(productIdOrSlug),
-        groceryService.getProducts({ limit: 4 }),
-      ]);
+  // TanStack Query: Product details (cached & deduped)
+  const { data: product, isLoading: loading } = useGroceryProductDetailQuery(productIdOrSlug);
 
-      if (prod) {
-        setProduct(prod);
-      }
+  // TanStack Query: Related products (cached)
+  const { data: allProdsRes } = useGroceryProductsQuery({ limit: 4 });
 
-      if (allProdsRes && allProdsRes.products) {
-        const otherProds = allProdsRes.products
-          .filter((p) => p.slug !== productIdOrSlug && p._id !== productIdOrSlug)
-          .slice(0, 2)
-          .map((p) => ({
-            id: p._id || p.slug,
-            _id: p._id,
-            name: p.name,
-            slug: p.slug,
-            price: p.price,
-            originalPrice: p.originalPrice,
-            unit: p.unit,
-            image: (!p.images || !p.images[0] || p.images[0].includes('pexels')) ? getImageForName(p.name) : p.images[0],
-            rating: p.rating,
-          }));
-        setRelatedProducts(otherProds);
-      }
-    } catch (_err) {
-      // Fallback
-    } finally {
-      setLoading(false);
-    }
-  }, [productIdOrSlug]);
-
-  useEffect(() => {
-    fetchProductData();
-  }, [fetchProductData]);
+  const relatedProducts: GroceryProduct[] = (allProdsRes?.products || [])
+    .filter((p) => p.slug !== productIdOrSlug && p._id !== productIdOrSlug)
+    .slice(0, 2)
+    .map((p) => ({
+      id: p._id || p.slug,
+      _id: p._id,
+      name: p.name,
+      slug: p.slug,
+      price: p.price,
+      originalPrice: p.originalPrice,
+      unit: p.unit,
+      image: (!p.images || !p.images[0] || p.images[0].includes('pexels')) ? getImageForName(p.name) : p.images[0],
+      rating: p.rating,
+    }));
 
   const prodId = product?._id || product?.slug || productIdOrSlug;
   const cartItem = cart.find((i) => (i.product._id || i.product.id) === prodId);
@@ -165,11 +98,7 @@ export function GroceryProductDetails() {
   };
 
   if (loading) {
-    return (
-      <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color="#1E3D34" />
-      </View>
-    );
+    return <GroceryProductDetailSkeleton />;
   }
 
   const name = product?.name || 'Fresh Salmon Fillet';
@@ -177,8 +106,8 @@ export function GroceryProductDetails() {
   const unit = product?.unit || '/pack';
   const weightInfo = product?.weightInfo || 'Approx. 200g - 250g | Wild Caught';
   const estimatedDelivery = product?.estimatedDelivery || 'Today 5–6PM';
-  const rating = product?.rating || 4.9;
-  const ratingCount = product?.ratingCount || 128;
+  const rating = product?.rating;
+  const ratingCount = product?.ratingCount;
   const description =
     product?.description ||
     'Rich in protein and omega-3, this premium cut is not only nutritious but also delicious. Perfect for grilling, pan-searing, or baking with herbs and citrus.';
@@ -230,12 +159,18 @@ export function GroceryProductDetails() {
           <Image source={{ uri: mainImage }} style={styles.productImage} resizeMode="cover" />
 
           {/* Rating Badge on top right of image */}
-          <View style={styles.ratingBadge}>
-            <Ionicons name="star" size={13} color="#F59E0B" />
-            <Text style={styles.ratingText}>
-              {rating.toFixed(1)} ({ratingCount})
-            </Text>
-          </View>
+          {rating ? (
+            <View style={styles.ratingBadge}>
+              <Ionicons name="star" size={13} color="#F59E0B" />
+              <Text style={styles.ratingText}>
+                {Number(rating).toFixed(1)} {ratingCount ? `(${ratingCount})` : ''}
+              </Text>
+            </View>
+          ) : (
+            <View style={[styles.ratingBadge, { backgroundColor: '#F3F4F6' }]}>
+              <Text style={[styles.ratingText, { color: '#6B7280' }]}>NEW</Text>
+            </View>
+          )}
         </View>
 
         {/* Title, Subtitle, Price & Unit */}

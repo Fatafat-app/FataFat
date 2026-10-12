@@ -144,6 +144,8 @@ const orderSchema = new mongoose.Schema(
     createdByAdmin: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
 
     timeline: [timelineSchema],
+    cancellationReason: { type: String },
+    cancellationReasonId: { type: mongoose.Schema.Types.ObjectId, ref: 'CancellationReason' },
     specialInstructions: { type: String, maxlength: 300 },
     version: { type: Number, default: 1 },
   },

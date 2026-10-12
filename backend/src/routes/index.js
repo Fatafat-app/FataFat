@@ -22,9 +22,11 @@ const couponRoutes = require('../modules/coupons/coupon.routes');
 const reviewRoutes = require('../modules/reviews/review.routes');
 const deliveryRoutes = require('../modules/delivery/delivery.routes');
 const adminRoutes = require('../modules/admin/admin.routes');
+const { masterRoutes, adminMasterRoutes } = require('../modules/masters');
 const analyticsRoutes = require('../modules/analytics/analytics.routes');
 const supportRoutes = require('../modules/support/support.routes');
 const notificationRoutes = require('../modules/notifications/notification.routes');
+const bannerRoutes = require('../modules/banners/banner.routes');
 
 const router = Router();
 
@@ -33,6 +35,8 @@ router.use('/config', settingsRoutes);
 router.use('/vendors', vendorRoutes);
 router.use('/catalog', catalogRoutes);
 router.use('/checkout', checkoutRoutes);
+router.use('/masters', masterRoutes);
+router.use('/admin/masters', adminMasterRoutes);
 
 // Auth & Users
 router.use('/auth', authRoutes);
@@ -53,6 +57,7 @@ router.use('/delivery', deliveryRoutes);
 router.use('/search', searchRoutes);
 
 // Engagement & Support
+router.use('/banners', bannerRoutes);
 router.use('/coupons', couponRoutes);
 router.use('/reviews', reviewRoutes);
 router.use('/notifications', notificationRoutes);

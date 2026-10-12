@@ -109,10 +109,14 @@ export const orderService = {
   },
 
   /**
-   * Cancel an order
+   * Cancel an order with optional Master CancellationReason ID
    */
-  async cancelOrder(orderId: string, reason?: string): Promise<Order> {
-    const response = await api.patch<ApiResponse<any>>(`/orders/${orderId}/cancel`, { reason });
+  async cancelOrder(orderId: string, reason?: string, cancellationReasonId?: string): Promise<Order> {
+    const response = await api.patch<ApiResponse<any>>(`/orders/${orderId}/cancel`, {
+      reason,
+      cancellationReason: reason,
+      cancellationReasonId,
+    });
     const raw = response.data.data;
     const orderObj = raw?.order || raw;
     return normalizeOrder(orderObj);

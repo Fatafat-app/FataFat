@@ -21,56 +21,9 @@ import { GroceryCategory } from '../../constants/GroceryData';
 import { groceryService } from '../../services/grocery.service';
 import { useGroceryCartCount, useGroceryCartTotal } from '../../store/grocery.store';
 import { GroceryTabBar } from './GroceryTabBar';
-
-
-const fallbackImages = [
-  'https://images.unsplash.com/photo-1610832958506-aa56368176cf?w=400&q=80', // fruits
-  'https://images.unsplash.com/photo-1604803932791-72f3e82cc872?w=400&q=80', // meat
-  'https://images.unsplash.com/photo-1622483767028-3f66f32aef97?w=400&q=80', // drinks
-  'https://images.unsplash.com/photo-1599490659213-e2b9527bd087?w=400&q=80', // snacks
-  'https://images.unsplash.com/photo-1584820927498-cafe4c239369?w=400&q=80', // household
-  'https://images.unsplash.com/photo-1550583724-b2692b85b150?w=400&q=80', // dairy
-  'https://images.unsplash.com/photo-1509440159596-0249088772ff?w=400&q=80', // bakery
-  'https://images.unsplash.com/photo-1542838132-92c53300491e?w=400&q=80', // organic/veg
-  'https://images.unsplash.com/photo-1571508601891-ca5e7a713859?w=400&q=80', // bananas
-  'https://images.unsplash.com/photo-1573246123716-6b1782bfc492?w=400&q=80', // spinach
-  'https://images.unsplash.com/photo-1560806887-1e4cd0b6fac6?w=400&q=80', // apples
-  'https://images.unsplash.com/photo-1459411621453-7b03977f4bfc?w=400&q=80', // broccoli
-  'https://images.unsplash.com/photo-1592924357228-91a4daadcfea?w=400&q=80', // tomato
-  'https://images.unsplash.com/photo-1517594422361-5e18a412072f?w=400&q=80', // jam
-  'https://images.unsplash.com/photo-1618512496248-a07fe83aa8cb?w=400&q=80', // onion
-  'https://images.unsplash.com/photo-1563565375-f3fdfdbefa8a?w=400&q=80', // peppers
-  'https://images.unsplash.com/photo-1598128558393-70ff21433be0?w=400&q=80', // bread
-  'https://images.unsplash.com/photo-1587486913049-53fc88980cfc?w=400&q=80', // eggs
-  'https://images.unsplash.com/photo-1518977676601-b53f82aba655?w=400&q=80', // potatoes
-];
-
-const getImageForName = (name) => {
-  if (!name) return fallbackImages[0];
-  const lower = name.toLowerCase();
-  if (lower.includes('fruit') || lower.includes('berry')) return fallbackImages[0];
-  if (lower.includes('meat') || lower.includes('chicken') || lower.includes('beef')) return fallbackImages[1];
-  if (lower.includes('drink') || lower.includes('juice') || lower.includes('water')) return fallbackImages[2];
-  if (lower.includes('snack') || lower.includes('chip') || lower.includes('biscuit')) return fallbackImages[3];
-  if (lower.includes('house') || lower.includes('clean')) return fallbackImages[4];
-  if (lower.includes('dairy') || lower.includes('milk') || lower.includes('cheese')) return fallbackImages[5];
-  if (lower.includes('bake') || lower.includes('bread') || lower.includes('cake')) return fallbackImages[6];
-  if (lower.includes('banana')) return fallbackImages[8];
-  if (lower.includes('spinach') || lower.includes('leaf')) return fallbackImages[9];
-  if (lower.includes('apple')) return fallbackImages[10];
-  if (lower.includes('broccoli') || lower.includes('cabbage')) return fallbackImages[11];
-  if (lower.includes('tomato')) return fallbackImages[12];
-  if (lower.includes('jam') || lower.includes('preserve')) return fallbackImages[13];
-  if (lower.includes('onion')) return fallbackImages[14];
-  if (lower.includes('pepper') || lower.includes('capsicum')) return fallbackImages[15];
-  if (lower.includes('egg')) return fallbackImages[17];
-  if (lower.includes('potato')) return fallbackImages[18];
-  
-  // deterministic fallback based on string length and first char
-  const hash = (name.length + name.charCodeAt(0)) % fallbackImages.length;
-  return fallbackImages[hash];
-};
-
+import { Skeleton } from '../ui/Skeleton';
+import { getImageForName } from './GroceryProductCard';
+import { useGroceryCategoriesQuery } from '../../hooks';
 
 const LOCAL_CATEGORIES = [
   { id: '1', name: 'Fresh Vegetables', slug: 'fresh-vegetables', emoji: '🥦', image: 'https://images.unsplash.com/photo-1542838132-92c53300491e?w=300&q=80', bg: '#F0FDF4', subtitle: 'Farm fresh daily', badge: 'FRESH', badgeType: 'lime', itemCount: '50+ items' },
@@ -98,49 +51,32 @@ export function GroceryAllCategories({ onBack, onSelectCategory }: GroceryAllCat
   const cartCount = useGroceryCartCount();
   const cartTotal = useGroceryCartTotal();
 
-  const [categories, setCategories] = useState<GroceryCategory[]>(LOCAL_CATEGORIES as any);
-  const [loading, setLoading] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [activeCategorySlug, setActiveCategorySlug] = useState<string | null>(null);
 
-  const fetchCategories = async () => {
-    try {
-      const data = await groceryService.getCategories();
-      if (data && data.length > 0) {
-        const mapped: GroceryCategory[] = data.map((c) => ({
-          id: c._id || c.slug,
-          _id: c._id,
-          name: c.name,
-          slug: c.slug,
-          emoji: c.emoji || '🛒',
-          image: (!c.image || c.image.includes('pexels')) ? getImageForName(c.name) : c.image,
-          bg: c.bg || '#F3F7F2',
-          subtitle: c.subtitle || 'Essential daily staples',
-          badge: c.badge || 'TOP OFFER',
-          badgeType: c.badgeType || 'lime',
-          itemCount: c.itemCount || '50+ items',
-        }));
-        setCategories(mapped);
-      } else {
-        // Backend has no categories seeded — use local curated list
-        setCategories(LOCAL_CATEGORIES as any);
-      }
-    } catch (_err) {
-      // On error, show local categories
-      setCategories(LOCAL_CATEGORIES as any);
-    } finally {
-      setLoading(false);
-    }
-  };
+  // TanStack Query: Cached & Shared Categories
+  const { data: remoteCategories, isLoading: loading, refetch } = useGroceryCategoriesQuery();
 
-  useEffect(() => {
-    fetchCategories();
-  }, []);
+  const categories: GroceryCategory[] = (remoteCategories && remoteCategories.length > 0)
+    ? remoteCategories.map((c) => ({
+        id: c._id || c.slug,
+        _id: c._id,
+        name: c.name,
+        slug: c.slug,
+        emoji: c.emoji || '🛒',
+        image: (!c.image || c.image.includes('pexels')) ? getImageForName(c.name) : c.image,
+        bg: c.bg || '#F3F7F2',
+        subtitle: c.subtitle || 'Essential daily staples',
+        badge: c.badge || 'TOP OFFER',
+        badgeType: c.badgeType || 'lime',
+        itemCount: c.itemCount || '50+ items',
+      }))
+    : (LOCAL_CATEGORIES as any);
 
   const onRefresh = async () => {
     setRefreshing(true);
-    await fetchCategories();
+    await refetch();
     setRefreshing(false);
   };
 
@@ -254,8 +190,14 @@ export function GroceryAllCategories({ onBack, onSelectCategory }: GroceryAllCat
 
         {/* 2-Column Grid */}
         {loading ? (
-          <View style={styles.loaderContainer}>
-            <ActivityIndicator size="large" color="#1E3D34" />
+          <View style={styles.grid}>
+            {[1, 2, 3, 4, 5, 6, 7, 8].map((k) => (
+              <View key={k} style={[styles.categoryCard, { padding: 14, alignItems: 'center', justifyContent: 'center' }]}>
+                <Skeleton width={68} height={68} variant="circle" />
+                <Skeleton width="75%" height={14} variant="text" style={{ marginTop: 12 }} />
+                <Skeleton width="45%" height={10} variant="text" style={{ marginTop: 6 }} />
+              </View>
+            ))}
           </View>
         ) : (
           <View style={styles.grid}>

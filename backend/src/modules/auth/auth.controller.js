@@ -19,8 +19,8 @@ async function register(req, res) {
 }
 
 async function login(req, res) {
-  const { phone, password } = req.body;
-  const { accessToken, refreshToken, user } = await authService.loginWithPassword({ phone, password });
+  const { phone, email, password } = req.body;
+  const { accessToken, refreshToken, user } = await authService.loginWithPassword({ phone, email, password });
 
   res.cookie('refreshToken', refreshToken, REFRESH_COOKIE_OPTIONS);
   success(res, { accessToken, refreshToken, user }, 'Login successful');

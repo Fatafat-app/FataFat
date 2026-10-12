@@ -107,10 +107,12 @@ export const restaurantService = {
   /**
    * Search menu items by query
    */
-  async searchMenuItems(q: string): Promise<MenuItem[]> {
-    const response = await api.get<ApiResponse<any>>('/search/items', {
-      params: { q },
-    });
+  async searchMenuItems(q?: string, limit: number = 30): Promise<MenuItem[]> {
+    const params: Record<string, any> = { limit };
+    if (q && q.trim()) {
+      params.q = q.trim();
+    }
+    const response = await api.get<ApiResponse<any>>('/search/items', { params });
     const data = response.data.data;
     if (Array.isArray(data)) {
       return data;

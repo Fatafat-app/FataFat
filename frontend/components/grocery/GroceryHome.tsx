@@ -17,12 +17,15 @@ import { GroceryFilters } from './GroceryFilters';
 import { GroceryProductCard } from './GroceryProductCard';
 import { GroceryFloatingCart } from './GroceryFloatingCart';
 import { GroceryCategory, GroceryProduct } from '../../constants/GroceryData';
+import { GroceryHomeSkeleton, GroceryProductCardSkeleton } from '../ui/Skeleton';
 import { useGroceryStore } from '../../store/grocery.store';
 import {
   groceryService,
   BackendGroceryProduct,
   BackendGroceryBanner,
 } from '../../services/grocery.service';
+
+import { useGroceryHomeFeedQuery, useGroceryProductsQuery } from '../../hooks';
 
 interface SectionHeaderProps {
   title: string;
@@ -62,96 +65,55 @@ function mapBackendProduct(p: BackendGroceryProduct): GroceryProduct {
 
 export function GroceryHome() {
   const { activeFilter, setFilter } = useGroceryStore();
-  const [categories, setCategories] = useState<GroceryCategory[]>([]);
-  const [banners, setBanners] = useState<BackendGroceryBanner[]>([]);
-  const [specialDeals, setSpecialDeals] = useState<GroceryProduct[]>([]);
-  const [trending, setTrending] = useState<GroceryProduct[]>([]);
   const [selectedCategory, setSelectedCategory] = useState<GroceryCategory | null>(null);
-
-  const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
-  const [loadingFilter, setLoadingFilter] = useState(false);
-  const [error, setError] = useState<string | null>(null);
 
-  // Initial Load from Live Backend
-  const fetchHomeData = useCallback(async () => {
-    setError(null);
-    try {
-      const data = await groceryService.getHomeFeed();
-      if (data) {
-        if (data.categories) {
-          setCategories(
-            data.categories.map((c) => ({
-              id: c._id || c.slug,
-              _id: c._id,
-              name: c.name,
-              slug: c.slug,
-              emoji: c.emoji || '🛒',
-              image: c.image,
-              bg: c.bg || '#FFFFFF',
-            }))
-          );
-        }
-        if (data.banners) {
-          setBanners(data.banners);
-        }
-        if (data.specialDeals) {
-          setSpecialDeals(data.specialDeals.map(mapBackendProduct));
-        }
-        if (data.trending) {
-          setTrending(data.trending.map(mapBackendProduct));
-        }
-      }
-    } catch (err: any) {
-      setError(err?.message || 'Failed to connect to grocery backend');
-    } finally {
-      setLoading(false);
-    }
-  }, []);
+  // TanStack Query: Cached & Deduped Home Feed
+  const {
+    data: homeData,
+    isLoading: loadingFeed,
+    isError,
+    error: queryError,
+    refetch: refetchHomeFeed,
+  } = useGroceryHomeFeedQuery();
 
-  useEffect(() => {
-    fetchHomeData();
-  }, [fetchHomeData]);
+  // Active filter state
+  const isCustomFilter = Boolean(selectedCategory || (activeFilter && activeFilter !== 'popularity'));
 
-  // Refetch products when filter or category changes
-  useEffect(() => {
-    let isMounted = true;
-    async function filterProducts() {
-      if (!selectedCategory && activeFilter === 'popularity' && !loading) {
-        return;
-      }
-
-      setLoadingFilter(true);
-      try {
-        const queryParams: any = {
+  // TanStack Query: Cached & Deduped Filtered Products
+  const {
+    data: filterData,
+    isLoading: loadingFilter,
+    refetch: refetchFilter,
+  } = useGroceryProductsQuery(
+    isCustomFilter
+      ? {
+          category: selectedCategory ? String(selectedCategory.slug || selectedCategory.id) : undefined,
           filter: activeFilter,
-        };
-        if (selectedCategory) {
-          queryParams.category = selectedCategory.slug || selectedCategory.id;
         }
+      : undefined
+  );
 
-        const res = await groceryService.getProducts(queryParams);
-        if (isMounted && res.products) {
-          setTrending(res.products.map(mapBackendProduct));
-        }
-      } catch (_err) {
-        // Handle filter error
-      } finally {
-        if (isMounted) setLoadingFilter(false);
-      }
-    }
+  const categories: GroceryCategory[] = (homeData?.categories || []).map((c) => ({
+    id: c._id || c.slug,
+    _id: c._id,
+    name: c.name,
+    slug: c.slug,
+    emoji: c.emoji || '🛒',
+    image: c.image,
+    bg: c.bg || '#FFFFFF',
+  }));
 
-    if (!loading) {
-      filterProducts();
-    }
-    return () => {
-      isMounted = false;
-    };
-  }, [activeFilter, selectedCategory, loading]);
+  const banners = homeData?.banners || [];
+  const specialDeals: GroceryProduct[] = (homeData?.specialDeals || []).map(mapBackendProduct);
+
+  const trending: GroceryProduct[] = isCustomFilter && filterData?.products
+    ? filterData.products.map(mapBackendProduct)
+    : (homeData?.trending || []).map(mapBackendProduct);
 
   const onRefresh = async () => {
     setRefreshing(true);
-    await fetchHomeData();
+    await Promise.all([refetchHomeFeed(), isCustomFilter ? refetchFilter() : Promise.resolve()]);
     setRefreshing(false);
   };
 
@@ -163,21 +125,16 @@ export function GroceryHome() {
     }
   };
 
-  if (loading) {
-    return (
-      <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color={GColors.primary} />
-        <Text style={styles.loadingText}>Loading fresh groceries...</Text>
-      </View>
-    );
+  if (loadingFeed && !homeData) {
+    return <GroceryHomeSkeleton />;
   }
 
-  if (error && categories.length === 0 && specialDeals.length === 0 && trending.length === 0) {
+  if (isError && !homeData) {
     return (
       <View style={styles.errorContainer}>
         <Text style={styles.errorTitle}>Connection Error</Text>
-        <Text style={styles.errorMessage}>{error}</Text>
-        <TouchableOpacity style={styles.retryBtn} onPress={fetchHomeData} activeOpacity={0.8}>
+        <Text style={styles.errorMessage}>{(queryError as any)?.message || 'Failed to connect to grocery backend'}</Text>
+        <TouchableOpacity style={styles.retryBtn} onPress={() => refetchHomeFeed()} activeOpacity={0.8}>
           <Text style={styles.retryText}>Retry</Text>
         </TouchableOpacity>
       </View>
@@ -258,8 +215,11 @@ export function GroceryHome() {
         />
 
         {loadingFilter ? (
-          <View style={styles.loaderContainer}>
-            <ActivityIndicator size="small" color={GColors.primary} />
+          <View style={styles.grid}>
+            <GroceryProductCardSkeleton />
+            <GroceryProductCardSkeleton />
+            <GroceryProductCardSkeleton />
+            <GroceryProductCardSkeleton />
           </View>
         ) : trending.length > 0 ? (
           <View style={styles.grid}>

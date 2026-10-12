@@ -4,6 +4,7 @@ const mongoose = require('mongoose');
 const GroceryCategory = require('./groceryCategory.model');
 const GroceryProduct = require('./groceryProduct.model');
 const GroceryBanner = require('./groceryBanner.model');
+const Banner = require('../banners/banner.model');
 const { NotFoundError, BadRequestError } = require('../../common/errors');
 const redis = require('../../config/redis');
 const logger = require('../../config/logger');
@@ -45,8 +46,8 @@ async function getGroceryHomeFeed() {
     logger.warn('[Cache] Grocery home read failed', { error: err.message });
   }
 
-  const [banners, categories, specialDeals, trending] = await Promise.all([
-    GroceryBanner.find({ isActive: true }).sort('sortOrder').lean(),
+  const [adminBanners, categories, specialDeals, trending] = await Promise.all([
+    Banner.find({ section: 'GROCERY_HERO', isActive: true }).sort('sortOrder createdAt').lean(),
     GroceryCategory.find({ isActive: true }).sort('sortOrder').lean(),
     GroceryProduct.find({
       isActive: true,
@@ -67,6 +68,11 @@ async function getGroceryHomeFeed() {
       .limit(12)
       .lean(),
   ]);
+
+  let banners = adminBanners;
+  if (!banners || banners.length === 0) {
+    banners = await GroceryBanner.find({ isActive: true }).sort('sortOrder').lean();
+  }
 
   const responseData = {
     banners,

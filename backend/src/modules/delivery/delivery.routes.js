@@ -5,7 +5,7 @@ const controller = require('./delivery.controller');
 const { authenticate } = require('../../middlewares/auth.middleware');
 const { requireRole } = require('../../middlewares/rbac.middleware');
 const { validate } = require('../../middlewares/validate.middleware');
-const ROLES = require('../../common/constants/roles');
+const { ROLES } = require('../../common/constants/roles');
 const {
   registerPartnerSchema,
   updateLocationSchema,

@@ -16,6 +16,7 @@ import { useOwnerStore } from '../../store/owner.store';
 import { formatPaise } from '../../utils/formatters';
 import { Order, OrderStatus } from '../../types';
 import { Typography, Colors } from '../../constants/Theme';
+import { OrderCardSkeleton } from '../../components/ui/Skeleton';
 
 type FilterTab = 'ALL' | 'PENDING' | 'PREPARING' | 'READY' | 'OUT_FOR_DELIVERY' | 'COMPLETED';
 
@@ -43,7 +44,8 @@ export default function OwnerOrdersScreen() {
         onPress: async () => {
           try {
             setUpdatingId(orderId);
-            await updateOrderStatus(orderId, nextStatus);
+            const reason = nextStatus === 'CANCELLED' ? 'Rejected by restaurant' : undefined;
+            await updateOrderStatus(orderId, nextStatus, reason);
             Alert.alert('Success', `Order status updated to ${nextStatus}`);
           } catch (err: any) {
             Alert.alert('Error', err.response?.data?.message || 'Failed to update order status');
@@ -65,29 +67,40 @@ export default function OwnerOrdersScreen() {
     });
   };
 
+  const getNormalizedStatus = (o: Order) => (o.status || o.orderStatus || '').toString().toUpperCase();
+
   const filteredOrders = orders.filter((o) => {
+    const s = getNormalizedStatus(o);
     if (selectedTab === 'ALL') return true;
-    if (selectedTab === 'PENDING') return o.status === 'PENDING';
-    if (selectedTab === 'PREPARING') return ['CONFIRMED', 'PREPARING'].includes(o.status);
-    if (selectedTab === 'READY') return o.status === 'READY_FOR_PICKUP';
-    if (selectedTab === 'OUT_FOR_DELIVERY') return o.status === 'OUT_FOR_DELIVERY';
-    if (selectedTab === 'COMPLETED') return ['DELIVERED', 'CANCELLED'].includes(o.status);
+    if (selectedTab === 'PENDING') return ['PENDING', 'PLACED', 'PAYMENT_PENDING'].includes(s);
+    if (selectedTab === 'PREPARING') return ['CONFIRMED', 'PREPARING', 'ACCEPTED'].includes(s);
+    if (selectedTab === 'READY') return ['READY_FOR_PICKUP', 'READY'].includes(s);
+    if (selectedTab === 'OUT_FOR_DELIVERY') return ['OUT_FOR_DELIVERY', 'PICKED_UP'].includes(s);
+    if (selectedTab === 'COMPLETED') return ['DELIVERED', 'CANCELLED', 'REFUNDED', 'REJECTED'].includes(s);
     return true;
   });
 
   if (isLoading && !refreshing) {
     return (
-      <SafeAreaView style={styles.centerContainer}>
-        <ActivityIndicator size="large" color={Colors.primary} />
-        <Text style={styles.loadingText}>Loading kitchen orders...</Text>
+      <SafeAreaView style={styles.safeArea}>
+        <View style={styles.navbar}>
+          <Text style={styles.pageTitle}>Orders Dashboard</Text>
+        </View>
+        <ScrollView style={styles.scrollContainer} showsVerticalScrollIndicator={false}>
+          <View style={{ paddingTop: 12 }}>
+            <OrderCardSkeleton />
+            <OrderCardSkeleton />
+            <OrderCardSkeleton />
+          </View>
+        </ScrollView>
       </SafeAreaView>
     );
   }
 
-  const pendingCount = orders.filter((o) => o.status === 'PENDING').length;
-  const prepCount = orders.filter((o) => ['CONFIRMED', 'PREPARING'].includes(o.status)).length;
-  const readyCount = orders.filter((o) => o.status === 'READY_FOR_PICKUP').length;
-  const outCount = orders.filter((o) => o.status === 'OUT_FOR_DELIVERY').length;
+  const pendingCount = orders.filter((o) => ['PENDING', 'PLACED', 'PAYMENT_PENDING'].includes(getNormalizedStatus(o))).length;
+  const prepCount = orders.filter((o) => ['CONFIRMED', 'PREPARING', 'ACCEPTED'].includes(getNormalizedStatus(o))).length;
+  const readyCount = orders.filter((o) => ['READY_FOR_PICKUP', 'READY'].includes(getNormalizedStatus(o))).length;
+  const outCount = orders.filter((o) => ['OUT_FOR_DELIVERY', 'PICKED_UP'].includes(getNormalizedStatus(o))).length;
 
   return (
     <SafeAreaView style={styles.safeArea}>
@@ -148,12 +161,13 @@ export default function OwnerOrdersScreen() {
           </View>
         ) : (
           filteredOrders.map((order) => {
-            const isPending = order.status === 'PENDING';
-            const isPreparing = ['CONFIRMED', 'PREPARING'].includes(order.status);
-            const isReady = order.status === 'READY_FOR_PICKUP';
-            const isOutForDelivery = order.status === 'OUT_FOR_DELIVERY';
-            const isDelivered = order.status === 'DELIVERED';
-            const isCancelled = order.status === 'CANCELLED';
+            const statusUpper = (order.status || order.orderStatus || '').toString().toUpperCase();
+            const isPending = ['PENDING', 'PLACED', 'PAYMENT_PENDING'].includes(statusUpper);
+            const isPreparing = ['CONFIRMED', 'PREPARING', 'ACCEPTED'].includes(statusUpper);
+            const isReady = ['READY_FOR_PICKUP', 'READY'].includes(statusUpper);
+            const isOutForDelivery = ['OUT_FOR_DELIVERY', 'PICKED_UP'].includes(statusUpper);
+            const isDelivered = statusUpper === 'DELIVERED';
+            const isCancelled = ['CANCELLED', 'REJECTED', 'REFUNDED'].includes(statusUpper);
             const isProcessing = updatingId === order._id;
 
             const customerName = (order.user as any)?.name || (order as any).customerName || 'Customer';

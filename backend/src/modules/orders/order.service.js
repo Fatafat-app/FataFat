@@ -353,7 +353,11 @@ async function cancelOrder(orderId, reason, requestingUser) {
   if (!order) throw new NotFoundError('Order not found');
 
   const orderUserId = order.user?._id?.toString() || order.user?.toString() || order.customerId?.toString();
-  if (orderUserId !== requestingUser.id && !['super_admin', 'ops_admin', 'admin'].includes(requestingUser.role)) {
+  const isCustomer = orderUserId === requestingUser.id;
+  const isAdmin = ['super_admin', 'ops_admin', 'admin'].includes(requestingUser.role);
+  const isMerchant = ['restaurant_owner', 'merchant_owner', 'merchant_staff'].includes(requestingUser.role);
+
+  if (!isCustomer && !isAdmin && !isMerchant) {
     throw new BusinessError('Not authorized to cancel this order', ERROR_CODES.FORBIDDEN);
   }
 
@@ -369,13 +373,30 @@ async function cancelOrder(orderId, reason, requestingUser) {
     throw new BusinessError('Cannot cancel an order that has already been delivered', ERROR_CODES.ORDER_INVALID_TRANSITION);
   }
 
+  let resolvedReason = typeof reason === 'string' ? reason : (reason?.reason || reason?.cancellationReason || 'Cancelled');
+  let cancellationReasonId = typeof reason === 'object' ? reason?.cancellationReasonId : null;
+
+  if (cancellationReasonId && mongoose.Types.ObjectId.isValid(cancellationReasonId)) {
+    try {
+      const CancellationReason = mongoose.models.CancellationReason || require('../masters/cancellationReason.model');
+      const cr = await CancellationReason.findById(cancellationReasonId);
+      if (cr) {
+        resolvedReason = cr.name;
+        order.cancellationReasonId = cr._id;
+      }
+    } catch {}
+  }
+
   stateMachine.transition(order, 'cancelled', {
     actor: { id: requestingUser.id, role: requestingUser.role || 'customer' },
-    reason,
+    reason: resolvedReason,
   });
 
-  if (reason) {
-    order.specialInstructions = order.specialInstructions ? `${order.specialInstructions}\nCancel Reason: ${reason}` : `Cancel Reason: ${reason}`;
+  order.cancellationReason = resolvedReason;
+  if (resolvedReason) {
+    order.specialInstructions = order.specialInstructions
+      ? `${order.specialInstructions}\nCancel Reason: ${resolvedReason}`
+      : `Cancel Reason: ${resolvedReason}`;
   }
 
   if (!order.orderNumber) {

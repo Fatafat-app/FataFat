@@ -8,7 +8,8 @@ interface RestaurantCardProps {
   name: string;
   imageUri: string;
   cuisines: string;
-  rating: number;
+  rating?: number | string;
+  ratingCount?: number;
   deliveryTime: string;
   distance?: string;
   offerBadge?: string;
@@ -22,6 +23,7 @@ export function RestaurantCard({
   imageUri,
   cuisines,
   rating,
+  ratingCount,
   deliveryTime,
   distance,
   offerBadge,
@@ -29,6 +31,10 @@ export function RestaurantCard({
   onPress,
   onFavoritePress,
 }: RestaurantCardProps) {
+  const isNumericRating = typeof rating === 'number' && rating > 0;
+  const ratingDisplay = isNumericRating ? rating.toFixed(1) : (rating && rating !== 0 ? String(rating) : 'NEW');
+  const showStar = isNumericRating;
+
   return (
     <Card style={styles.container} onPress={onPress}>
       <View style={styles.imageContainer}>
@@ -40,7 +46,14 @@ export function RestaurantCard({
           </View>
         )}
         
-        <TouchableOpacity style={styles.favoriteBtn} onPress={onFavoritePress}>
+        <TouchableOpacity
+          style={styles.favoriteBtn}
+          onPress={(e) => {
+            e?.stopPropagation?.();
+            onFavoritePress?.();
+          }}
+          activeOpacity={0.7}
+        >
           <Ionicons name={isFavorite ? 'heart' : 'heart-outline'} size={20} color={isFavorite ? Colors.error : Colors.white} />
         </TouchableOpacity>
       </View>
@@ -48,9 +61,9 @@ export function RestaurantCard({
       <View style={styles.infoContainer}>
         <View style={styles.titleRow}>
           <Text style={styles.name} numberOfLines={1}>{name}</Text>
-          <View style={styles.ratingBadge}>
-            <Text style={styles.ratingText}>{rating}</Text>
-            <Ionicons name="star" size={10} color={Colors.white} style={styles.starIcon} />
+          <View style={[styles.ratingBadge, !showStar && { backgroundColor: '#6B7280' }]}>
+            <Text style={styles.ratingText}>{ratingDisplay}</Text>
+            {showStar && <Ionicons name="star" size={10} color={Colors.white} style={styles.starIcon} />}
           </View>
         </View>
         

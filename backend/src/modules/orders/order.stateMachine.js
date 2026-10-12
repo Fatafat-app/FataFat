@@ -9,9 +9,9 @@ const outboxService = require('../outbox');
 // Support both lowercase and V2 uppercase
 const VALID_TRANSITIONS = Object.freeze({
   // Legacy / Lowercase Keys
-  [ORDER_STATUS.PENDING]: [ORDER_STATUS.CONFIRMED, ORDER_STATUS.CANCELLED],
-  [ORDER_STATUS.CONFIRMED]: [ORDER_STATUS.PREPARING, ORDER_STATUS.READY_FOR_PICKUP, ORDER_STATUS.CANCELLED],
-  [ORDER_STATUS.PREPARING]: [ORDER_STATUS.READY_FOR_PICKUP, ORDER_STATUS.OUT_FOR_DELIVERY, ORDER_STATUS.READY, ORDER_STATUS.CANCELLED],
+  [ORDER_STATUS.PENDING]: [ORDER_STATUS.CONFIRMED, ORDER_STATUS.ACCEPTED, ORDER_STATUS.PREPARING, ORDER_STATUS.CANCELLED, ORDER_STATUS.REJECTED],
+  [ORDER_STATUS.CONFIRMED]: [ORDER_STATUS.PREPARING, ORDER_STATUS.READY_FOR_PICKUP, ORDER_STATUS.READY, ORDER_STATUS.CANCELLED],
+  [ORDER_STATUS.PREPARING]: [ORDER_STATUS.READY_FOR_PICKUP, ORDER_STATUS.OUT_FOR_DELIVERY, ORDER_STATUS.READY, ORDER_STATUS.DELIVERED, ORDER_STATUS.CANCELLED],
   [ORDER_STATUS.READY_FOR_PICKUP]: [ORDER_STATUS.OUT_FOR_DELIVERY, ORDER_STATUS.DELIVERED, ORDER_STATUS.PICKED_UP, ORDER_STATUS.CANCELLED],
   [ORDER_STATUS.OUT_FOR_DELIVERY]: [ORDER_STATUS.DELIVERED, ORDER_STATUS.CANCELLED],
   [ORDER_STATUS.DELIVERED]: [ORDER_STATUS.REFUNDED],
@@ -22,17 +22,36 @@ const VALID_TRANSITIONS = Object.freeze({
   [ORDER_STATUS.PAYMENT_PENDING]: [
     ORDER_STATUS.PLACED,
     ORDER_STATUS.ACCEPTED,
+    ORDER_STATUS.CONFIRMED,
+    ORDER_STATUS.PREPARING,
     ORDER_STATUS.EXPIRED,
     ORDER_STATUS.CANCELLED,
   ],
-  [ORDER_STATUS.PLACED]: [ORDER_STATUS.ACCEPTED, ORDER_STATUS.REJECTED, ORDER_STATUS.CANCELLED],
+  [ORDER_STATUS.PLACED]: [
+    ORDER_STATUS.ACCEPTED,
+    ORDER_STATUS.CONFIRMED,
+    ORDER_STATUS.PREPARING,
+    ORDER_STATUS.REJECTED,
+    ORDER_STATUS.CANCELLED,
+  ],
   [ORDER_STATUS.ACCEPTED]: [
     ORDER_STATUS.PREPARING,
     ORDER_STATUS.READY,
+    ORDER_STATUS.READY_FOR_PICKUP,
     ORDER_STATUS.CANCELLED,
   ],
-  [ORDER_STATUS.READY]: [ORDER_STATUS.PICKED_UP, ORDER_STATUS.CANCELLED],
-  [ORDER_STATUS.PICKED_UP]: [ORDER_STATUS.DELIVERED, ORDER_STATUS.FAILED_DELIVERY, ORDER_STATUS.CANCELLED],
+  [ORDER_STATUS.READY]: [
+    ORDER_STATUS.PICKED_UP,
+    ORDER_STATUS.OUT_FOR_DELIVERY,
+    ORDER_STATUS.DELIVERED,
+    ORDER_STATUS.CANCELLED,
+  ],
+  [ORDER_STATUS.PICKED_UP]: [
+    ORDER_STATUS.DELIVERED,
+    ORDER_STATUS.OUT_FOR_DELIVERY,
+    ORDER_STATUS.FAILED_DELIVERY,
+    ORDER_STATUS.CANCELLED,
+  ],
   [ORDER_STATUS.FAILED_DELIVERY]: [ORDER_STATUS.CANCELLED],
   [ORDER_STATUS.REJECTED]: [],
   [ORDER_STATUS.EXPIRED]: [],
@@ -50,34 +69,58 @@ function validateActorPermission(fromStatus, toStatus, actor, reason) {
   }
 
   if (role === 'customer') {
-    if ((fromStatus === ORDER_STATUS.PENDING || fromStatus === ORDER_STATUS.PLACED) && toStatus === ORDER_STATUS.CANCELLED) {
+    const fromUpper = String(fromStatus).toUpperCase();
+    const toUpper = String(toStatus).toUpperCase();
+    if (['PENDING', 'PLACED'].includes(fromUpper) && ['CANCELLED', 'REJECTED'].includes(toUpper)) {
       return true;
     }
     throw new ForbiddenError(`Customer cannot transition order from '${fromStatus}' to '${toStatus}'`);
   }
 
   if (role === 'merchant_owner' || role === 'merchant_staff' || role === 'restaurant_owner') {
-    if (
-      (fromStatus === ORDER_STATUS.PENDING || fromStatus === ORDER_STATUS.PLACED) &&
-      (toStatus === ORDER_STATUS.CONFIRMED || toStatus === ORDER_STATUS.ACCEPTED || toStatus === ORDER_STATUS.REJECTED)
-    ) {
+    const fromUpper = String(fromStatus).toUpperCase();
+    const toUpper = String(toStatus).toUpperCase();
+
+    // From Pending / Placed: can Accept, Confirm, start Preparing, Reject, or Cancel
+    if (['PENDING', 'PLACED', 'PAYMENT_PENDING'].includes(fromUpper)) {
+      if (['CONFIRMED', 'ACCEPTED', 'PREPARING', 'REJECTED', 'CANCELLED'].includes(toUpper)) {
+        return true;
+      }
+    }
+
+    // From Confirmed / Accepted: can move to Preparing, Ready, or Cancel
+    if (['CONFIRMED', 'ACCEPTED'].includes(fromUpper)) {
+      if (['PREPARING', 'READY_FOR_PICKUP', 'READY', 'CANCELLED'].includes(toUpper)) {
+        return true;
+      }
+    }
+
+    // From Preparing: can move to Ready, Out for Delivery, Delivered, or Cancel
+    if (fromUpper === 'PREPARING') {
+      if (['READY_FOR_PICKUP', 'READY', 'OUT_FOR_DELIVERY', 'DELIVERED', 'CANCELLED'].includes(toUpper)) {
+        return true;
+      }
+    }
+
+    // From Ready / Ready for pickup: can move to Out for Delivery, Delivered, Picked up, or Cancel
+    if (['READY_FOR_PICKUP', 'READY'].includes(fromUpper)) {
+      if (['OUT_FOR_DELIVERY', 'DELIVERED', 'PICKED_UP', 'CANCELLED'].includes(toUpper)) {
+        return true;
+      }
+    }
+
+    // From Out for Delivery: can mark Delivered or Cancel
+    if (['OUT_FOR_DELIVERY', 'PICKED_UP'].includes(fromUpper)) {
+      if (['DELIVERED', 'CANCELLED'].includes(toUpper)) {
+        return true;
+      }
+    }
+
+    // Merchant can cancel or reject from any non-delivered state
+    if (['CANCELLED', 'REJECTED'].includes(toUpper) && fromUpper !== 'DELIVERED') {
       return true;
     }
-    if (
-      (fromStatus === ORDER_STATUS.CONFIRMED || fromStatus === ORDER_STATUS.ACCEPTED) &&
-      (toStatus === ORDER_STATUS.PREPARING || toStatus === ORDER_STATUS.READY_FOR_PICKUP || toStatus === ORDER_STATUS.READY)
-    ) {
-      return true;
-    }
-    if (
-      fromStatus === ORDER_STATUS.PREPARING &&
-      (toStatus === ORDER_STATUS.READY_FOR_PICKUP || toStatus === ORDER_STATUS.READY)
-    ) {
-      return true;
-    }
-    if (toStatus === ORDER_STATUS.CANCELLED && reason) {
-      return true;
-    }
+
     throw new ForbiddenError(`Merchant cannot transition order from '${fromStatus}' to '${toStatus}'`);
   }
 

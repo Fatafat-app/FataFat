@@ -54,7 +54,15 @@ async function redeemCoupon(couponId, userId) {
 }
 
 async function createCoupon(data) {
-  return Coupon.create(data);
+  const normalized = {
+    ...data,
+    discountType: data.discountType === 'percentage' ? 'percent' : data.discountType,
+    value: data.value !== undefined ? data.value : data.discountValue,
+    minOrderAmount: data.minOrderAmount !== undefined ? data.minOrderAmount : (data.minOrderValue || 0),
+    maxDiscount: data.maxDiscount !== undefined ? data.maxDiscount : data.maxDiscountAmount,
+    expiresAt: data.expiresAt || data.validUntil || new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
+  };
+  return Coupon.create(normalized);
 }
 
 async function deactivateExpiredCoupons() {

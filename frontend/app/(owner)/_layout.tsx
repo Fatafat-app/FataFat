@@ -1,19 +1,27 @@
 import React from 'react';
 import { Tabs, Redirect } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
-import { StyleSheet } from 'react-native';
+import { StyleSheet, View, ActivityIndicator } from 'react-native';
 import { useAuthStore } from '../../store/auth.store';
 import { Typography, Colors } from '../../constants/Theme';
 
 export default function OwnerLayout() {
   const { user, isAuthenticated, isLoading } = useAuthStore();
 
-  if (!isLoading && !isAuthenticated) {
+  if (isLoading) {
+    return (
+      <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: Colors.background }}>
+        <ActivityIndicator size="large" color={Colors.primary} />
+      </View>
+    );
+  }
+
+  if (!isAuthenticated) {
     return <Redirect href="/(auth)/login" />;
   }
-  
+
   const ownerRoles = ['restaurant_owner', 'merchant_owner', 'merchant_staff'];
-  if (!isLoading && (!user || !ownerRoles.includes(user.role))) {
+  if (!user || !ownerRoles.includes(user.role)) {
     return <Redirect href="/(tabs)" />;
   }
 

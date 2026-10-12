@@ -15,12 +15,11 @@ export default function TabsLayout() {
   const isGroceryAvailable = useConfigStore((s) => s.isVerticalAvailable('grocery'));
   const groceryMode = useConfigStore((s) => s.config?.verticals?.grocery?.mode || 'ON');
   const isGroceryEnabled = isGroceryAvailable && groceryMode !== 'OFF';
+  const pathname = usePathname();
 
   if (!isLoading && !isAuthenticated) {
     return <Redirect href="/(auth)/login" />;
   }
-
-  const pathname = usePathname();
 
   const isShowingGrocery = isGroceryEnabled && (!isFoodEnabled || activeSection === 'grocery');
   

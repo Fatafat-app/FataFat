@@ -1,23 +1,15 @@
 import '../global.css';
 import { useEffect } from 'react';
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { QueryClientProvider } from '@tanstack/react-query';
+import { queryClient } from '../services/queryClient';
 import { Stack } from 'expo-router';
 import { useAuthStore } from '../store/auth.store';
 import { useLocationStore } from '../store/location.store';
 import { useConfigStore } from '../store/config.store';
+import { useNotificationStore } from '../store/notification.store';
 import { socketService } from '../services/socket.service';
 import { pushNotificationService } from '../services/pushNotification.service';
-import { useNotificationStore } from '../store/notification.store';
 import InAppNotificationBanner from '../components/InAppNotificationBanner';
-
-const queryClient = new QueryClient({
-  defaultOptions: {
-    queries: {
-      retry: 2,
-      staleTime: 1000 * 60 * 2, // 2 minutes
-    },
-  },
-});
 
 export default function RootLayout() {
   const initAuth = useAuthStore((state) => state.initAuth);

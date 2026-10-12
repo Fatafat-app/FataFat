@@ -4,6 +4,7 @@ import { useOrderTrackingStore } from '../store/orderTracking.store';
 import { useConfigStore } from '../store/config.store';
 import { useNotificationStore } from '../store/notification.store';
 import { LocationUpdateEvent, StatusUpdateEvent } from '../types';
+import { queryClient } from './queryClient';
 
 const statusMessages: Record<string, { title: string; body: string }> = {
   placed: { title: 'Order Placed 🛍️', body: 'Your order was placed successfully!' },
@@ -64,17 +65,22 @@ class SocketService {
     this.socket.on('config:updated', (payload) => {
       console.log('[Socket] Config updated:', payload);
       useConfigStore.getState().fetchBootstrap();
+      queryClient.invalidateQueries({ queryKey: ['food'] });
+      queryClient.invalidateQueries({ queryKey: ['grocery'] });
     });
 
     this.socket.on('vertical.toggled.v1', (payload) => {
       console.log('[Socket] Vertical toggled:', payload);
       useConfigStore.getState().fetchBootstrap();
+      queryClient.invalidateQueries({ queryKey: ['food'] });
+      queryClient.invalidateQueries({ queryKey: ['grocery'] });
     });
 
     // 2. Legacy status update events
     this.socket.on('order:status_updated', (data: StatusUpdateEvent) => {
       console.log('[Socket] Order status updated (legacy):', data);
       useOrderTrackingStore.getState().updateOrderStatus(data.status);
+      queryClient.invalidateQueries({ queryKey: ['orders'] });
       const msg = statusMessages[data.status.toLowerCase()] || {
         title: 'Order Updated 🔔',
         body: `Order status is now ${data.status}`,
@@ -99,6 +105,7 @@ class SocketService {
     v2Events.forEach((eventName) => {
       this.socket?.on(eventName, (payload: any) => {
         console.log(`[Socket] ${eventName}:`, payload);
+        queryClient.invalidateQueries({ queryKey: ['orders'] });
         const status = payload?.status || eventName.split('.')[1];
         if (status) {
           useOrderTrackingStore.getState().updateOrderStatus(status);

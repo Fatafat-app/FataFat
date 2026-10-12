@@ -38,7 +38,7 @@ const fallbackImages = [
   'https://images.unsplash.com/photo-1518977676601-b53f82aba655?w=400&q=80', // potatoes
 ];
 
-const getImageForName = (name) => {
+export const getImageForName = (name?: string): string => {
   if (!name) return fallbackImages[0];
   const lower = name.toLowerCase();
   if (lower.includes('fruit') || lower.includes('berry')) return fallbackImages[0];

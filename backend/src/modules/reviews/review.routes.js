@@ -12,6 +12,11 @@ router.post('/', authenticate, async (req, res) => {
   success(res, { review }, 'Review submitted', 201);
 });
 
+router.get('/mine', authenticate, async (req, res) => {
+  const { reviews, meta } = await reviewService.getUserReviews(req.user.id, req.query);
+  success(res, { reviews }, 'Your reviews retrieved', 200, meta);
+});
+
 router.get('/restaurant/:restaurantId', async (req, res) => {
   const { reviews, meta } = await reviewService.getRestaurantReviews(req.params.restaurantId, req.query);
   success(res, { reviews }, 'Reviews retrieved', 200, meta);

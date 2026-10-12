@@ -11,7 +11,7 @@ const MenuCategory = require('../src/modules/menu/menuCategory.model');
 const MenuItem = require('../src/modules/menu/menuItem.model');
 const Coupon = require('../src/modules/coupons/coupon.model');
 const DeliveryPartner = require('../src/modules/delivery/delivery.model');
-const ROLES = require('../src/common/constants/roles');
+const { ROLES } = require('../src/common/constants/roles');
 
 async function seed() {
   console.log('🌱 Connecting to MongoDB...');
@@ -131,8 +131,8 @@ async function seed() {
       radiusKm: 10,
     },
     rating: {
-      average: 4.6,
-      count: 128,
+      average: 0,
+      count: 0,
     },
   });
 
@@ -164,8 +164,8 @@ async function seed() {
       radiusKm: 8,
     },
     rating: {
-      average: 4.4,
-      count: 89,
+      average: 0,
+      count: 0,
     },
   });
 

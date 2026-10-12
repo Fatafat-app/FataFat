@@ -19,13 +19,14 @@ import { useAuthStore } from '../../store/auth.store';
 import { socketService } from '../../services/socket.service';
 import { formatPaise } from '../../utils/formatters';
 import { Typography, Colors } from '../../constants/Theme';
+import { DashboardSkeleton } from '../../components/ui/Skeleton';
 import * as Location from 'expo-location';
 
 export default function RiderDashboardScreen() {
   const { partner, isLoading, fetchProfile, toggleOnline, updateLiveLocation } = useRiderStore();
   const user = useAuthStore((state) => state.user);
   
-  const locationIntervalRef = useRef<NodeJS.Timeout | null>(null);
+  const locationIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   useEffect(() => {
     fetchProfile();
@@ -97,9 +98,8 @@ export default function RiderDashboardScreen() {
 
   if (isLoading && !partner) {
     return (
-      <SafeAreaView style={styles.centerContainer}>
-        <ActivityIndicator size="large" color="#2563EB" />
-        <Text style={styles.loadingText}>Loading rider profile...</Text>
+      <SafeAreaView style={styles.safeArea}>
+        <DashboardSkeleton />
       </SafeAreaView>
     );
   }

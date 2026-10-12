@@ -42,7 +42,9 @@ export interface Order {
   _id: string;
   orderNumber: string;
   customerId: string;
+  user?: any;
   restaurantId: string | Restaurant;
+  restaurant?: any;
   deliveryPartnerId?: {
     _id: string;
     name: string;
@@ -55,9 +57,11 @@ export interface Order {
   };
   items: OrderItem[];
   pricing: OrderPricing;
+  deliveryFee?: number;
   deliveryAddress: Address;
   deliveryInstructions?: string;
   status: OrderStatus;
+  orderStatus?: string;
   paymentMethod: PaymentMethod;
   paymentStatus: PaymentStatus;
   timeline: OrderTimeline[];
@@ -69,6 +73,8 @@ export interface Order {
 
 export interface CreateOrderItemPayload {
   menuItemId: string;
+  name?: string;
+  price?: number;
   quantity: number;
   selectedModifiers?: MenuItemModifierOption[];
 }
@@ -76,7 +82,7 @@ export interface CreateOrderItemPayload {
 export interface CreateOrderPayload {
   restaurantId: string;
   items: CreateOrderItemPayload[];
-  deliveryAddress: Address;
+  deliveryAddress: Partial<Address> | any;
   deliveryInstructions?: string;
   paymentMethod: PaymentMethod;
   couponCode?: string;

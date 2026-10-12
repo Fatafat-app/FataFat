@@ -7,3 +7,4 @@ export * from './order.types';
 export * from './payment.types';
 export * from './socket.types';
 export * from './coupon.types';
+export * from './review.types';

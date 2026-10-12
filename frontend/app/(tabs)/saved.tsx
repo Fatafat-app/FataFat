@@ -15,19 +15,31 @@ import { useRouter } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useFavoritesStore, FavoriteItem } from '../../store/favorites.store';
 import { useCartStore } from '../../store/cart.store';
+import { formatPaise } from '../../utils/formatters';
 import { Typography, BOLD_FONT, STYLISH_FONT, Colors } from '../../constants/Theme';
 
 export default function SavedScreen() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
   const { favorites, removeFavorite, clearFavorites } = useFavoritesStore();
-  const { addItem, cartRestaurant, clearCart } = useCartStore();
+  const { addItem, restaurant: cartRestaurant, clearCart } = useCartStore();
 
   const [activeTab, setActiveTab] = useState<'all' | 'product' | 'restaurant'>('all');
 
   const filtered = activeTab === 'all'
     ? favorites
     : favorites.filter((f) => f.type === activeTab);
+
+  const formatDisplayPrice = (val: number | string | undefined | null) => {
+    if (val === undefined || val === null || val === '') return '₹0';
+    const num = typeof val === 'string' ? parseFloat(val) : val;
+    if (isNaN(num)) return '₹0';
+    // Backend stores dish prices in paise (e.g. 4900 paise = ₹49)
+    if (num >= 100) {
+      return formatPaise(num);
+    }
+    return `₹${num}`;
+  };
 
   const handleAddToCart = (item: FavoriteItem) => {
     const mockRestaurant = {
@@ -37,10 +49,14 @@ export default function SavedScreen() {
       address: { street: 'Local Kitchen' },
     };
 
+    const rawPrice = typeof item.price === 'string' ? parseFloat(item.price) : item.price;
+    // Cart expects price in paise
+    const priceInPaise = rawPrice < 100 ? Math.round(rawPrice * 100) : Math.round(rawPrice);
+
     const formattedItem = {
       _id: item._id,
       name: item.name,
-      price: typeof item.price === 'string' ? parseInt(item.price) : item.price,
+      price: priceInPaise,
       description: 'Your favorite dish!',
       images: item.images || (item.image ? [item.image] : []),
       isVeg: item.isVeg !== false,
@@ -169,7 +185,16 @@ export default function SavedScreen() {
           </View>
         ) : (
           filtered.map((item, idx) => (
-            <View key={item._id + '-' + idx} style={styles.card}>
+            <TouchableOpacity
+              key={item._id + '-' + idx}
+              style={styles.card}
+              activeOpacity={item.type === 'restaurant' ? 0.9 : 1}
+              onPress={() => {
+                if (item.type === 'restaurant') {
+                  router.push(`/restaurant/${item._id}`);
+                }
+              }}
+            >
               {/* Image */}
               <View style={styles.cardImageWrap}>
                 <Image
@@ -177,7 +202,9 @@ export default function SavedScreen() {
                     uri:
                       item.images?.[0] ||
                       item.image ||
-                      'https://images.unsplash.com/photo-1541783245831-57d6fb0926d3?w=400&q=80',
+                      (item.type === 'restaurant'
+                        ? 'https://images.pexels.com/photos/260922/pexels-photo-260922.jpeg'
+                        : 'https://images.unsplash.com/photo-1541783245831-57d6fb0926d3?w=400&q=80'),
                   }}
                   style={styles.cardImage}
                 />
@@ -223,18 +250,20 @@ export default function SavedScreen() {
                   {item.name}
                 </Text>
                 {item.cuisine && (
-                  <Text style={styles.cuisineText}>{item.cuisine}</Text>
+                  <Text style={styles.cuisineText} numberOfLines={1}>{item.cuisine}</Text>
                 )}
                 <View style={styles.cardBottom}>
                   {item.type === 'product' && (
-                    <Text style={styles.priceText}>₹{item.price}</Text>
+                    <Text style={styles.priceText}>{formatDisplayPrice(item.price)}</Text>
                   )}
-                  {item.rating && (
+                  {item.rating ? (
                     <View style={styles.ratingBadge}>
                       <Ionicons name="star" size={10} color="#F59E0B" />
-                      <Text style={styles.ratingText}>{item.rating}</Text>
+                      <Text style={styles.ratingText}>
+                        {typeof item.rating === 'number' ? item.rating.toFixed(1) : item.rating}
+                      </Text>
                     </View>
-                  )}
+                  ) : null}
                   <Text style={styles.timeAgo}>{getTimeAgo(item.addedAt)}</Text>
                 </View>
 
@@ -242,7 +271,10 @@ export default function SavedScreen() {
                 <View style={styles.actionRow}>
                   {item.type === 'product' && (
                     <TouchableOpacity
-                      onPress={() => handleAddToCart(item)}
+                      onPress={(e) => {
+                        e.stopPropagation();
+                        handleAddToCart(item);
+                      }}
                       style={styles.addCartBtn}
                       activeOpacity={0.8}
                     >
@@ -252,7 +284,10 @@ export default function SavedScreen() {
                   )}
                   {item.type === 'restaurant' && (
                     <TouchableOpacity
-                      onPress={() => router.push(`/restaurant/${item._id}`)}
+                      onPress={(e) => {
+                        e.stopPropagation();
+                        router.push(`/restaurant/${item._id}`);
+                      }}
                       style={[styles.addCartBtn, { backgroundColor: '#0B7A75' }]}
                       activeOpacity={0.8}
                     >
@@ -261,7 +296,10 @@ export default function SavedScreen() {
                     </TouchableOpacity>
                   )}
                   <TouchableOpacity
-                    onPress={() => handleRemove(item)}
+                    onPress={(e) => {
+                      e.stopPropagation();
+                      handleRemove(item);
+                    }}
                     style={styles.removeBtn}
                     activeOpacity={0.8}
                   >
@@ -269,7 +307,7 @@ export default function SavedScreen() {
                   </TouchableOpacity>
                 </View>
               </View>
-            </View>
+            </TouchableOpacity>
           ))
         )}
 

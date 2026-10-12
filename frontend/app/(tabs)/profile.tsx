@@ -157,7 +157,7 @@ export default function ProfileScreen() {
               icon="pricetag-outline"
               title="Coupons & Offers"
               subtitle="Vouchers and promotional codes"
-              onPress={() => Alert.alert('Coupons', 'No active coupons at the moment.')}
+              onPress={() => router.push('/coupons')}
               iconColor="#10B981"
               bgColor="#ECFDF5"
             />
@@ -166,7 +166,7 @@ export default function ProfileScreen() {
               icon="star-outline"
               title="My Reviews"
               subtitle="Ratings and feedback you provided"
-              onPress={() => Alert.alert('Coming Soon', 'Your reviews will appear here.')}
+              onPress={() => router.push('/reviews' as any)}
               iconColor="#F59E0B"
               bgColor="#FEF3C7"
               hideBorder

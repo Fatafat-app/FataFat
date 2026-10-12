@@ -4,9 +4,9 @@ const { Router } = require('express');
 const Coupon = require('./coupon.model');
 const couponService = require('./coupon.service');
 const { success } = require('../../common/response/apiResponse');
-const { authenticate } = require('../../middlewares/auth.middleware');
+const { authenticate, optionalAuthenticate } = require('../../middlewares/auth.middleware');
 const { requireRole } = require('../../middlewares/rbac.middleware');
-const ROLES = require('../../common/constants/roles');
+const { ROLES } = require('../../common/constants/roles');
 
 const router = Router();
 
@@ -16,6 +16,19 @@ router.post('/validate', authenticate, async (req, res) => {
     code, req.user.id, cartTotal, restaurantId
   );
   success(res, { coupon: { code: coupon.code, discountAmount }, discountAmount }, 'Coupon valid');
+});
+
+router.get('/active', optionalAuthenticate, async (req, res) => {
+  const now = new Date();
+  const query = {
+    isActive: true,
+    expiresAt: { $gt: now },
+  };
+  if (req.query.restaurantId) {
+    query.$or = [{ restaurantId: req.query.restaurantId }, { restaurantId: null }, { restaurantId: { $exists: false } }];
+  }
+  const coupons = await Coupon.find(query).sort({ createdAt: -1 });
+  success(res, { coupons, items: coupons });
 });
 
 router.get('/', authenticate, requireRole(ROLES.ADMIN), async (_req, res) => {

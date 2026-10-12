@@ -19,6 +19,7 @@ import { useOwnerStore } from '../../store/owner.store';
 import { formatPaise } from '../../utils/formatters';
 import { MenuItem } from '../../types';
 import { Typography, Colors } from '../../constants/Theme';
+import { FoodCardSkeleton } from '../../components/ui/Skeleton';
 
 type ModalMode = 'add' | 'edit' | 'category' | null;
 
@@ -31,7 +32,9 @@ export default function OwnerMenuScreen() {
     toggleItemStock,
     addNewDish,
     updateDish,
+    deleteDish,
     addCategory,
+    deleteCategory,
   } = useOwnerStore();
 
   const [searchQuery, setSearchQuery] = useState('');
@@ -207,13 +210,64 @@ export default function OwnerMenuScreen() {
     }
   };
 
+  const handleDeleteDish = (item: any) => {
+    Alert.alert('Delete Dish', `Are you sure you want to delete "${item.name}" from your menu?`, [
+      { text: 'Cancel', style: 'cancel' },
+      {
+        text: 'Delete',
+        style: 'destructive',
+        onPress: async () => {
+          try {
+            await deleteDish(item._id);
+            Alert.alert('Deleted ✅', `"${item.name}" removed from menu.`);
+          } catch (err: any) {
+            Alert.alert('Error', err.response?.data?.message || err.message || 'Could not delete dish');
+          }
+        },
+      },
+    ]);
+  };
+
+  const handleDeleteCategory = (catName: string) => {
+    const catObj = menuCategories.find((c) => (c.name || c.category) === catName);
+    if (!catObj?._id) {
+      Alert.alert('Error', 'Category ID not found');
+      return;
+    }
+    const dishCount = catObj.items?.length || 0;
+    const warning = dishCount > 0
+      ? `"${catName}" has ${dishCount} dish(es). Deleting it will also delete all dishes under this category!`
+      : `Are you sure you want to delete "${catName}"?`;
+
+    Alert.alert('Delete Category', warning, [
+      { text: 'Cancel', style: 'cancel' },
+      {
+        text: 'Delete All',
+        style: 'destructive',
+        onPress: async () => {
+          try {
+            await deleteCategory(catObj._id);
+            Alert.alert('Deleted ✅', `Category "${catName}" removed.`);
+          } catch (err: any) {
+            Alert.alert('Error', err.response?.data?.message || err.message || 'Could not delete category');
+          }
+        },
+      },
+    ]);
+  };
+
   if (isLoading) {
     return (
       <SafeAreaView style={styles.safeArea}>
-        <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color={Colors.primary} />
-          <Text style={styles.loadingText}>Loading your menu...</Text>
+        <View style={styles.navbar}>
+          <Text style={styles.pageTitle}>Menu Catalog</Text>
         </View>
+        <ScrollView style={styles.scrollContainer} contentContainerStyle={{ padding: 16, gap: 12 }}>
+          <FoodCardSkeleton />
+          <FoodCardSkeleton />
+          <FoodCardSkeleton />
+          <FoodCardSkeleton />
+        </ScrollView>
       </SafeAreaView>
     );
   }
@@ -321,9 +375,14 @@ export default function OwnerMenuScreen() {
                   <Text style={styles.itemPrice}>{formatPaise(item.price)}</Text>
                 </View>
                 <View style={styles.itemActions}>
-                  <TouchableOpacity onPress={() => openEditModal(item)} style={styles.editIconBtn}>
-                    <Ionicons name="pencil-outline" size={16} color={Colors.primary} />
-                  </TouchableOpacity>
+                  <View style={{ flexDirection: 'row', gap: 6 }}>
+                    <TouchableOpacity onPress={() => openEditModal(item)} style={styles.editIconBtn}>
+                      <Ionicons name="pencil-outline" size={15} color={Colors.primary} />
+                    </TouchableOpacity>
+                    <TouchableOpacity onPress={() => handleDeleteDish(item)} style={styles.deleteIconBtn}>
+                      <Ionicons name="trash-outline" size={15} color={Colors.error} />
+                    </TouchableOpacity>
+                  </View>
                   <View style={styles.stockControl}>
                     <Text style={[styles.stockStatusLabel, { color: isAvailable ? Colors.success : Colors.error }]}>
                       {isAvailable ? 'IN STOCK' : 'SOLD OUT'}
@@ -483,6 +542,20 @@ export default function OwnerMenuScreen() {
                   <Text style={styles.submitDishText}>{modalMode === 'edit' ? 'Save Changes' : 'Add Dish to Menu'}</Text>
                 )}
               </TouchableOpacity>
+
+              {modalMode === 'edit' && editingItem && (
+                <TouchableOpacity
+                  onPress={() => {
+                    const itemToDelete = editingItem;
+                    closeModal();
+                    handleDeleteDish(itemToDelete);
+                  }}
+                  style={styles.deleteDishFormBtn}
+                >
+                  <Ionicons name="trash-outline" size={16} color={Colors.error} style={{ marginRight: 6 }} />
+                  <Text style={styles.deleteDishFormText}>Delete This Dish</Text>
+                </TouchableOpacity>
+              )}
             </ScrollView>
           </View>
         </View>
@@ -508,9 +581,16 @@ export default function OwnerMenuScreen() {
                   <View key={cat} style={styles.catListItem}>
                     <Ionicons name="folder-outline" size={16} color={Colors.primary} style={{ marginRight: 10 }} />
                     <Text style={styles.catListText}>{cat}</Text>
-                    <Text style={styles.catItemCount}>
+                    <Text style={[styles.catItemCount, { marginRight: 12 }]}>
                       {menuCategories.find((c) => (c.name || c.category) === cat)?.items.length || 0} dishes
                     </Text>
+                    <TouchableOpacity
+                      onPress={() => handleDeleteCategory(cat)}
+                      style={styles.deleteCatBtn}
+                      hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                    >
+                      <Ionicons name="trash-outline" size={16} color={Colors.error} />
+                    </TouchableOpacity>
                   </View>
                 ))
               )}
@@ -699,5 +779,32 @@ const styles = StyleSheet.create({
   catListItem: { flexDirection: 'row', alignItems: 'center', paddingVertical: 12, borderBottomWidth: 1, borderBottomColor: Colors.border },
   catListText: { ...Typography.body, flex: 1, fontSize: 14 },
   catItemCount: { ...Typography.caption, color: Colors.textSecondary, fontSize: 12 },
+  deleteIconBtn: {
+    width: 32, height: 32, borderRadius: 10,
+    backgroundColor: '#FEF2F2',
+    borderWidth: 1, borderColor: '#FEE2E2',
+    alignItems: 'center', justifyContent: 'center',
+  },
+  deleteCatBtn: {
+    width: 32, height: 32, borderRadius: 8,
+    backgroundColor: '#FEF2F2',
+    alignItems: 'center', justifyContent: 'center',
+  },
+  deleteDishFormBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#FEF2F2',
+    borderWidth: 1,
+    borderColor: '#FCA5A5',
+    borderRadius: 14,
+    paddingVertical: 12,
+    marginTop: 12,
+  },
+  deleteDishFormText: {
+    ...Typography.button,
+    color: Colors.error,
+    fontSize: 14,
+  },
 });
 

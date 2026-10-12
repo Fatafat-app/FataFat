@@ -5,7 +5,7 @@ const controller = require('./grocery.controller');
 const { validate } = require('../../middlewares/validate.middleware');
 const { authenticate } = require('../../middlewares/auth.middleware');
 const { requireRole } = require('../../middlewares/rbac.middleware');
-const ROLES = require('../../common/constants/roles');
+const { ROLES } = require('../../common/constants/roles');
 const {
   getProductsQuerySchema,
   searchProductsQuerySchema,

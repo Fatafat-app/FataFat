@@ -69,15 +69,25 @@ export default function AdminCouponsScreen() {
 
     try {
       setCreating(true);
+      const finalDiscountType = (discountType === 'percentage' ? 'percent' : 'flat') as 'percent' | 'flat';
+      const finalVal = discountType === 'flat' ? Math.round(val * 100) : val;
+      const finalMinOrder = minOrderValue ? Math.round(parseFloat(minOrderValue) * 100) : 0;
+      const finalMaxDiscount = maxDiscountAmount ? Math.round(parseFloat(maxDiscountAmount) * 100) : undefined;
+      const expiry = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString();
+
       const payload: CreateCouponPayload = {
         code: trimmedCode,
-        discountType,
-        discountValue: discountType === 'flat' ? Math.round(val * 100) : val,
-        minOrderValue: minOrderValue ? Math.round(parseFloat(minOrderValue) * 100) : 0,
-        maxDiscountAmount: maxDiscountAmount ? Math.round(parseFloat(maxDiscountAmount) * 100) : undefined,
+        discountType: finalDiscountType,
+        value: finalVal,
+        discountValue: finalVal,
+        minOrderAmount: finalMinOrder,
+        minOrderValue: finalMinOrder,
+        maxDiscount: finalMaxDiscount,
+        maxDiscountAmount: finalMaxDiscount,
         usageLimit: usageLimit ? parseInt(usageLimit, 10) : undefined,
         description: description.trim() || undefined,
-        validUntil: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
+        expiresAt: expiry,
+        validUntil: expiry,
         isActive: true,
       };
 
@@ -260,7 +270,7 @@ export default function AdminCouponsScreen() {
                   <View style={styles.benefitBadge}>
                     <Ionicons name="sparkles" size={12} color="#16A34A" style={{ marginRight: 4 }} />
                     <Text style={styles.benefitText}>
-                      {isPercent ? `${coupon.discountValue}% OFF` : `${formatPaise(coupon.discountValue)} FLAT OFF`}
+                      {isPercent ? `${coupon.discountValue ?? coupon.value ?? 0}% OFF` : `${formatPaise(coupon.discountValue ?? coupon.value ?? 0)} FLAT OFF`}
                     </Text>
                   </View>
 

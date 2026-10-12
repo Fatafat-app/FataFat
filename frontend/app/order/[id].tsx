@@ -8,6 +8,7 @@ import {
   Alert,
   StyleSheet,
   Image,
+  Modal,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useLocalSearchParams, router } from 'expo-router';
@@ -19,6 +20,8 @@ import { Order } from '../../types';
 import { formatPaise } from '../../utils/formatters';
 import { Typography, Colors } from '../../constants/Theme';
 import { ErrorState } from '../../components/ui/ErrorState';
+import { OrderDetailSkeleton } from '../../components/ui/Skeleton';
+import { useOrderDetailQuery, useCancelOrderMutation, useCancellationReasonsQuery } from '../../hooks';
 
 const STATUS_STEPS = [
   { status: 'ACCEPTED', label: 'Accepted', icon: 'checkmark-circle' as const },
@@ -29,31 +32,23 @@ const STATUS_STEPS = [
 
 export default function OrderDetailsScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
-  const [order, setOrder] = useState<Order | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState('');
+
+  // TanStack Query: Cached & Deduped Order Details
+  const {
+    data: order,
+    isLoading: loading,
+    isError,
+    error: orderErr,
+    refetch: fetchOrderDetails,
+  } = useOrderDetailQuery(id);
+  const error = isError ? (orderErr as any)?.message || 'Unable to load this order.' : '';
+
+  const cancelMutation = useCancelOrderMutation();
 
   // Socket state
   const activeOrder = useOrderTrackingStore((state) => state.activeOrder);
   const riderLocation = useOrderTrackingStore((state) => state.riderLocation);
   const updateOrderStatus = useOrderTrackingStore((state) => state.updateOrderStatus);
-
-  const fetchOrderDetails = useCallback(async () => {
-    try {
-      setLoading(true);
-      setError('');
-      const data = await orderService.getOrderById(id);
-      setOrder(data);
-    } catch (err: any) {
-      setError(err.response?.data?.message || 'Unable to load this order.');
-    } finally {
-      setLoading(false);
-    }
-  }, [id]);
-
-  useEffect(() => {
-    fetchOrderDetails();
-  }, [fetchOrderDetails]);
 
   useEffect(() => {
     const isFinished = !order || ['DELIVERED', 'CANCELLED', 'REFUNDED', 'REJECTED', 'EXPIRED'].includes(
@@ -72,32 +67,41 @@ export default function OrderDetailsScreen() {
     };
   }, [order]);
 
-  const handleCancelOrder = async () => {
+  const [cancelModalVisible, setCancelModalVisible] = useState(false);
+  const { data: cancelReasons = [] } = useCancellationReasonsQuery('customer');
+
+  const handleCancelOrder = () => {
     if (!order) return;
-    Alert.alert('Cancel Order', 'Are you sure you want to cancel this order?', [
-      { text: 'No', style: 'cancel' },
-      {
-        text: 'Yes, Cancel',
-        style: 'destructive',
-        onPress: async () => {
-          try {
-            const cancelled = await orderService.cancelOrder(order._id, 'User requested cancellation from details');
-            setOrder(cancelled);
-            updateOrderStatus('CANCELLED');
-            Alert.alert('Success', 'Order has been cancelled.');
-          } catch (err: any) {
-            Alert.alert('Error', err.response?.data?.message || 'Could not cancel order');
-          }
-        },
-      },
-    ]);
+    setCancelModalVisible(true);
+  };
+
+  const handleConfirmCancel = async (reasonObj: { _id?: string; name: string }) => {
+    if (!order) return;
+    setCancelModalVisible(false);
+    try {
+      await cancelMutation.mutateAsync({
+        orderId: order._id,
+        reason: reasonObj.name,
+        cancellationReasonId: reasonObj._id,
+      });
+      updateOrderStatus('CANCELLED');
+      Alert.alert('Order Cancelled', 'Your order has been cancelled successfully.');
+    } catch (err: any) {
+      Alert.alert('Error', err.response?.data?.message || 'Could not cancel order');
+    }
   };
 
   if (loading) {
     return (
-      <SafeAreaView style={styles.centerContainer}>
-        <ActivityIndicator size="large" color={Colors.primary} />
-        <Text style={styles.loadingText}>Loading order details...</Text>
+      <SafeAreaView style={styles.safeArea}>
+        <View style={styles.navbar}>
+          <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
+            <Ionicons name="arrow-back" size={22} color="#111827" />
+          </TouchableOpacity>
+          <Text style={styles.navTitle}>Loading Order...</Text>
+          <View style={{ width: 22 }} />
+        </View>
+        <OrderDetailSkeleton />
       </SafeAreaView>
     );
   }
@@ -290,6 +294,36 @@ export default function OrderDetailsScreen() {
           </View>
         )}
       </ScrollView>
+
+      {/* ── CANCELLATION REASON MODAL ── */}
+      <Modal visible={cancelModalVisible} transparent animationType="slide" onRequestClose={() => setCancelModalVisible(false)}>
+        <TouchableOpacity style={styles.modalOverlay} activeOpacity={1} onPress={() => setCancelModalVisible(false)}>
+          <TouchableOpacity style={styles.cancelSheet} activeOpacity={1} onPress={() => {}}>
+            <View style={styles.sheetHandle} />
+            <Text style={styles.cancelSheetTitle}>Reason for Cancellation</Text>
+            <Text style={styles.cancelSheetSub}>Please select why you are cancelling this order:</Text>
+
+            <ScrollView style={{ maxHeight: 300 }} showsVerticalScrollIndicator={false}>
+              {cancelReasons.map((r) => (
+                <TouchableOpacity
+                  key={r._id}
+                  style={styles.reasonOption}
+                  onPress={() => handleConfirmCancel(r)}
+                  activeOpacity={0.7}
+                >
+                  <Ionicons name="radio-button-off" size={18} color="#94A3B8" />
+                  <Text style={styles.reasonOptionText}>{r.name}</Text>
+                  <Ionicons name="chevron-forward" size={16} color="#CBD5E1" style={{ marginLeft: 'auto' }} />
+                </TouchableOpacity>
+              ))}
+            </ScrollView>
+
+            <TouchableOpacity style={styles.closeModalBtn} onPress={() => setCancelModalVisible(false)}>
+              <Text style={styles.closeModalBtnText}>Don't Cancel (Keep Order)</Text>
+            </TouchableOpacity>
+          </TouchableOpacity>
+        </TouchableOpacity>
+      </Modal>
     </SafeAreaView>
   );
 }
@@ -344,4 +378,14 @@ const styles = StyleSheet.create({
   addressBox: { backgroundColor: Colors.background, padding: 12, borderRadius: 12, borderWidth: 1, borderColor: Colors.border },
   addressType: { ...Typography.title, fontSize: 13, marginBottom: 4 },
   addressStreet: { ...Typography.bodySmall, color: Colors.text },
+
+  modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.4)', justifyContent: 'flex-end' },
+  cancelSheet: { backgroundColor: '#FFFFFF', borderTopLeftRadius: 24, borderTopRightRadius: 24, padding: 20, paddingBottom: 40 },
+  sheetHandle: { width: 36, height: 4, borderRadius: 2, backgroundColor: '#E2E8F0', alignSelf: 'center', marginBottom: 16 },
+  cancelSheetTitle: { ...Typography.heading, fontSize: 18, color: Colors.text, marginBottom: 4 },
+  cancelSheetSub: { ...Typography.bodySmall, color: Colors.textSecondary, marginBottom: 16 },
+  reasonOption: { flexDirection: 'row', alignItems: 'center', paddingVertical: 14, paddingHorizontal: 12, borderRadius: 12, backgroundColor: '#F8FAFC', marginBottom: 8, borderWidth: 1, borderColor: '#F1F5F9' },
+  reasonOptionText: { ...Typography.body, fontSize: 14, color: Colors.text, marginLeft: 10, flex: 1 },
+  closeModalBtn: { marginTop: 12, paddingVertical: 12, alignItems: 'center', borderRadius: 12, backgroundColor: '#F1F5F9' },
+  closeModalBtnText: { ...Typography.button, color: '#64748B', fontSize: 13 },
 });

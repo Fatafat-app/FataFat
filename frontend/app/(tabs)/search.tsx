@@ -22,6 +22,8 @@ import { RestaurantCard } from '../../components/ui/RestaurantCard';
 import { EmptyState } from '../../components/ui/EmptyState';
 import { ErrorState } from '../../components/ui/ErrorState';
 import { Loading } from '../../components/ui/Loading';
+import { RestaurantCardSkeleton, FoodCardSkeleton } from '../../components/ui/Skeleton';
+import { useSearchDishesAndRestaurantsQuery } from '../../hooks';
 import { Colors, Typography, BOLD_FONT, STYLISH_FONT } from '../../constants/Theme';
 import { formatPaise } from '../../utils/formatters';
 
@@ -60,10 +62,22 @@ export default function SearchScreen() {
   const [debouncedQuery, setDebouncedQuery] = useState(initialQuery);
   const [isTyping, setIsTyping] = useState(false);
 
-  const [restaurants, setRestaurants] = useState<Restaurant[]>([]);
-  const [dishes, setDishes] = useState<MenuItem[]>([]);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState('');
+  // TanStack Query: Cached & Deduped Search Query
+  const {
+    data: searchResults,
+    isLoading: loadingSearch,
+    isError: searchError,
+    error: searchErrObj,
+  } = useSearchDishesAndRestaurantsQuery(
+    debouncedQuery.trim(),
+    currentLocation?.latitude,
+    currentLocation?.longitude
+  );
+
+  const restaurants = debouncedQuery.trim() ? (searchResults?.restaurants || []) : [];
+  const dishes = debouncedQuery.trim() ? (searchResults?.menuItems || []) : [];
+  const loading = debouncedQuery.trim() ? loadingSearch : false;
+  const error = searchError ? (searchErrObj as any)?.message || 'Failed to fetch search results.' : '';
 
   // Active filter tab: 'all' | 'restaurants' | 'dishes'
   const [activeTab, setActiveTab] = useState<'all' | 'restaurants' | 'dishes'>('all');
@@ -96,62 +110,6 @@ export default function SearchScreen() {
     return () => clearTimeout(timer);
   }, [query]);
 
-  // Search execution when debouncedQuery or location changes
-  useEffect(() => {
-    const trimmed = debouncedQuery.trim();
-    if (!trimmed) {
-      setRestaurants([]);
-      setDishes([]);
-      setError('');
-      setLoading(false);
-      return;
-    }
-
-    let isMounted = true;
-
-    const performSearch = async () => {
-      setLoading(true);
-      setError('');
-
-      try {
-        const [restaurantRes, dishRes] = await Promise.allSettled([
-          restaurantService.searchRestaurants(
-            trimmed,
-            currentLocation?.latitude,
-            currentLocation?.longitude
-          ),
-          restaurantService.searchMenuItems(trimmed),
-        ]);
-
-        if (!isMounted) return;
-
-        const fetchedRestaurants = restaurantRes.status === 'fulfilled' ? restaurantRes.value || [] : [];
-        const fetchedDishes = dishRes.status === 'fulfilled' ? dishRes.value || [] : [];
-
-        setRestaurants(fetchedRestaurants);
-        setDishes(fetchedDishes);
-
-        if (restaurantRes.status === 'rejected' && dishRes.status === 'rejected') {
-          setError('Failed to fetch search results. Please try again.');
-        }
-      } catch (err: any) {
-        if (isMounted) {
-          setError(err.response?.data?.message || 'Search failed. Please try again.');
-        }
-      } finally {
-        if (isMounted) {
-          setLoading(false);
-        }
-      }
-    };
-
-    performSearch();
-
-    return () => {
-      isMounted = false;
-    };
-  }, [debouncedQuery, currentLocation]);
-
   const handleSelectTag = (tagQuery: string) => {
     setQuery(tagQuery);
     setDebouncedQuery(tagQuery);
@@ -162,8 +120,6 @@ export default function SearchScreen() {
   const handleClear = () => {
     setQuery('');
     setDebouncedQuery('');
-    setRestaurants([]);
-    setDishes([]);
     setIsTyping(false);
     searchInputRef.current?.focus();
   };
@@ -301,8 +257,15 @@ export default function SearchScreen() {
             </View>
           </View>
         ) : loading ? (
-          <View style={styles.centerContent}>
-            <Loading message={`Searching for "${debouncedQuery}"...`} />
+          <View style={{ paddingHorizontal: 16, paddingTop: 12 }}>
+            <View style={{ marginBottom: 16, gap: 12 }}>
+              <RestaurantCardSkeleton />
+            </View>
+            <View style={{ gap: 12 }}>
+              <FoodCardSkeleton />
+              <FoodCardSkeleton />
+              <FoodCardSkeleton />
+            </View>
           </View>
         ) : error ? (
           <ErrorState
@@ -330,9 +293,24 @@ export default function SearchScreen() {
                     name={r.name}
                     imageUri={r.images?.[0] || 'https://images.pexels.com/photos/260922/pexels-photo-260922.jpeg'}
                     cuisines={r.cuisines?.join(', ') || 'Multi-Cuisine'}
-                    rating={r.rating?.average || 4.0}
+                    rating={r.rating?.count > 0 && r.rating?.average ? r.rating.average : 'NEW'}
+                    ratingCount={r.rating?.count}
                     deliveryTime={`${r.estimatedDeliveryTime || 30} min`}
                     distance={formatDistance(r.distance)}
+                    isFavorite={isFavorite(r._id)}
+                    onFavoritePress={() => {
+                      toggleFavorite({
+                        _id: r._id,
+                        name: r.name,
+                        price: 0,
+                        image: r.coverImage || r.images?.[0] || '',
+                        images: r.images || [],
+                        type: 'restaurant',
+                        cuisine: r.cuisines?.join(', '),
+                        rating: r.rating?.average,
+                        addedAt: Date.now(),
+                      });
+                    }}
                     onPress={() => router.push(`/restaurant/${r._id}`)}
                   />
                 ))}

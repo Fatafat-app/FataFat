@@ -1,7 +1,7 @@
 'use strict';
 
 const { z } = require('zod');
-const ROLES = require('../../common/constants/roles');
+const { ROLES } = require('../../common/constants/roles');
 
 const phoneSchema = z
   .string()
@@ -18,10 +18,15 @@ const registerSchema = z.object({
     .default(ROLES.CUSTOMER),
 });
 
-const loginSchema = z.object({
-  phone: phoneSchema,
-  password: z.string().min(1, 'Password is required'),
-});
+const loginSchema = z
+  .object({
+    phone: phoneSchema.optional(),
+    email: z.string().trim().email('Invalid email format').optional(),
+    password: z.string().min(1, 'Password is required'),
+  })
+  .refine((data) => data.phone || data.email, {
+    message: 'Either phone number or email is required',
+  });
 
 const sendOtpSchema = z.object({
   phone: phoneSchema,

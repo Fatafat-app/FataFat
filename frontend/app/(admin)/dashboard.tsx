@@ -16,6 +16,7 @@ import { useAdminStore } from '../../store/admin.store';
 import { useAuthStore } from '../../store/auth.store';
 import { formatPaise } from '../../utils/formatters';
 import { Typography, Colors } from '../../constants/Theme';
+import { DashboardSkeleton } from '../../components/ui/Skeleton';
 
 export default function AdminDashboardScreen() {
   const { overview, isLoading, fetchAdminOverview } = useAdminStore();
@@ -31,9 +32,8 @@ export default function AdminDashboardScreen() {
 
   if (isLoading && !overview) {
     return (
-      <SafeAreaView style={styles.centerContainer}>
-        <ActivityIndicator size="large" color="#4F46E5" />
-        <Text style={styles.loadingText}>Loading super admin control panel...</Text>
+      <SafeAreaView style={styles.safeArea}>
+        <DashboardSkeleton />
       </SafeAreaView>
     );
   }
@@ -202,6 +202,19 @@ export default function AdminDashboardScreen() {
           </View>
         </TouchableOpacity>
 
+        <TouchableOpacity onPress={() => router.push('/(admin)/master-data' as any)} style={styles.actionRowCard} activeOpacity={0.7}>
+          <View style={[styles.actionIconCircle, { backgroundColor: '#F0FDFA' }]}>
+            <Ionicons name="library" size={24} color="#0B7A75" />
+          </View>
+          <View style={styles.actionTextContainer}>
+            <Text style={styles.actionTitle}>Production Master Data Hub</Text>
+            <Text style={styles.actionSubtitle}>Manage Cuisines, Dietary Types, Categories & Cancel Reasons</Text>
+          </View>
+          <View style={styles.actionArrow}>
+            <Ionicons name="chevron-forward" size={18} color="#0B7A75" />
+          </View>
+        </TouchableOpacity>
+
         <TouchableOpacity onPress={() => router.push('/(admin)/fees')} style={styles.actionRowCard} activeOpacity={0.7}>
           <View style={[styles.actionIconCircle, { backgroundColor: '#ECFEFF' }]}>
             <Ionicons name="wallet" size={24} color="#0891B2" />
@@ -238,6 +251,19 @@ export default function AdminDashboardScreen() {
           </View>
           <View style={styles.actionArrow}>
             <Ionicons name="chevron-forward" size={18} color="#2563EB" />
+          </View>
+        </TouchableOpacity>
+
+        <TouchableOpacity onPress={() => router.push('/(admin)/banners' as any)} style={styles.actionRowCard} activeOpacity={0.7}>
+          <View style={[styles.actionIconCircle, { backgroundColor: '#CCFBF1' }]}>
+            <Ionicons name="images" size={24} color="#0D9488" />
+          </View>
+          <View style={styles.actionTextContainer}>
+            <Text style={styles.actionTitle}>Banners & Posters Customizer</Text>
+            <Text style={styles.actionSubtitle}>Customise Hero carousel, Offers for You & promo graphics</Text>
+          </View>
+          <View style={styles.actionArrow}>
+            <Ionicons name="chevron-forward" size={18} color="#0D9488" />
           </View>
         </TouchableOpacity>
 

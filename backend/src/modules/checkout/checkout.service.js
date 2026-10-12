@@ -3,6 +3,7 @@
 const CheckoutSession = require('./checkoutSession.model');
 const Order = require('../orders/order.model');
 const VendorListing = require('../catalog/vendorListing.model');
+const FeeConfig = require('../admin/feeConfig.model');
 const { vendorService } = require('../vendors');
 const { settingsService } = require('../settings');
 const { inventoryService } = require('../inventory');
@@ -90,10 +91,33 @@ class CheckoutService {
     const reservationItems = items.map((i) => ({ listingId: i.listingId, quantity: i.quantity }));
     await inventoryService.reserveStock(reservationItems, null, actor);
 
-    // 4. Calculate total pricing & session expiry
-    const deliveryFeePaise = 3000; // Flat ₹30 per checkout in paise
-    const packagingFeePaise = 1500;
-    const taxPaise = Math.round(sessionItemsTotalPaise * 0.05);
+    // 4. Calculate total pricing & session expiry dynamically from FeeConfig
+    let deliveryFeePaise = 3000; // Flat ₹30 fallback
+    let packagingFeePaise = 1500; // Flat ₹15 fallback
+    let taxPercent = 5;
+
+    try {
+      const feeConfig = await FeeConfig.findOne({ key: 'GLOBAL_FEES' }).lean();
+      if (feeConfig) {
+        if (feeConfig.deliveryFeeEnabled !== false && typeof feeConfig.baseDeliveryFee === 'number') {
+          deliveryFeePaise = feeConfig.baseDeliveryFee;
+        } else if (feeConfig.deliveryFeeEnabled === false) {
+          deliveryFeePaise = 0;
+        }
+        if (feeConfig.packagingFeeEnabled && typeof feeConfig.packagingFee === 'number') {
+          packagingFeePaise = feeConfig.packagingFee;
+        } else if (feeConfig.packagingFeeEnabled === false) {
+          packagingFeePaise = 0;
+        }
+        if (feeConfig.taxEnabled !== false && typeof feeConfig.taxPercent === 'number') {
+          taxPercent = feeConfig.taxPercent;
+        }
+      }
+    } catch {
+      // Non-blocking fallback
+    }
+
+    const taxPaise = Math.round(sessionItemsTotalPaise * (taxPercent / 100));
     const discountPaise = couponCode ? 5000 : 0; // e.g. ₹50 coupon discount
     const totalPaise = Math.max(0, sessionItemsTotalPaise + deliveryFeePaise + packagingFeePaise + taxPaise - discountPaise);
 

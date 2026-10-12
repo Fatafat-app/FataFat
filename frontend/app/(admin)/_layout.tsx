@@ -1,19 +1,27 @@
 import React from 'react';
 import { Tabs, Redirect } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
-import { StyleSheet } from 'react-native';
+import { StyleSheet, View, ActivityIndicator } from 'react-native';
 import { useAuthStore } from '../../store/auth.store';
 import { Typography, Colors } from '../../constants/Theme';
 
 export default function AdminLayout() {
   const { user, isAuthenticated, isLoading } = useAuthStore();
 
-  if (!isLoading && !isAuthenticated) {
+  if (isLoading) {
+    return (
+      <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: Colors.background }}>
+        <ActivityIndicator size="large" color="#4F46E5" />
+      </View>
+    );
+  }
+
+  if (!isAuthenticated) {
     return <Redirect href="/(auth)/login" />;
   }
-  
+
   const adminRoles = ['admin', 'super_admin', 'ops_admin', 'catalog_admin', 'finance_admin', 'support_admin'];
-  if (!isLoading && (!user || !adminRoles.includes(user.role))) {
+  if (!user || !adminRoles.includes(user.role)) {
     return <Redirect href="/(tabs)" />;
   }
 
@@ -80,6 +88,7 @@ export default function AdminLayout() {
       <Tabs.Screen name="coupons" options={{ href: null, title: 'Coupons' }} />
       <Tabs.Screen name="notifications" options={{ href: null, title: 'Broadcast' }} />
       <Tabs.Screen name="audit" options={{ href: null, title: 'Audit' }} />
+      <Tabs.Screen name="banners" options={{ href: null, title: 'Banners & Posters' }} />
     </Tabs>
   );
 }

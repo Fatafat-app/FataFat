@@ -41,6 +41,7 @@ const restaurantSchema = new mongoose.Schema(
       },
     },
     cuisines: [{ type: String, trim: true }],
+    cuisineIds: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Cuisine', index: true }],
     images: [{ type: String }],
     coverImage: { type: String },
     rating: {
@@ -75,6 +76,20 @@ const restaurantSchema = new mongoose.Schema(
     },
   }
 );
+
+restaurantSchema.pre('save', async function () {
+  if (this.isModified('cuisineIds') && this.cuisineIds && this.cuisineIds.length > 0) {
+    try {
+      const Cuisine = mongoose.models.Cuisine || require('../masters/cuisine.model');
+      const docs = await Cuisine.find({ _id: { $in: this.cuisineIds } }).lean();
+      if (docs.length > 0) {
+        this.cuisines = docs.map((d) => d.name);
+      }
+    } catch {
+      // Non-blocking
+    }
+  }
+});
 
 restaurantSchema.index({ location: '2dsphere' });
 restaurantSchema.index({ owner: 1 });

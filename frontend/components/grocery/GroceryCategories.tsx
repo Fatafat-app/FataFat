@@ -13,7 +13,7 @@ import { BOLD_FONT, STYLISH_FONT } from '../../constants/Theme';
 import { GColors, GSpacing } from '../../constants/GroceryTheme';
 import { useRouter } from 'expo-router';
 import { GroceryCategory } from '../../constants/GroceryData';
-import { groceryService } from '../../services/grocery.service';
+import { useGroceryCategoriesQuery } from '../../hooks';
 
 interface GroceryCategoriesProps {
   categories?: GroceryCategory[];
@@ -60,7 +60,7 @@ const getFallbackGroceryImage = (name: string) => {
 };
 
 
-const getCategoryColor = (name) => {
+const getCategoryColor = (name?: string) => {
   if (!name) return '#E8F5E9';
   const lower = name.toLowerCase();
   if (lower.includes('veg') || lower.includes('fruit')) return '#E8F5E9'; // light green
@@ -73,7 +73,7 @@ const getCategoryColor = (name) => {
   return colors[name.length % colors.length];
 };
 
-const getCategoryIcon = (name) => {
+const getCategoryIcon = (name?: string) => {
   if (!name) return 'apps';
   const lower = name.toLowerCase();
   if (lower.includes('veg') || lower.includes('fruit')) return 'leaf';
@@ -90,32 +90,21 @@ export function GroceryCategories({
   activeCategoryId,
   onCategoryPress,
 }: GroceryCategoriesProps) {
-  const [categories, setCategories] = useState<GroceryCategory[]>(propCategories || []);
-  const [internalActiveId, setInternalActiveId] = useState<string | number | null>(null);
+  const { data: remoteCategories } = useGroceryCategoriesQuery();
 
-  useEffect(() => {
-    if (propCategories && propCategories.length > 0) {
-      setCategories(propCategories);
-    } else if (!propCategories) {
-      groceryService
-        .getCategories()
-        .then((fetched) => {
-          if (fetched && fetched.length > 0) {
-            const mapped: GroceryCategory[] = fetched.map((c) => ({
-              id: c._id || c.slug,
-              _id: c._id,
-              name: c.name,
-              slug: c.slug,
-              emoji: c.emoji || '🛒',
-              image: c.image,
-              bg: c.bg || '#FFFFFF',
-            }));
-            setCategories(mapped);
-          }
-        })
-        .catch(() => { });
-    }
-  }, [propCategories]);
+  const categories: GroceryCategory[] = (propCategories && propCategories.length > 0)
+    ? propCategories
+    : (remoteCategories || []).map((c) => ({
+        id: c._id || c.slug,
+        _id: c._id,
+        name: c.name,
+        slug: c.slug,
+        emoji: c.emoji || '🛒',
+        image: c.image,
+        bg: c.bg || '#FFFFFF',
+      }));
+
+  const [internalActiveId, setInternalActiveId] = useState<string | number | null>(null);
 
   const currentActiveId = activeCategoryId !== undefined ? activeCategoryId : internalActiveId;
   const router = useRouter();

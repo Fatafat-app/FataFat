@@ -8,3 +8,7 @@ export * from './socket.service';
 export * from './grocery.service';
 export * from './config.service';
 export * from './checkout.service';
+export * from './coupon.service';
+export * from './review.service';
+export * from './banner.service';
+

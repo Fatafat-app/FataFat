@@ -2,11 +2,15 @@ import { Coordinates } from './common.types';
 
 export type UserRole = 'customer' | 'restaurant_owner' | 'delivery_partner' | 'admin';
 
+export type AddressType = 'Home' | 'Work' | 'Other';
+
 export interface Address {
   _id: string;
   label: string;
   line1: string;
   line2?: string;
+  street?: string;
+  type?: string;
   city: string;
   state: string;
   pincode: string;
@@ -42,6 +46,8 @@ export interface CreateAddressPayload {
   label: string;
   line1: string;
   line2?: string;
+  street?: string;
+  type?: string;
   city: string;
   state: string;
   pincode: string;

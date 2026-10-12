@@ -7,6 +7,8 @@ export interface RestaurantAddress {
   state: string;
   pincode: string;
   location: Coordinates;
+  line1?: string;
+  line2?: string;
 }
 
 export interface OperatingHours {
@@ -37,6 +39,15 @@ export interface Restaurant {
   operatingHours?: Record<string, OperatingHours>;
   estimatedDeliveryTime?: number; // in minutes
   distance?: number; // in meters (when querying nearby)
+  isVerified?: boolean;
+  coverImage?: string;
+  phone?: string;
+  email?: string;
+  preparationTime?: number | string;
+  timings?: { open?: string; close?: string } | any;
+  fssaiLicense?: string;
+  taxPercent?: number;
+  location?: Coordinates;
   createdAt: string;
   updatedAt: string;
 }

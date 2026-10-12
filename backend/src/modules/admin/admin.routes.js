@@ -4,7 +4,7 @@ const { Router } = require('express');
 const controller = require('./admin.controller');
 const { authenticate } = require('../../middlewares/auth.middleware');
 const { requireRole } = require('../../middlewares/rbac.middleware');
-const ROLES = require('../../common/constants/roles');
+const { ROLES } = require('../../common/constants/roles');
 
 const router = Router();
 

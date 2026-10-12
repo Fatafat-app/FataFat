@@ -19,6 +19,7 @@ import { useRouter } from 'expo-router';
 import { adminService } from '../../services/admin.service';
 import { Restaurant } from '../../types';
 import { Typography, Colors } from '../../constants/Theme';
+import { RestaurantCardSkeleton } from '../../components/ui/Skeleton';
 
 const ADMIN_PRIMARY = '#4F46E5';
 
@@ -408,9 +409,10 @@ export default function AdminRestaurantsScreen() {
         </View>
 
         {loading && !refreshing ? (
-          <View style={styles.loadingContainer}>
-            <ActivityIndicator size="large" color={ADMIN_PRIMARY} />
-            <Text style={styles.loadingText}>Loading merchant catalog...</Text>
+          <View style={{ gap: 14, paddingTop: 10 }}>
+            <RestaurantCardSkeleton />
+            <RestaurantCardSkeleton />
+            <RestaurantCardSkeleton />
           </View>
         ) : filteredStores.length === 0 ? (
           <View style={styles.emptyCard}>

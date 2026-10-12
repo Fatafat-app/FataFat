@@ -14,11 +14,13 @@ interface OwnerState {
   fetchOwnerData: () => Promise<void>;
   refreshMenu: () => Promise<void>;
   toggleStoreStatus: () => Promise<void>;
-  updateOrderStatus: (orderId: string, status: OrderStatus) => Promise<void>;
+  updateOrderStatus: (orderId: string, status: OrderStatus, cancellationReason?: string) => Promise<void>;
   toggleItemStock: (itemId: string, isAvailable: boolean) => Promise<void>;
   addNewDish: (payload: CreateMenuItemPayload) => Promise<void>;
   updateDish: (itemId: string, payload: Partial<CreateMenuItemPayload>) => Promise<void>;
+  deleteDish: (itemId: string) => Promise<void>;
   addCategory: (name: string) => Promise<void>;
+  deleteCategory: (categoryId: string) => Promise<void>;
 }
 
 export const useOwnerStore = create<OwnerState>((set, get) => ({
@@ -89,11 +91,13 @@ export const useOwnerStore = create<OwnerState>((set, get) => ({
     }
   },
 
-  updateOrderStatus: async (orderId: string, status: OrderStatus) => {
+  updateOrderStatus: async (orderId: string, status: OrderStatus, cancellationReason?: string) => {
     try {
-      const updated = await ownerService.updateOrderStatus(orderId, status);
+      const updated = await ownerService.updateOrderStatus(orderId, status, cancellationReason);
       set((state) => ({
-        orders: state.orders.map((o) => (o._id === orderId ? { ...o, ...updated, status: updated.status } : o)),
+        orders: state.orders.map((o) =>
+          o._id === orderId ? { ...o, ...updated, status: updated.status, orderStatus: updated.orderStatus } : o
+        ),
       }));
     } catch (err) {
       console.warn('Could not update order status:', err);
@@ -184,6 +188,20 @@ export const useOwnerStore = create<OwnerState>((set, get) => ({
     }));
   },
 
+  deleteDish: async (itemId: string) => {
+    const rest = get().restaurant;
+    if (!rest) {
+      throw new Error('Restaurant profile not loaded. Please pull to refresh.');
+    }
+    await ownerService.deleteMenuItem(rest._id, itemId);
+    set((state) => ({
+      menuCategories: state.menuCategories.map((group) => ({
+        ...group,
+        items: group.items.filter((item) => item._id !== itemId),
+      })),
+    }));
+  },
+
   addCategory: async (name: string) => {
     const rest = get().restaurant;
     if (!rest) {
@@ -201,6 +219,19 @@ export const useOwnerStore = create<OwnerState>((set, get) => ({
           items: [],
         },
       ],
+    }));
+  },
+
+  deleteCategory: async (categoryId: string) => {
+    const rest = get().restaurant;
+    if (!rest) {
+      throw new Error('Restaurant profile not loaded. Please pull to refresh.');
+    }
+    await ownerService.deleteCategory(rest._id, categoryId);
+    set((state) => ({
+      menuCategories: state.menuCategories.filter(
+        (group) => group._id !== categoryId && group.category !== categoryId && group.name !== categoryId
+      ),
     }));
   },
 }));

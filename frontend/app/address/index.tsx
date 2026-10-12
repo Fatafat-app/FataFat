@@ -9,28 +9,16 @@ import { Address } from '../../types';
 import { Typography, Colors } from '../../constants/Theme';
 import { Loading } from '../../components/ui/Loading';
 import { EmptyState } from '../../components/ui/EmptyState';
+import { AddressCardSkeleton } from '../../components/ui/Skeleton';
+import { useAddressesQuery, useDeleteAddressMutation } from '../../hooks';
 
 export default function AddressSelectionScreen() {
-  const [addresses, setAddresses] = useState<Address[]>([]);
-  const [loading, setLoading] = useState(true);
   const selectedAddress = useLocationStore((state) => state.selectedAddress);
   const setSelectedAddress = useLocationStore((state) => state.setSelectedAddress);
 
-  useEffect(() => {
-    fetchAddresses();
-  }, []);
-
-  const fetchAddresses = async () => {
-    try {
-      setLoading(true);
-      const data = await addressService.getAddresses();
-      setAddresses(Array.isArray(data) ? data : []);
-    } catch (err) {
-      Alert.alert('Error', 'Could not fetch addresses');
-    } finally {
-      setLoading(false);
-    }
-  };
+  // TanStack Query: Cached Addresses
+  const { data: addresses = [], isLoading: loading, refetch: fetchAddresses } = useAddressesQuery();
+  const deleteMutation = useDeleteAddressMutation();
 
   const handleSelectAddress = (address: Address) => {
     setSelectedAddress(address);
@@ -54,11 +42,10 @@ export default function AddressSelectionScreen() {
         style: 'destructive',
         onPress: async () => {
           try {
-            await addressService.deleteAddress(id);
+            await deleteMutation.mutateAsync(id);
             if (selectedAddress?._id === id) {
               setSelectedAddress(null);
             }
-            fetchAddresses();
           } catch (err) {
             Alert.alert('Error', 'Could not delete address');
           }
@@ -82,9 +69,11 @@ export default function AddressSelectionScreen() {
       </View>
 
       {loading ? (
-        <View style={styles.centerContainer}>
-          <Loading />
-        </View>
+        <ScrollView style={styles.scrollContainer} contentContainerStyle={{ paddingTop: 12 }}>
+          <AddressCardSkeleton />
+          <AddressCardSkeleton />
+          <AddressCardSkeleton />
+        </ScrollView>
       ) : addresses.length === 0 ? (
         <View style={styles.centerContainer}>
           <EmptyState 

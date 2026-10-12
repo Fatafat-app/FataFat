@@ -16,6 +16,7 @@ import { useNotificationStore } from '../../store/notification.store';
 import { Notification } from '../../services/notification.service';
 import { Typography, Colors } from '../../constants/Theme';
 import { EmptyState } from '../../components/ui/EmptyState';
+import { NotificationsListSkeleton } from '../../components/ui/Skeleton';
 import { formatRelativeTime } from '../../utils/formatters';
 
 export default function NotificationsScreen() {
@@ -96,10 +97,9 @@ export default function NotificationsScreen() {
       </View>
 
       {isLoading && !refreshing && notifications.length === 0 ? (
-        <View style={styles.centerContainer}>
-          <ActivityIndicator size="large" color={Colors.primary} />
-          <Text style={styles.loadingText}>Loading notifications...</Text>
-        </View>
+        <ScrollView style={styles.scrollContainer} contentContainerStyle={{ paddingTop: 12 }}>
+          <NotificationsListSkeleton />
+        </ScrollView>
       ) : notifications.length === 0 ? (
         <View style={styles.centerContainer}>
           <EmptyState

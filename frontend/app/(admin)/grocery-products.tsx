@@ -18,6 +18,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { adminService } from '../../services/admin.service';
 import { Typography, Colors } from '../../constants/Theme';
+import { GroceryProductCardSkeleton } from '../../components/ui/Skeleton';
 
 const ADMIN_PRIMARY = '#16A34A'; // Green theme for grocery
 
@@ -389,9 +390,11 @@ export default function GroceryProductsScreen() {
 
         {/* Products List */}
         {loading && !refreshing ? (
-          <View style={styles.loadingContainer}>
-            <ActivityIndicator size="large" color={ADMIN_PRIMARY} />
-            <Text style={styles.loadingText}>Loading grocery inventory...</Text>
+          <View style={{ flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between', paddingTop: 10 }}>
+            <GroceryProductCardSkeleton />
+            <GroceryProductCardSkeleton />
+            <GroceryProductCardSkeleton />
+            <GroceryProductCardSkeleton />
           </View>
         ) : filteredProducts.length === 0 ? (
           <View style={styles.emptyCard}>

@@ -67,6 +67,39 @@ async function getMenuByRestaurant(restaurantId, includeUnavailable = false) {
   return menu;
 }
 
+async function resolveOrCreateCategory(restaurantId, categoryInput) {
+  if (!categoryInput) return null;
+  const inputStr = categoryInput.toString().trim();
+
+  if (mongoose.Types.ObjectId.isValid(inputStr)) {
+    const exists = await MenuCategory.findOne({ _id: inputStr, restaurant: restaurantId });
+    if (exists) return exists._id;
+  }
+
+  // Look up by name (case-insensitive)
+  const escapedName = inputStr.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  let found = await MenuCategory.findOne({
+    restaurant: restaurantId,
+    name: { $regex: new RegExp(`^${escapedName}$`, 'i') },
+  });
+
+  if (found) {
+    if (!found.isActive) {
+      found.isActive = true;
+      await found.save();
+    }
+    return found._id;
+  }
+
+  // Auto-create category for restaurant if not found
+  const newCat = await MenuCategory.create({
+    restaurant: restaurantId,
+    name: inputStr,
+    isActive: true,
+  });
+  return newCat._id;
+}
+
 async function addCategory(restaurantId, data) {
   const category = await MenuCategory.create({ restaurant: restaurantId, ...data });
   await invalidateMenuCache(restaurantId);
@@ -77,7 +110,7 @@ async function updateCategory(categoryId, restaurantId, updates) {
   const category = await MenuCategory.findOneAndUpdate(
     { _id: categoryId, restaurant: restaurantId },
     updates,
-    { new: true, runValidators: true }
+    { returnDocument: 'after', runValidators: true }
   );
 
   if (!category) throw new NotFoundError('Category not found');
@@ -86,31 +119,28 @@ async function updateCategory(categoryId, restaurantId, updates) {
 }
 
 async function addMenuItem(restaurantId, data) {
-  let categoryId = data.category;
+  const categoryId = await resolveOrCreateCategory(restaurantId, data.category);
 
-  if (!mongoose.Types.ObjectId.isValid(categoryId)) {
-    const found = await MenuCategory.findOne({
-      restaurant: restaurantId,
-      name: { $regex: new RegExp(`^${categoryId}$`, 'i') },
-      isActive: true,
-    });
-    if (!found) throw new NotFoundError(`Category "${categoryId}" not found in this restaurant`);
-    categoryId = found._id;
-  } else {
-    const exists = await MenuCategory.findOne({ _id: categoryId, restaurant: restaurantId });
-    if (!exists) throw new NotFoundError('Category not found in this restaurant');
-  }
-
-  const item = await MenuItem.create({ restaurant: restaurantId, ...data, category: categoryId });
+  const item = await MenuItem.create({
+    restaurant: restaurantId,
+    ...data,
+    category: categoryId,
+  });
   await invalidateMenuCache(restaurantId);
   return item;
 }
 
 async function updateMenuItem(itemId, restaurantId, updates) {
+  const updateData = { ...updates };
+
+  if (updateData.category) {
+    updateData.category = await resolveOrCreateCategory(restaurantId, updateData.category);
+  }
+
   const item = await MenuItem.findOneAndUpdate(
     { _id: itemId, restaurant: restaurantId },
-    updates,
-    { new: true, runValidators: true }
+    updateData,
+    { returnDocument: 'after', runValidators: true }
   );
 
   if (!item) throw new NotFoundError('Menu item not found');
@@ -142,6 +172,7 @@ async function deleteCategory(categoryId, restaurantId) {
   if (restaurantId) query.restaurant = restaurantId;
   const category = await MenuCategory.findOneAndDelete(query);
   if (!category) throw new NotFoundError('Category not found');
+  await MenuItem.deleteMany({ category: categoryId, restaurant: category.restaurant || restaurantId });
   await invalidateMenuCache(category.restaurant || restaurantId);
   return category;
 }

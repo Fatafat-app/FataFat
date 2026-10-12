@@ -85,16 +85,70 @@ const bannersData = [
   }
 ];
 
+import { useRouter } from 'expo-router';
+import { bannerService } from '../services/banner.service';
+
+let cachedFoodBanners: any[] | null = null;
+
 export function AutoScrollHeroBanners() {
+  const router = useRouter();
   const scrollViewRef = useRef<ScrollView>(null);
   const [currentIndex, setCurrentIndex] = useState(0);
+  const [banners, setBanners] = useState<any[]>(() => cachedFoodBanners || []);
+  const [loading, setLoading] = useState(() => !cachedFoodBanners);
   const BANNER_WIDTH = SCREEN_WIDTH - 24;
   const ITEM_WIDTH = BANNER_WIDTH + 12;
 
   useEffect(() => {
+    let isMounted = true;
+    bannerService
+      .getBanners('FOOD_HERO')
+      .then((data) => {
+        if (!isMounted) return;
+        if (data && data.length > 0) {
+          const mapped = data.map((b) => ({
+            id: b._id,
+            tag: b.tag || 'PROMO',
+            title: b.title,
+            titleBrand: b.subtitle || '',
+            sub: b.description || '',
+            img: typeof b.image === 'string' ? b.image.replace(/&amp;/g, '&') : b.image,
+            displayMode: b.displayMode || 'CARD_TEMPLATE',
+            colors: b.colors && b.colors.length >= 2 ? b.colors : ['#0D9488', '#0F766E'],
+            accent: b.accentColor || '#CCFBF1',
+            textColor: b.textColor || '#FFFFFF',
+            actionText: b.actionText || 'Order Now',
+            watermark: (b.tag || b.title || 'DEAL').slice(0, 6).toUpperCase(),
+            targetType: b.targetType,
+            targetId: b.targetId,
+          }));
+          cachedFoodBanners = mapped;
+          setBanners(mapped);
+        } else {
+          cachedFoodBanners = [];
+          setBanners([]);
+        }
+        setLoading(false);
+      })
+      .catch(() => {
+        if (!isMounted) return;
+        if (!cachedFoodBanners) {
+          setBanners(bannersData);
+        }
+        setLoading(false);
+      });
+
+    return () => {
+      isMounted = false;
+    };
+  }, []);
+
+  useEffect(() => {
+    if (banners.length <= 1) return;
+
     const interval = setInterval(() => {
       let nextIndex = currentIndex + 1;
-      if (nextIndex >= bannersData.length) {
+      if (nextIndex >= banners.length) {
         nextIndex = 0;
       }
 
@@ -104,13 +158,50 @@ export function AutoScrollHeroBanners() {
     }, 4000);
 
     return () => clearInterval(interval);
-  }, [currentIndex]);
+  }, [currentIndex, banners.length]);
 
   const handleScrollEnd = (e: any) => {
     const x = e.nativeEvent.contentOffset.x;
     const index = Math.round(x / ITEM_WIDTH);
     setCurrentIndex(index);
   };
+
+  const handleBannerPress = (banner: any) => {
+    if (banner.targetType === 'restaurant' && banner.targetId) {
+      router.push(`/restaurant/${banner.targetId}` as any);
+    } else if (banner.targetType === 'cuisine' && banner.targetId) {
+      router.push({ pathname: '/search', params: { cuisine: banner.targetId } } as any);
+    } else if (banner.targetType === 'category' && banner.targetId) {
+      router.push({ pathname: '/search', params: { category: banner.targetId } } as any);
+    } else if (banner.targetType === 'search' && banner.targetId) {
+      router.push({ pathname: '/search', params: { q: banner.targetId } } as any);
+    } else if (banner.targetType === 'coupon') {
+      router.push('/(tabs)/cart' as any);
+    } else if (banner.targetId) {
+      router.push({ pathname: '/search', params: { q: banner.targetId } } as any);
+    }
+  };
+
+  if (loading && banners.length === 0) {
+    return (
+      <View style={styles.container}>
+        <View style={{ paddingHorizontal: 12 }}>
+          <View style={[styles.heroBanner, { width: BANNER_WIDTH, backgroundColor: '#F1F5F9' }]}>
+            <LinearGradient
+              colors={['#F1F5F9', '#E2E8F0', '#F1F5F9']}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 0 }}
+              style={StyleSheet.absoluteFill}
+            />
+          </View>
+        </View>
+      </View>
+    );
+  }
+
+  if (banners.length === 0) {
+    return null;
+  }
 
   return (
     <View style={styles.container}>
@@ -123,14 +214,30 @@ export function AutoScrollHeroBanners() {
         decelerationRate="fast"
         snapToInterval={ITEM_WIDTH}
       >
-        {bannersData.map((banner) => {
-          const isAmber = banner.id === '2'; // The 50% OFF banner
+        {banners.map((banner) => {
+          if ((banner as any).displayMode === 'FULL_POSTER') {
+            return (
+              <TouchableOpacity activeOpacity={0.95} key={banner.id} onPress={() => handleBannerPress(banner)}>
+                <View style={[styles.heroBanner, { width: BANNER_WIDTH, backgroundColor: '#0F172A' }]}>
+                  <Image
+                    source={{ uri: banner.img }}
+                    style={{ width: '100%', height: '100%' }}
+                    resizeMode="cover"
+                  />
+                </View>
+              </TouchableOpacity>
+            );
+          }
+
+          const color1 = (Array.isArray(banner.colors) && banner.colors[0]) || '#0D9488';
+          const color2 = (Array.isArray(banner.colors) && banner.colors[1]) || color1;
+          const isAmber = (banner as any).textColor === '#1A1A1F' || banner.id === '2';
           return (
-            <TouchableOpacity activeOpacity={0.95} key={banner.id}>
-              <View style={[styles.heroBanner, { width: BANNER_WIDTH, backgroundColor: banner.colors[0] }]}>
+            <TouchableOpacity activeOpacity={0.95} key={banner.id} onPress={() => handleBannerPress(banner)}>
+              <View style={[styles.heroBanner, { width: BANNER_WIDTH, backgroundColor: color1 }]}>
                 {/* Vibrant Gradient Background */}
                 <LinearGradient
-                  colors={banner.colors as any}
+                  colors={[color1, color2]}
                   start={{ x: 0, y: 0 }}
                   end={{ x: 1, y: 1 }}
                   style={StyleSheet.absoluteFill}
@@ -142,17 +249,23 @@ export function AutoScrollHeroBanners() {
                 </View>
 
                 <View style={styles.contentWrapper}>
-                  <View style={[styles.tagPill, { backgroundColor: banner.accent }]}>
-                    <Text style={[styles.tagText, { color: banner.colors[1] }]}>{banner.tag}</Text>
-                  </View>
+                  {banner.tag ? (
+                    <View style={[styles.tagPill, { backgroundColor: banner.accent }]}>
+                      <Text style={[styles.tagText, { color: banner.colors[1] }]}>{banner.tag}</Text>
+                    </View>
+                  ) : null}
 
                   <Text style={[styles.titleText, isAmber && { color: '#1A1A1F' }]}>{banner.title}</Text>
-                  <Text style={[styles.brandText, isAmber && { color: '#1A1A1F' }]}>{banner.titleBrand}</Text>
-                  <Text style={[styles.subText, isAmber && { color: '#1A1A1F' }]}>{banner.sub}</Text>
+                  {banner.titleBrand ? (
+                    <Text style={[styles.brandText, isAmber && { color: '#1A1A1F' }]}>{banner.titleBrand}</Text>
+                  ) : null}
+                  {banner.sub ? (
+                    <Text style={[styles.subText, isAmber && { color: '#1A1A1F' }]}>{banner.sub}</Text>
+                  ) : null}
 
                   <View style={styles.actionBtn}>
-                    <Text style={[styles.actionBtnText, { color: '#0B7A75' }]}>{banner.actionText}</Text>
-                    <Ionicons name="arrow-forward" size={14} color="#0B7A75" />
+                    <Text style={[styles.actionBtnText, { color: banner.colors[0] }]}>{banner.actionText}</Text>
+                    <Ionicons name="arrow-forward" size={14} color={banner.colors[0]} />
                   </View>
                 </View>
               </View>
@@ -163,7 +276,7 @@ export function AutoScrollHeroBanners() {
 
       {/* Pagination */}
       <View style={styles.paginationRow}>
-        {bannersData.map((_, idx) => (
+        {banners.map((_, idx) => (
           <View key={idx} style={[styles.dot, currentIndex === idx ? styles.activeDot : null]} />
         ))}
       </View>
