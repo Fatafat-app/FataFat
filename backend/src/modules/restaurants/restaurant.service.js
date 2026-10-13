@@ -138,6 +138,14 @@ async function findNearbyRestaurants({ lat, lng, radiusKm = 50 }, query = {}) {
     filter.isOpen = true;
   }
 
+  if (query.isVeg === 'true' || query.isVeg === true) {
+    filter.$or = [
+      { isPureVeg: true },
+      { cuisines: { $regex: /veg/i } },
+      { name: { $regex: /veg/i } },
+    ];
+  }
+
   const hasCoords = !isNaN(lat) && !isNaN(lng) && (lat !== 0 || lng !== 0);
 
   let restaurants = [];
@@ -210,6 +218,20 @@ async function listRestaurants(query = {}) {
 
   if (query.isActive !== undefined) {
     filter.isActive = query.isActive === 'true' || query.isActive === true;
+  }
+
+  if (query.isVeg === 'true' || query.isVeg === true) {
+    const vegCond = [
+      { isPureVeg: true },
+      { cuisines: { $regex: /veg/i } },
+      { name: { $regex: /veg/i } },
+    ];
+    if (filter.$or) {
+      filter.$and = [{ $or: filter.$or }, { $or: vegCond }];
+      delete filter.$or;
+    } else {
+      filter.$or = vegCond;
+    }
   }
 
   const [restaurants, total] = await Promise.all([

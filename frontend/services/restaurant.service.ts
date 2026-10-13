@@ -87,9 +87,13 @@ export const restaurantService = {
   /**
    * Search for restaurants by query and location
    */
-  async searchRestaurants(q: string, lat?: number, lng?: number): Promise<Restaurant[]> {
+  async searchRestaurants(q: string, lat?: number, lng?: number, isVeg?: boolean): Promise<Restaurant[]> {
+    const params: Record<string, any> = { q, lat, lng };
+    if (isVeg !== undefined) {
+      params.isVeg = isVeg;
+    }
     const response = await api.get<ApiResponse<any>>('/search/restaurants', {
-      params: { q, lat, lng },
+      params,
     });
     const data = response.data.data;
     if (Array.isArray(data)) {
@@ -107,10 +111,13 @@ export const restaurantService = {
   /**
    * Search menu items by query
    */
-  async searchMenuItems(q?: string, limit: number = 30): Promise<MenuItem[]> {
+  async searchMenuItems(q?: string, limit: number = 30, isVeg?: boolean): Promise<MenuItem[]> {
     const params: Record<string, any> = { limit };
     if (q && q.trim()) {
       params.q = q.trim();
+    }
+    if (isVeg !== undefined) {
+      params.isVeg = isVeg;
     }
     const response = await api.get<ApiResponse<any>>('/search/items', { params });
     const data = response.data.data;
@@ -123,6 +130,30 @@ export const restaurantService = {
     if (data && Array.isArray(data.menuItems)) {
       return data.menuItems;
     }
+    return [];
+  },
+
+  /**
+   * Get curated recommended dishes
+   */
+  async getRecommendedItems(params?: { isVeg?: boolean; limit?: number }): Promise<MenuItem[]> {
+    const response = await api.get<ApiResponse<any>>('/search/recommended', { params });
+    const data = response.data.data;
+    if (Array.isArray(data)) return data;
+    if (data && Array.isArray(data.items)) return data.items;
+    if (data && Array.isArray(data.products)) return data.products;
+    return [];
+  },
+
+  /**
+   * Get menu items priced under ₹99
+   */
+  async getUnder99Items(params?: { isVeg?: boolean; limit?: number }): Promise<MenuItem[]> {
+    const response = await api.get<ApiResponse<any>>('/search/under99', { params });
+    const data = response.data.data;
+    if (Array.isArray(data)) return data;
+    if (data && Array.isArray(data.items)) return data.items;
+    if (data && Array.isArray(data.products)) return data.products;
     return [];
   }
 };

@@ -43,6 +43,11 @@ const menuItemSchema = new mongoose.Schema(
       index: true,
     },
     isAvailable: { type: Boolean, default: true },
+    isBestseller: { type: Boolean, default: false },
+    rating: {
+      average: { type: Number, default: 4.5 },
+      count: { type: Number, default: 15 },
+    },
     sortOrder: { type: Number, default: 0 },
     tags: [{ type: String, trim: true }],
     nutrition: {

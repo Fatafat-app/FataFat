@@ -28,6 +28,7 @@ const createRestaurantSchema = z.object({
     .optional(),
   deliveryRadiusKm: z.number().positive().default(10),
   minOrderAmount: z.number().nonnegative().default(0),
+  isPureVeg: z.boolean().optional(),
 });
 
 const updateRestaurantSchema = createRestaurantSchema.partial();

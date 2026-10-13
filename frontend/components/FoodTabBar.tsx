@@ -6,6 +6,7 @@ import {
   StyleSheet,
   Platform,
   Animated,
+  Easing,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -46,26 +47,25 @@ function CenterCartButton({ onPress, cartCount, isFocused }: any) {
         style={styles.centerTouchArea}
       >
         <Animated.View style={[styles.centerScale, { transform: [{ scale: scaleAnim }] }]}>
-          {/* Blue/Violet Gradient Circle */}
+
           <LinearGradient
-            colors={['#8B5CF6', '#6D28D9', '#4C1D95']} // Blue/Violet gradient
+            colors={['#8B5CF6', '#6D28D9', '#4C1D95']}
             style={styles.centerGradientCircle}
             start={{ x: 0, y: 0 }}
             end={{ x: 1, y: 1 }}
           >
             {/* Inner highlight arc */}
             <View style={styles.innerHighlight} />
-
             {/* Icon */}
             <Ionicons name="bag-handle" size={26} color="#FFFFFF" />
-
-            {/* Cart Count Badge */}
-            {cartCount > 0 && (
-              <View style={styles.centerBadge}>
-                <Text style={styles.centerBadgeText}>{cartCount > 9 ? '9+' : cartCount}</Text>
-              </View>
-            )}
           </LinearGradient>
+
+          {/* Cart Count Badge — hidden when on cart page, shown otherwise */}
+          {cartCount > 0 && !isFocused && (
+            <View style={styles.centerBadge}>
+              <Text style={styles.centerBadgeText}>{cartCount > 9 ? '9+' : cartCount}</Text>
+            </View>
+          )}
         </Animated.View>
       </TouchableOpacity>
 
@@ -157,14 +157,16 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     height: BAR_HEIGHT,
     width: '100%',
-    backgroundColor: '#FFFFFF',
+    backgroundColor: 'rgba(255, 255, 255, 0.96)',
     borderRadius: 24,
+    borderWidth: 1,
+    borderColor: '#F1F5F9',
     alignItems: 'center',
     justifyContent: 'space-between',
     shadowColor: Colors.primary,
-    shadowOffset: { width: 0, height: 10 },
-    shadowOpacity: 0.12,
-    shadowRadius: 20,
+    shadowOffset: { width: 0, height: 12 },
+    shadowOpacity: 0.08,
+    shadowRadius: 24,
     elevation: 16,
     overflow: 'visible',
   },
@@ -206,7 +208,7 @@ const styles = StyleSheet.create({
   activeDot: {
     position: 'absolute',
     bottom: -8,
-    width: 4,
+    width: 14, // Pill shape instead of dot
     height: 4,
     borderRadius: 2,
     backgroundColor: Colors.primary,
@@ -233,6 +235,30 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     width: 84,
     height: 84,
+  },
+  haloRing: {
+    position: 'absolute',
+    top: 6,
+    left: 6,
+    width: 72,
+    height: 72,
+    borderRadius: 36,
+    backgroundColor: 'rgba(109, 40, 217, 0.15)', // Soft violet glow
+  },
+  rotatingRing: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    width: '100%',
+    height: '100%',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  orbitDot: {
+    position: 'absolute',
+    top: '50%',
+    left: '50%',
+    backgroundColor: '#8B5CF6', // Violet color for dots
   },
   centerGradientCircle: {
     width: 60,
@@ -261,22 +287,25 @@ const styles = StyleSheet.create({
   },
   centerBadge: {
     position: 'absolute',
-    top: 0,
-    right: 0,
-    backgroundColor: '#F97316', // Orange badge
+    top: 1,
+    right: 1,
+    backgroundColor: '#F97316',
     borderRadius: 10,
     minWidth: 18,
     height: 18,
     alignItems: 'center',
     justifyContent: 'center',
     paddingHorizontal: 3,
-    borderWidth: 1.5,
-    borderColor: '#FFFFFF', // White border to stand out against blue
+    borderWidth: 2,
+    borderColor: '#FFFFFF',
+    zIndex: 10,
   },
   centerBadgeText: {
     color: '#FFFFFF',
     fontSize: 9,
     fontWeight: '900',
+    textAlign: 'center',
+    includeFontPadding: false,
   },
   centerLabel: {
     position: 'absolute',
