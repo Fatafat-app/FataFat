@@ -1,14 +1,17 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { Tag, Plus, Trash2, Power, Calendar, Percent, DollarSign, X } from 'lucide-react';
 import { api } from '../services/api';
 import { useApp } from '../context/AppContext';
-import { formatPaise, rupeesToPaise } from '../utils/formatters';
+import { formatRupees, formatPaise, rupeesToPaise } from '../utils/formatters';
+import { Pagination } from '../components/common/Pagination';
 
 export const Coupons = () => {
   const { showToast } = useApp();
   const [coupons, setCoupons] = useState([]);
   const [loading, setLoading] = useState(true);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(9);
   const [formData, setFormData] = useState({
     code: '',
     discountType: 'PERCENTAGE', // or FLAT
@@ -125,7 +128,7 @@ export const Coupons = () => {
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {coupons.map((coupon) => (
+          {coupons.slice((page - 1) * pageSize, page * pageSize).map((coupon) => (
             <div
               key={coupon._id}
               className="p-5 rounded-2xl bg-slate-900/80 border border-slate-800 flex flex-col justify-between space-y-4 hover:border-slate-700 transition"
@@ -175,7 +178,7 @@ export const Coupons = () => {
               <div className="pt-3 border-t border-slate-800 flex items-center justify-between">
                 <button
                   onClick={() => handleToggle(coupon._id)}
-                  className={`px-3 py-1.5 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition ${
+                  className={`px-3 py-1.5 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition cursor-pointer ${
                     coupon.isActive
                       ? 'bg-rose-500/10 text-rose-300 hover:bg-rose-500/20 border border-rose-500/30'
                       : 'bg-emerald-500/10 text-emerald-300 hover:bg-emerald-500/20 border border-emerald-500/30'
@@ -187,7 +190,7 @@ export const Coupons = () => {
 
                 <button
                   onClick={() => handleDelete(coupon._id)}
-                  className="p-1.5 rounded-lg text-slate-500 hover:text-rose-400 hover:bg-slate-800 transition"
+                  className="p-1.5 rounded-lg text-slate-500 hover:text-rose-400 hover:bg-slate-800 transition cursor-pointer"
                   title="Delete Coupon"
                 >
                   <Trash2 size={15} />
@@ -197,6 +200,16 @@ export const Coupons = () => {
           ))}
         </div>
       )}
+
+      {/* Pagination */}
+      <Pagination
+        currentPage={page}
+        totalItems={coupons.length}
+        pageSize={pageSize}
+        onPageChange={setPage}
+        onPageSizeChange={setPageSize}
+        pageSizeOptions={[6, 9, 18]}
+      />
 
       {/* Create Coupon Modal */}
       {isModalOpen && (

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import {
   Store,
   Plus,
@@ -22,6 +22,7 @@ import {
 import { useApp } from '../context/AppContext';
 import { api } from '../services/api';
 import { formatRupees, rupeesToPaise } from '../utils/formatters';
+import { Pagination } from '../components/common/Pagination';
 
 export const Restaurants = () => {
   const { restaurants, toggleRestaurantStatus, showToast, refetchAll } = useApp();
@@ -55,14 +56,26 @@ export const Restaurants = () => {
     image: '',
   });
 
-  const filtered = restaurants.filter((r) => {
-    const matchCat = selectedCategory === 'ALL' || r.category === selectedCategory;
-    const matchSearch =
-      r.name.toLowerCase().includes(search.toLowerCase()) ||
-      r.cuisine.toLowerCase().includes(search.toLowerCase()) ||
-      r.locality.toLowerCase().includes(search.toLowerCase());
-    return matchCat && matchSearch;
-  });
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(9);
+
+  const filtered = useMemo(() => {
+    const q = search.toLowerCase().trim();
+    return restaurants.filter((r) => {
+      const matchCat = selectedCategory === 'ALL' || r.category === selectedCategory;
+      const matchSearch =
+        !q ||
+        (r.name || '').toLowerCase().includes(q) ||
+        (r.cuisine || '').toLowerCase().includes(q) ||
+        (r.locality || '').toLowerCase().includes(q);
+      return matchCat && matchSearch;
+    });
+  }, [restaurants, selectedCategory, search]);
+
+  const paginatedRestaurants = useMemo(() => {
+    const start = (page - 1) * pageSize;
+    return filtered.slice(start, start + pageSize);
+  }, [filtered, page, pageSize]);
 
   const handleAddRestaurant = async (e) => {
     e.preventDefault();
@@ -262,7 +275,7 @@ export const Restaurants = () => {
 
       {/* Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-        {filtered.map((rest) => (
+        {paginatedRestaurants.map((rest) => (
           <div
             key={rest.id}
             className="p-5 rounded-2xl bg-slate-900/80 border border-slate-800 hover:border-slate-700 transition space-y-4 flex flex-col justify-between"
@@ -377,6 +390,16 @@ export const Restaurants = () => {
           </div>
         ))}
       </div>
+
+      {/* Pagination */}
+      <Pagination
+        currentPage={page}
+        totalItems={filtered.length}
+        pageSize={pageSize}
+        onPageChange={setPage}
+        onPageSizeChange={setPageSize}
+        pageSizeOptions={[6, 9, 18, 30]}
+      />
 
       {/* Menu Management Modal */}
       {selectedRestForMenu && (

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import {
   Layers,
   Plus,
@@ -19,6 +19,7 @@ import {
 import { useApp } from '../context/AppContext';
 import { api } from '../services/api';
 import { formatRupees, formatPaise } from '../utils/formatters';
+import { Pagination } from '../components/common/Pagination';
 
 const PRESET_IMAGES = [
   { name: 'Pizza', url: 'https://images.pexels.com/photos/1146760/pexels-photo-1146760.jpeg' },
@@ -49,13 +50,25 @@ export const Catalog = () => {
     isActive: true,
   });
 
-  const filteredItems = menuItems.filter((item) => {
-    const matchCat = selectedCatFilter === 'ALL' || item.category === selectedCatFilter;
-    const matchSearch =
-      item.name.toLowerCase().includes(search.toLowerCase()) ||
-      item.category.toLowerCase().includes(search.toLowerCase());
-    return matchCat && matchSearch;
-  });
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(10);
+
+  const filteredItems = useMemo(() => {
+    const q = search.toLowerCase().trim();
+    return menuItems.filter((item) => {
+      const matchCat = selectedCatFilter === 'ALL' || item.category === selectedCatFilter;
+      const matchSearch =
+        !q ||
+        (item.name || '').toLowerCase().includes(q) ||
+        (item.category || '').toLowerCase().includes(q);
+      return matchCat && matchSearch;
+    });
+  }, [menuItems, selectedCatFilter, search]);
+
+  const paginatedItems = useMemo(() => {
+    const start = (page - 1) * pageSize;
+    return filteredItems.slice(start, start + pageSize);
+  }, [filteredItems, page, pageSize]);
 
   const handleOpenAddCat = () => {
     setEditingCat(null);
@@ -226,7 +239,7 @@ export const Catalog = () => {
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-800/80">
-                {filteredItems.map((item) => (
+                {paginatedItems.map((item) => (
                   <tr key={item.id} className="hover:bg-slate-800/40 transition">
                     <td className="px-5 py-3.5">
                       <div className="flex items-center gap-2.5">
@@ -286,6 +299,15 @@ export const Catalog = () => {
               </tbody>
             </table>
           </div>
+
+          {/* Pagination */}
+          <Pagination
+            currentPage={page}
+            totalItems={filteredItems.length}
+            pageSize={pageSize}
+            onPageChange={setPage}
+            onPageSizeChange={setPageSize}
+          />
         </div>
       )}
 

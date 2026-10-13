@@ -1,16 +1,19 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { History, Shield, User, Clock, Search, RefreshCw, CheckCircle2 } from 'lucide-react';
 import { api } from '../services/api';
+import { Pagination } from '../components/common/Pagination';
 
 export const AuditLogs = () => {
   const [logs, setLogs] = useState([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(15);
 
   const loadLogs = async () => {
     setLoading(true);
     try {
-      const data = await api.getAuditLogs({ limit: 50 });
+      const data = await api.getAuditLogs({ limit: 100 });
       setLogs(Array.isArray(data) ? data : []);
     } catch {
       // Fallback
@@ -23,15 +26,29 @@ export const AuditLogs = () => {
     loadLogs();
   }, []);
 
-  const filteredLogs = logs.filter((log) => {
-    const s = search.toLowerCase();
-    return (
-      (log.action || '').toLowerCase().includes(s) ||
-      (log.resource || '').toLowerCase().includes(s) ||
-      (log.admin?.name || '').toLowerCase().includes(s) ||
-      (log.admin?.email || '').toLowerCase().includes(s)
-    );
-  });
+  const filteredLogs = useMemo(() => {
+    const s = search.toLowerCase().trim();
+    if (!s) return logs;
+    return logs.filter((log) => {
+      return (
+        (log.action || '').toLowerCase().includes(s) ||
+        (log.resource || '').toLowerCase().includes(s) ||
+        (log.admin?.name || '').toLowerCase().includes(s) ||
+        (log.admin?.email || '').toLowerCase().includes(s) ||
+        (log.ipAddress || '').includes(s)
+      );
+    });
+  }, [logs, search]);
+
+  const paginatedLogs = useMemo(() => {
+    const start = (page - 1) * pageSize;
+    return filteredLogs.slice(start, start + pageSize);
+  }, [filteredLogs, page, pageSize]);
+
+  const handleSearchChange = (e) => {
+    setSearch(e.target.value);
+    setPage(1);
+  };
 
   return (
     <div className="space-y-6 max-w-6xl mx-auto">
@@ -46,7 +63,7 @@ export const AuditLogs = () => {
 
         <button
           onClick={loadLogs}
-          className="px-4 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-semibold border border-slate-700 flex items-center gap-1.5 transition self-start sm:self-auto"
+          className="px-4 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-semibold border border-slate-700 flex items-center gap-1.5 transition self-start sm:self-auto cursor-pointer"
         >
           <RefreshCw size={14} className={loading ? 'animate-spin' : ''} />
           <span>Refresh Logs</span>
@@ -60,13 +77,13 @@ export const AuditLogs = () => {
           type="text"
           placeholder="Filter logs by action, admin, entity..."
           value={search}
-          onChange={(e) => setSearch(e.target.value)}
+          onChange={handleSearchChange}
           className="w-full bg-slate-900 border border-slate-800 rounded-xl pl-9 pr-4 py-2 text-xs text-slate-200 focus:outline-none focus:border-orange-500"
         />
       </div>
 
       {/* Logs Table */}
-      <div className="rounded-2xl border border-slate-800 bg-slate-900/80 overflow-hidden">
+      <div className="rounded-2xl border border-slate-800 bg-slate-900/80 overflow-hidden shadow-xl">
         <table className="w-full text-left text-xs text-slate-300">
           <thead className="bg-slate-950/70 text-slate-400 uppercase text-[10px] font-bold tracking-wider border-b border-slate-800">
             <tr>
@@ -85,7 +102,7 @@ export const AuditLogs = () => {
                 </td>
               </tr>
             ) : (
-              filteredLogs.map((log, idx) => (
+              paginatedLogs.map((log, idx) => (
                 <tr key={log._id || idx} className="hover:bg-slate-800/40 transition">
                   <td className="px-5 py-3.5">
                     <span className="font-mono text-[11px] font-bold text-orange-400 bg-orange-500/10 px-2 py-0.5 rounded border border-orange-500/20">
@@ -127,6 +144,16 @@ export const AuditLogs = () => {
           </tbody>
         </table>
       </div>
+
+      {/* Pagination */}
+      <Pagination
+        currentPage={page}
+        totalItems={filteredLogs.length}
+        pageSize={pageSize}
+        onPageChange={setPage}
+        onPageSizeChange={setPageSize}
+        pageSizeOptions={[15, 30, 50]}
+      />
     </div>
   );
 };

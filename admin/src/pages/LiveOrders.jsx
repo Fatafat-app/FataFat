@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import {
   ShoppingBag,
   Search,
@@ -14,52 +14,76 @@ import {
   Volume2,
 } from 'lucide-react';
 import { useApp } from '../context/AppContext';
-import { formatPaise } from '../utils/formatters';
+import { formatRupees } from '../utils/formatters';
+import { Pagination } from '../components/common/Pagination';
 
 export const LiveOrders = () => {
   const { orders, updateOrderStatus, audioChimeEnabled, setAudioChimeEnabled } = useApp();
   const [selectedFilter, setSelectedFilter] = useState('ALL');
   const [searchQuery, setSearchQuery] = useState('');
-  const [selectedOrder, setSelectedOrder] = useState(null);
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(10);
 
-  const filters = [
-    { key: 'ALL', label: 'All Orders', count: orders.length },
-    {
-      key: 'PENDING',
-      label: 'Pending',
-      count: orders.filter((o) => o.status === 'PENDING').length,
-    },
-    {
-      key: 'PREPARING',
-      label: 'Preparing',
-      count: orders.filter((o) => o.status === 'PREPARING').length,
-    },
-    {
-      key: 'OUT_FOR_DELIVERY',
-      label: 'Out for Delivery',
-      count: orders.filter((o) => o.status === 'OUT_FOR_DELIVERY').length,
-    },
-    {
-      key: 'DELIVERED',
-      label: 'Delivered',
-      count: orders.filter((o) => o.status === 'DELIVERED').length,
-    },
-    {
-      key: 'CANCELLED',
-      label: 'Cancelled',
-      count: orders.filter((o) => o.status === 'CANCELLED').length,
-    },
-  ];
+  const filters = useMemo(
+    () => [
+      { key: 'ALL', label: 'All Orders', count: orders.length },
+      {
+        key: 'PENDING',
+        label: 'Pending',
+        count: orders.filter((o) => o.status === 'PENDING').length,
+      },
+      {
+        key: 'PREPARING',
+        label: 'Preparing',
+        count: orders.filter((o) => o.status === 'PREPARING').length,
+      },
+      {
+        key: 'OUT_FOR_DELIVERY',
+        label: 'Out for Delivery',
+        count: orders.filter((o) => o.status === 'OUT_FOR_DELIVERY').length,
+      },
+      {
+        key: 'DELIVERED',
+        label: 'Delivered',
+        count: orders.filter((o) => o.status === 'DELIVERED').length,
+      },
+      {
+        key: 'CANCELLED',
+        label: 'Cancelled',
+        count: orders.filter((o) => o.status === 'CANCELLED').length,
+      },
+    ],
+    [orders]
+  );
 
-  const filteredOrders = orders.filter((order) => {
-    const matchesFilter = selectedFilter === 'ALL' || order.status === selectedFilter;
-    const matchesSearch =
-      order.id.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      order.customerName.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      order.customerPhone.includes(searchQuery) ||
-      order.restaurantName.toLowerCase().includes(searchQuery.toLowerCase());
-    return matchesFilter && matchesSearch;
-  });
+  const filteredOrders = useMemo(() => {
+    const q = searchQuery.toLowerCase().trim();
+    return orders.filter((order) => {
+      const matchesFilter = selectedFilter === 'ALL' || order.status === selectedFilter;
+      const matchesSearch =
+        !q ||
+        (order.id || '').toLowerCase().includes(q) ||
+        (order.customerName || '').toLowerCase().includes(q) ||
+        (order.customerPhone || '').includes(q) ||
+        (order.restaurantName || '').toLowerCase().includes(q);
+      return matchesFilter && matchesSearch;
+    });
+  }, [orders, selectedFilter, searchQuery]);
+
+  const paginatedOrders = useMemo(() => {
+    const start = (page - 1) * pageSize;
+    return filteredOrders.slice(start, start + pageSize);
+  }, [filteredOrders, page, pageSize]);
+
+  const handleFilterChange = (key) => {
+    setSelectedFilter(key);
+    setPage(1);
+  };
+
+  const handleSearchChange = (e) => {
+    setSearchQuery(e.target.value);
+    setPage(1);
+  };
 
   return (
     <div className="space-y-6 max-w-7xl mx-auto">
@@ -82,7 +106,7 @@ export const LiveOrders = () => {
               type="text"
               placeholder="Filter by Order ID, name, phone..."
               value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
+              onChange={handleSearchChange}
               className="bg-slate-900 border border-slate-800 rounded-xl pl-9 pr-4 py-2 text-xs text-slate-200 placeholder-slate-500 focus:outline-none focus:border-orange-500 transition w-64"
             />
           </div>
@@ -94,8 +118,8 @@ export const LiveOrders = () => {
         {filters.map((f) => (
           <button
             key={f.key}
-            onClick={() => setSelectedFilter(f.key)}
-            className={`px-3.5 py-1.5 rounded-xl text-xs font-semibold whitespace-nowrap transition flex items-center gap-2 ${
+            onClick={() => handleFilterChange(f.key)}
+            className={`px-3.5 py-1.5 rounded-xl text-xs font-semibold whitespace-nowrap transition flex items-center gap-2 cursor-pointer ${
               selectedFilter === f.key
                 ? 'bg-orange-500 text-white shadow-lg shadow-orange-500/20'
                 : 'bg-slate-900 text-slate-400 hover:text-slate-200 hover:bg-slate-800'
@@ -124,10 +148,10 @@ export const LiveOrders = () => {
             <p className="text-xs text-slate-500">Try changing the search query or status filter.</p>
           </div>
         ) : (
-          filteredOrders.map((order) => (
+          paginatedOrders.map((order) => (
             <div
               key={order.id}
-              className="p-5 rounded-2xl bg-slate-900/80 border border-slate-800 hover:border-slate-700 transition space-y-4"
+              className="p-5 rounded-2xl bg-slate-900/80 border border-slate-800 hover:border-slate-700 transition space-y-4 shadow-xl"
             >
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-800/80 pb-3">
                 <div className="flex items-center gap-3">
@@ -147,7 +171,7 @@ export const LiveOrders = () => {
 
                 <div className="flex items-center gap-3">
                   <div className="text-right">
-                    <p className="text-sm font-extrabold text-white">{formatPaise(order.totalAmount)}</p>
+                    <p className="text-sm font-extrabold text-white">{formatRupees(order.totalAmount)}</p>
                     <p className="text-[11px] text-slate-400 uppercase font-mono">
                       {order.paymentMethod}
                     </p>
@@ -187,7 +211,7 @@ export const LiveOrders = () => {
                         <span className="text-slate-200">
                           <span className="font-bold text-orange-400">{item.qty}x</span> {item.name}
                         </span>
-                        <span className="text-slate-400">{formatPaise(item.price * item.qty)}</span>
+                        <span className="text-slate-400">{formatRupees(item.price * item.qty)}</span>
                       </div>
                     ))}
                   </div>
@@ -215,13 +239,13 @@ export const LiveOrders = () => {
                       <>
                         <button
                           onClick={() => updateOrderStatus(order.id, 'PREPARING')}
-                          className="flex-1 py-1.5 rounded-lg bg-orange-500 hover:bg-orange-600 text-white font-semibold text-xs transition"
+                          className="flex-1 py-1.5 rounded-lg bg-orange-500 hover:bg-orange-600 text-white font-semibold text-xs transition cursor-pointer"
                         >
                           Accept & Prep
                         </button>
                         <button
                           onClick={() => updateOrderStatus(order.id, 'CANCELLED')}
-                          className="px-2.5 py-1.5 rounded-lg bg-slate-800 hover:bg-rose-500/20 text-rose-400 font-semibold text-xs transition"
+                          className="px-2.5 py-1.5 rounded-lg bg-slate-800 hover:bg-rose-500/20 text-rose-400 font-semibold text-xs transition cursor-pointer"
                         >
                           Reject
                         </button>
@@ -290,6 +314,15 @@ export const LiveOrders = () => {
           ))
         )}
       </div>
+
+      {/* Pagination */}
+      <Pagination
+        currentPage={page}
+        totalItems={filteredOrders.length}
+        pageSize={pageSize}
+        onPageChange={setPage}
+        onPageSizeChange={setPageSize}
+      />
     </div>
   );
 };

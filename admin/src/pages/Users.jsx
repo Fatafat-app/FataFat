@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import {
   Users as UsersIcon,
   Search,
@@ -13,11 +13,14 @@ import {
 } from 'lucide-react';
 import { useApp } from '../context/AppContext';
 import { api } from '../services/api';
+import { Pagination } from '../components/common/Pagination';
 
 export const Users = () => {
   const { users, setUsers, toggleUserStatus, showToast } = useApp();
   const [search, setSearch] = useState('');
   const [roleFilter, setRoleFilter] = useState('ALL');
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(10);
 
   const handleRoleChange = async (userId, newRole) => {
     try {
@@ -31,18 +34,37 @@ export const Users = () => {
     }
   };
 
-  const filteredUsers = users.filter((u) => {
-    const matchRole =
-      roleFilter === 'ALL' ||
-      u.role.toUpperCase() === roleFilter.toUpperCase() ||
-      (roleFilter === 'RIDER' && (u.role === 'DELIVERY_PARTNER' || u.role === 'RIDER')) ||
-      (roleFilter === 'VENDOR' && (u.role === 'RESTAURANT_OWNER' || u.role === 'VENDOR'));
-    const matchSearch =
-      u.name.toLowerCase().includes(search.toLowerCase()) ||
-      u.phone.includes(search) ||
-      u.email.toLowerCase().includes(search.toLowerCase());
-    return matchRole && matchSearch;
-  });
+  const filteredUsers = useMemo(() => {
+    const q = search.toLowerCase().trim();
+    return users.filter((u) => {
+      const matchRole =
+        roleFilter === 'ALL' ||
+        u.role.toUpperCase() === roleFilter.toUpperCase() ||
+        (roleFilter === 'RIDER' && (u.role === 'DELIVERY_PARTNER' || u.role === 'RIDER')) ||
+        (roleFilter === 'VENDOR' && (u.role === 'RESTAURANT_OWNER' || u.role === 'VENDOR'));
+      const matchSearch =
+        !q ||
+        (u.name || '').toLowerCase().includes(q) ||
+        (u.phone || '').includes(q) ||
+        (u.email || '').toLowerCase().includes(q);
+      return matchRole && matchSearch;
+    });
+  }, [users, roleFilter, search]);
+
+  const paginatedUsers = useMemo(() => {
+    const start = (page - 1) * pageSize;
+    return filteredUsers.slice(start, start + pageSize);
+  }, [filteredUsers, page, pageSize]);
+
+  const handleRoleFilterChange = (role) => {
+    setRoleFilter(role);
+    setPage(1);
+  };
+
+  const handleSearchChange = (e) => {
+    setSearch(e.target.value);
+    setPage(1);
+  };
 
   return (
     <div className="space-y-6 max-w-7xl mx-auto">
@@ -67,7 +89,7 @@ export const Users = () => {
               type="text"
               placeholder="Search by name, phone, email..."
               value={search}
-              onChange={(e) => setSearch(e.target.value)}
+              onChange={handleSearchChange}
               className="w-full bg-slate-900 border border-slate-800 rounded-xl pl-9 pr-4 py-1.5 text-xs text-slate-200 focus:outline-none focus:border-orange-500"
             />
           </div>
@@ -79,7 +101,7 @@ export const Users = () => {
         {['ALL', 'CUSTOMER', 'RIDER', 'VENDOR', 'ADMIN'].map((r) => (
           <button
             key={r}
-            onClick={() => setRoleFilter(r)}
+            onClick={() => handleRoleFilterChange(r)}
             className={`px-3 py-1.5 rounded-xl text-xs font-semibold transition cursor-pointer ${
               roleFilter === r
                 ? 'bg-slate-200 text-slate-900 font-bold'
@@ -112,7 +134,7 @@ export const Users = () => {
                 </td>
               </tr>
             ) : (
-              filteredUsers.map((u) => (
+              paginatedUsers.map((u) => (
                 <tr key={u.id} className="hover:bg-slate-800/40 transition">
                   <td className="px-5 py-3.5">
                     <div>
@@ -179,6 +201,15 @@ export const Users = () => {
           </tbody>
         </table>
       </div>
+
+      {/* Pagination */}
+      <Pagination
+        currentPage={page}
+        totalItems={filteredUsers.length}
+        pageSize={pageSize}
+        onPageChange={setPage}
+        onPageSizeChange={setPageSize}
+      />
     </div>
   );
 };

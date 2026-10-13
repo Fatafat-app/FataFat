@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import {
   ShoppingCart,
   Plus,
@@ -19,6 +19,7 @@ import {
 import { api } from '../services/api';
 import { useApp } from '../context/AppContext';
 import { formatRupees, paiseToRupees, rupeesToPaise } from '../utils/formatters';
+import { Pagination } from '../components/common/Pagination';
 
 export const GroceryProducts = () => {
   const { showToast } = useApp();
@@ -28,6 +29,8 @@ export const GroceryProducts = () => {
   const [search, setSearch] = useState('');
   const [selectedCat, setSelectedCat] = useState('ALL');
   const [stockFilter, setStockFilter] = useState('ALL'); // ALL, IN_STOCK, OUT_OF_STOCK
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(10);
 
   // Add / Edit Modal State
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -171,21 +174,30 @@ export const GroceryProducts = () => {
     }
   };
 
-  // Filter products
-  const filtered = products.filter((p) => {
-    const pCat = p.category?.name || p.category || '';
-    const matchCat = selectedCat === 'ALL' || pCat.toLowerCase() === selectedCat.toLowerCase();
-    const matchSearch =
-      (p.name || '').toLowerCase().includes(search.toLowerCase()) ||
-      pCat.toLowerCase().includes(search.toLowerCase());
-    const isAvail = p.isAvailable !== false;
-    const matchStock =
-      stockFilter === 'ALL' ||
-      (stockFilter === 'IN_STOCK' && isAvail) ||
-      (stockFilter === 'OUT_OF_STOCK' && !isAvail);
+  // Filter products with useMemo
+  const filtered = useMemo(() => {
+    const q = search.toLowerCase().trim();
+    return products.filter((p) => {
+      const pCat = p.category?.name || p.category || '';
+      const matchCat = selectedCat === 'ALL' || pCat.toLowerCase() === selectedCat.toLowerCase();
+      const matchSearch =
+        !q ||
+        (p.name || '').toLowerCase().includes(q) ||
+        pCat.toLowerCase().includes(q);
+      const isAvail = p.isAvailable !== false;
+      const matchStock =
+        stockFilter === 'ALL' ||
+        (stockFilter === 'IN_STOCK' && isAvail) ||
+        (stockFilter === 'OUT_OF_STOCK' && !isAvail);
 
-    return matchCat && matchSearch && matchStock;
-  });
+      return matchCat && matchSearch && matchStock;
+    });
+  }, [products, selectedCat, search, stockFilter]);
+
+  const paginatedProducts = useMemo(() => {
+    const start = (page - 1) * pageSize;
+    return filtered.slice(start, start + pageSize);
+  }, [filtered, page, pageSize]);
 
   return (
     <div className="space-y-6 max-w-7xl mx-auto">
@@ -305,7 +317,7 @@ export const GroceryProducts = () => {
                 </td>
               </tr>
             ) : (
-              filtered.map((item) => (
+              paginatedProducts.map((item) => (
                 <tr key={item._id} className="hover:bg-slate-800/40 transition">
                   <td className="px-5 py-3.5">
                     <div className="flex items-center gap-3">
@@ -410,6 +422,15 @@ export const GroceryProducts = () => {
           </tbody>
         </table>
       </div>
+
+      {/* Pagination */}
+      <Pagination
+        currentPage={page}
+        totalItems={filtered.length}
+        pageSize={pageSize}
+        onPageChange={setPage}
+        onPageSizeChange={setPageSize}
+      />
 
       {/* Add / Edit Product Modal */}
       {isModalOpen && (
