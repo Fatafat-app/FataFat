@@ -8,7 +8,7 @@ import { Restaurant, MenuItem, MenuCategory, NearbyRestaurantsQueryParams } from
  */
 export function useNearbyRestaurantsQuery(params: NearbyRestaurantsQueryParams) {
   return useQuery<Restaurant[]>({
-    queryKey: ['restaurants', 'nearby', params.lat, params.lng, params.radius],
+    queryKey: ['restaurants', 'nearby', params.lat, params.lng, params.radius, params.isVeg],
     queryFn: () => restaurantService.getNearbyRestaurants(params),
     staleTime: 1000 * 60 * 4, // 4 minutes
   });
@@ -70,15 +70,32 @@ export function useMustTryProductsQuery() {
 }
 
 /**
+ * Hook to fetch, cache and deduplicate Recommended For You dishes
+ */
+export function useRecommendedProductsQuery(isVeg?: boolean) {
+  return useQuery<MenuItem[]>({
+    queryKey: ['food', 'recommended', isVeg],
+    queryFn: async () => {
+      const items = await restaurantService.getRecommendedItems({ isVeg, limit: 20 }).catch(() => []);
+      if (items && items.length > 0) {
+        return items;
+      }
+      return restaurantService.searchMenuItems(undefined, 20, isVeg).catch(() => []);
+    },
+    staleTime: 1000 * 60 * 5, // 5 minutes cache
+  });
+}
+
+/**
  * Hook to search restaurants and dishes
  */
-export function useSearchDishesAndRestaurantsQuery(query: string, lat?: number, lng?: number) {
+export function useSearchDishesAndRestaurantsQuery(query: string, lat?: number, lng?: number, isVeg?: boolean) {
   return useQuery({
-    queryKey: ['search', query, lat, lng],
+    queryKey: ['search', query, lat, lng, isVeg],
     queryFn: async () => {
       const [restRes, itemsRes] = await Promise.all([
-        restaurantService.searchRestaurants(query, lat, lng).catch(() => []),
-        restaurantService.searchMenuItems(query).catch(() => []),
+        restaurantService.searchRestaurants(query, lat, lng, isVeg).catch(() => []),
+        restaurantService.searchMenuItems(query, 30, isVeg).catch(() => []),
       ]);
 
       return {
@@ -88,5 +105,19 @@ export function useSearchDishesAndRestaurantsQuery(query: string, lat?: number, 
     },
     enabled: Boolean(query && query.trim().length > 0),
     staleTime: 1000 * 60 * 2, // 2 minutes
+  });
+}
+
+/**
+ * Hook to fetch items priced under ₹99 (the 99 Store)
+ */
+export function useUnder99ProductsQuery(isVeg?: boolean) {
+  return useQuery<MenuItem[]>({
+    queryKey: ['food', 'under99', isVeg],
+    queryFn: async () => {
+      const items = await restaurantService.getUnder99Items({ isVeg, limit: 30 }).catch(() => []);
+      return items;
+    },
+    staleTime: 1000 * 60 * 5, // 5 minutes cache
   });
 }

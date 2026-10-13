@@ -20,6 +20,20 @@ async function searchRestaurants(q, { lat, lng, radiusKm = 50 } = {}, queryParam
     ];
   }
 
+  if (queryParams.isVeg === 'true' || queryParams.isVeg === true) {
+    const vegCond = [
+      { isPureVeg: true },
+      { cuisines: { $regex: /veg/i } },
+      { name: { $regex: /veg/i } },
+    ];
+    if (filter.$or) {
+      filter.$and = [{ $or: filter.$or }, { $or: vegCond }];
+      delete filter.$or;
+    } else {
+      filter.$or = vegCond;
+    }
+  }
+
   const hasCoords = !isNaN(parseFloat(lat)) && !isNaN(parseFloat(lng)) && (parseFloat(lat) !== 0 || parseFloat(lng) !== 0);
 
   let restaurants = [];
@@ -73,6 +87,10 @@ async function searchMenuItems(q, queryParams = {}) {
     ];
   }
 
+  if (queryParams.isVeg === 'true' || queryParams.isVeg === true) {
+    filter.isVeg = true;
+  }
+
   const [items, total] = await Promise.all([
     MenuItem.find(filter)
       .populate('restaurant', 'name isOpen coverImage images address rating deliveryInfo')
@@ -85,4 +103,40 @@ async function searchMenuItems(q, queryParams = {}) {
   return { items, meta: buildPaginationMeta(total, page, limit) };
 }
 
-module.exports = { searchRestaurants, searchMenuItems };
+async function getRecommendedItems(queryParams = {}) {
+  const limit = Math.min(parseInt(queryParams.limit, 10) || 20, 50);
+  const filter = { isAvailable: { $ne: false } };
+
+  if (queryParams.isVeg === 'true' || queryParams.isVeg === true) {
+    filter.isVeg = true;
+  }
+
+  const items = await MenuItem.find(filter)
+    .populate('restaurant', 'name isOpen coverImage images address rating deliveryInfo isPureVeg')
+    .sort({ isBestseller: -1, 'rating.average': -1, sortOrder: 1, createdAt: -1 })
+    .limit(limit);
+
+  return { items };
+}
+
+async function getUnder99Items(queryParams = {}) {
+  const limit = Math.min(parseInt(queryParams.limit, 10) || 30, 60);
+  // Price is stored in paise; ₹99 = 9900 paise
+  const filter = {
+    isAvailable: { $ne: false },
+    price: { $gt: 0, $lte: 9900 },
+  };
+
+  if (queryParams.isVeg === 'true' || queryParams.isVeg === true) {
+    filter.isVeg = true;
+  }
+
+  const items = await MenuItem.find(filter)
+    .populate('restaurant', 'name isOpen coverImage images address rating deliveryInfo isPureVeg')
+    .sort({ isBestseller: -1, 'rating.average': -1, price: 1 })
+    .limit(limit);
+
+  return { items };
+}
+
+module.exports = { searchRestaurants, searchMenuItems, getRecommendedItems, getUnder99Items };

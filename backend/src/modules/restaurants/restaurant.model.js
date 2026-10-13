@@ -61,6 +61,7 @@ const restaurantSchema = new mongoose.Schema(
     isOpen: { type: Boolean, default: false },
     isActive: { type: Boolean, default: false },
     isApproved: { type: Boolean, default: false },
+    isPureVeg: { type: Boolean, default: false },
     preparationTime: { type: Number, default: 20 },
     taxPercent: { type: Number, default: 5 },
     fssaiLicense: { type: String, trim: true },
@@ -95,6 +96,7 @@ restaurantSchema.index({ location: '2dsphere' });
 restaurantSchema.index({ owner: 1 });
 restaurantSchema.index({ isActive: 1, isOpen: 1 });
 restaurantSchema.index({ cuisines: 1 });
+restaurantSchema.index({ isPureVeg: 1 });
 restaurantSchema.index({ name: 'text', description: 'text', cuisines: 'text' });
 
 const Restaurant = mongoose.model('Restaurant', restaurantSchema);

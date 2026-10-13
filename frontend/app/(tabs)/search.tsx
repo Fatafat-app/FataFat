@@ -51,6 +51,7 @@ export default function SearchScreen() {
   const router = useRouter();
   const params = useLocalSearchParams();
   const initialQuery = Array.isArray(params.q) ? params.q[0] : params.q || '';
+  const initialVeg = params.veg === 'true' || params.isVeg === 'true';
 
   const { currentLocation } = useLocationStore();
   const cartItemsCount = useCartStore((state) => state.getItemsCount());
@@ -61,6 +62,8 @@ export default function SearchScreen() {
   const [query, setQuery] = useState(initialQuery);
   const [debouncedQuery, setDebouncedQuery] = useState(initialQuery);
   const [isTyping, setIsTyping] = useState(false);
+  const [activeTab, setActiveTab] = useState<'all' | 'restaurants' | 'dishes'>('all');
+  const [vegOnly, setVegOnly] = useState(initialVeg);
 
   // TanStack Query: Cached & Deduped Search Query
   const {
@@ -71,17 +74,26 @@ export default function SearchScreen() {
   } = useSearchDishesAndRestaurantsQuery(
     debouncedQuery.trim(),
     currentLocation?.latitude,
-    currentLocation?.longitude
+    currentLocation?.longitude,
+    vegOnly ? true : undefined
   );
 
-  const restaurants = debouncedQuery.trim() ? (searchResults?.restaurants || []) : [];
-  const dishes = debouncedQuery.trim() ? (searchResults?.menuItems || []) : [];
+  const rawRestaurants = debouncedQuery.trim() ? (searchResults?.restaurants || []) : [];
+  const rawDishes = debouncedQuery.trim() ? (searchResults?.menuItems || []) : [];
+
+  const isRestaurantVeg = (r: Restaurant) => {
+    if (r.isPureVeg) return true;
+    const c = (r.cuisines || []).join(' ').toLowerCase();
+    if (c.includes('veg') || c.includes('vegetarian') || c.includes('jain') || c.includes('sattvic')) return true;
+    const n = (r.name || '').toLowerCase();
+    if (n.includes('veg') || n.includes('pure veg') || n.includes('jain') || n.includes('vaishno') || n.includes('haldiram') || n.includes('sagar ratna') || n.includes('bikanervala')) return true;
+    return false;
+  };
+
+  const restaurants = vegOnly ? rawRestaurants.filter(isRestaurantVeg) : rawRestaurants;
+  const filteredDishes = vegOnly ? rawDishes.filter((d) => d.isVeg !== false) : rawDishes;
   const loading = debouncedQuery.trim() ? loadingSearch : false;
   const error = searchError ? (searchErrObj as any)?.message || 'Failed to fetch search results.' : '';
-
-  // Active filter tab: 'all' | 'restaurants' | 'dishes'
-  const [activeTab, setActiveTab] = useState<'all' | 'restaurants' | 'dishes'>('all');
-  const [vegOnly, setVegOnly] = useState(false);
 
   const searchInputRef = useRef<TextInput>(null);
 
@@ -92,7 +104,10 @@ export default function SearchScreen() {
       setQuery(q);
       setDebouncedQuery(q);
     }
-  }, [params.q]);
+    if (params.veg !== undefined) {
+      setVegOnly(params.veg === 'true');
+    }
+  }, [params.q, params.veg]);
 
   // Debouncing logic with 350ms delay
   useEffect(() => {
@@ -130,9 +145,6 @@ export default function SearchScreen() {
     setIsTyping(false);
   };
 
-  // Filtered dishes
-  const filteredDishes = vegOnly ? dishes.filter((d) => d.isVeg) : dishes;
-
   const totalResults = restaurants.length + filteredDishes.length;
 
   return (
@@ -152,7 +164,7 @@ export default function SearchScreen() {
           <TextInput
             ref={searchInputRef}
             style={styles.searchInput}
-            placeholder="Search restaurants, dishes, cuisines..."
+            placeholder="Search restaurants, dishes..."
             placeholderTextColor="#9CA3AF"
             value={query}
             onChangeText={setQuery}
@@ -172,6 +184,75 @@ export default function SearchScreen() {
             </TouchableOpacity>
           )}
         </View>
+
+        {/* VEG Mode Toggle Button Beside Search Bar */}
+        <TouchableOpacity
+          activeOpacity={0.8}
+          onPress={() => setVegOnly((prev) => !prev)}
+          style={{
+            flexDirection: 'row',
+            alignItems: 'center',
+            marginLeft: 8,
+            paddingHorizontal: 8,
+            height: 46,
+            borderRadius: 12,
+            backgroundColor: vegOnly ? '#ECFDF5' : '#F9FAFB',
+            borderWidth: 1.5,
+            borderColor: vegOnly ? '#10B981' : '#E5E7EB',
+            gap: 5,
+          }}
+        >
+          <View
+            style={{
+              width: 13,
+              height: 13,
+              borderWidth: 1.5,
+              borderColor: vegOnly ? '#059669' : '#16A34A',
+              borderRadius: 2.5,
+              alignItems: 'center',
+              justifyContent: 'center',
+              backgroundColor: '#FFF',
+            }}
+          >
+            <View
+              style={{
+                width: 5,
+                height: 5,
+                borderRadius: 2.5,
+                backgroundColor: vegOnly ? '#059669' : '#16A34A',
+              }}
+            />
+          </View>
+          <Text
+            style={{
+              fontFamily: BOLD_FONT,
+              fontSize: 11,
+              color: vegOnly ? '#065F46' : '#4B5563',
+            }}
+          >
+            VEG
+          </Text>
+          <View
+            style={{
+              width: 24,
+              height: 14,
+              borderRadius: 7,
+              backgroundColor: vegOnly ? '#10B981' : '#D1D5DB',
+              padding: 2,
+              justifyContent: 'center',
+              alignItems: vegOnly ? 'flex-end' : 'flex-start',
+            }}
+          >
+            <View
+              style={{
+                width: 10,
+                height: 10,
+                borderRadius: 5,
+                backgroundColor: '#FFFFFF',
+              }}
+            />
+          </View>
+        </TouchableOpacity>
       </View>
 
       {/* Tabs & Veg Filter bar if query is active */}
@@ -198,13 +279,13 @@ export default function SearchScreen() {
               </TouchableOpacity>
             )}
 
-            {dishes.length > 0 && (
+            {filteredDishes.length > 0 && (
               <TouchableOpacity
                 style={[styles.filterChip, activeTab === 'dishes' && styles.filterChipActive]}
                 onPress={() => setActiveTab('dishes')}
               >
                 <Text style={[styles.filterChipText, activeTab === 'dishes' && styles.filterChipTextActive]}>
-                  Dishes ({dishes.length})
+                  Dishes ({filteredDishes.length})
                 </Text>
               </TouchableOpacity>
             )}

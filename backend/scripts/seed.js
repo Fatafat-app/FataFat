@@ -169,6 +169,40 @@ async function seed() {
     },
   });
 
+  const restaurant3 = await Restaurant.create({
+    owner: owner._id,
+    name: 'Sagar Ratna - Pure Veg',
+    description: 'Authentic South Indian dosas, idlis, and pure vegetarian North Indian delicacies.',
+    cuisines: ['South Indian', 'Pure Veg', 'North Indian', 'Dosas'],
+    isPureVeg: true,
+    address: {
+      line1: 'Connaught Circus',
+      city: 'New Delhi',
+      state: 'Delhi',
+      pincode: '110001',
+    },
+    location: {
+      type: 'Point',
+      coordinates: [77.2192, 28.6322],
+    },
+    phone: '+919876543212',
+    email: 'info@sagarratna.com',
+    isOpen: true,
+    isActive: true,
+    isVerified: true,
+    taxPercent: 5,
+    deliveryInfo: {
+      estimatedMinutes: 20,
+      deliveryFee: 2500,
+      minOrderAmount: 9900,
+      radiusKm: 10,
+    },
+    rating: {
+      average: 4.6,
+      count: 48,
+    },
+  });
+
   console.log('🍔 Seeding Menu Categories & Items...');
   const catPizzas = await MenuCategory.create({
     restaurant: restaurant1._id,
@@ -234,6 +268,45 @@ async function seed() {
       name: 'Iced Lemon Mint Cooler',
       description: 'Refreshing cold beverage made with fresh mint and lemon extract',
       price: 12900,
+      isVeg: true,
+      isAvailable: true,
+    },
+  ]);
+
+  const catDosas = await MenuCategory.create({
+    restaurant: restaurant3._id,
+    name: 'Special Dosas & Thalis',
+    description: 'Crispy golden dosas and authentic vegetarian thalis',
+    displayOrder: 1,
+  });
+
+  await MenuItem.create([
+    {
+      restaurant: restaurant3._id,
+      category: catDosas._id,
+      name: 'Butter Masala Dosa',
+      description: 'Crispy rice crepe filled with spiced potato masala and amul butter',
+      price: 18000,
+      isVeg: true,
+      isAvailable: true,
+      isBestseller: true,
+    },
+    {
+      restaurant: restaurant3._id,
+      category: catDosas._id,
+      name: 'Special South Indian Thali',
+      description: 'Includes 2 curries, sambar, rasam, curd, poori, rice, and gulab jamun',
+      price: 26000,
+      isVeg: true,
+      isAvailable: true,
+      isBestseller: true,
+    },
+    {
+      restaurant: restaurant3._id,
+      category: catDosas._id,
+      name: 'Steamed Idli Sambar (2 Pcs)',
+      description: 'Soft steamed rice cakes served with hot sambar and coconut chutney',
+      price: 12000,
       isVeg: true,
       isAvailable: true,
     },
