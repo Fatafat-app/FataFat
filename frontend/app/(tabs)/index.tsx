@@ -727,6 +727,10 @@ export default function HomeScreen() {
             {/* Main Hero Banners (Auto Scrolling) */}
             <AutoScrollHeroBanners />
 
+<<<<<<< Updated upstream
+=======
+
+>>>>>>> Stashed changes
             {/* WHAT'S ON YOUR MIND? (Circular Icons) */}
             {loading && categories.length === 0 ? (
               <View style={{ marginTop: 12, marginBottom: 16 }}>

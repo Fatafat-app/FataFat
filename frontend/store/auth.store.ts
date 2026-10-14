@@ -2,6 +2,7 @@ import { create } from 'zustand';
 import { User } from '../types';
 import { authService } from '../services/auth.service';
 import { getAccessToken } from '../services/api';
+import { oneSignalService } from '../services/onesignal.service';
 
 interface AuthState {
   user: User | null;
@@ -17,7 +18,15 @@ export const useAuthStore = create<AuthState>((set) => ({
   isAuthenticated: false,
   isLoading: true,
 
-  setUser: (user) => set({ user, isAuthenticated: !!user }),
+  setUser: (user) => {
+    set({ user, isAuthenticated: !!user });
+    if (user?._id || user?.id) {
+      oneSignalService.login(String(user._id || user.id));
+      if (user.email) {
+        oneSignalService.addEmail(user.email);
+      }
+    }
+  },
 
   initAuth: async () => {
     try {
@@ -26,6 +35,12 @@ export const useAuthStore = create<AuthState>((set) => ({
       if (token) {
         const profile = await authService.getProfile();
         set({ user: profile, isAuthenticated: true });
+        if (profile?._id || profile?.id) {
+          oneSignalService.login(String(profile._id || profile.id));
+          if (profile.email) {
+            oneSignalService.addEmail(profile.email);
+          }
+        }
       } else {
         set({ user: null, isAuthenticated: false });
       }
@@ -39,8 +54,10 @@ export const useAuthStore = create<AuthState>((set) => ({
   logout: async () => {
     try {
       await authService.logout();
+      oneSignalService.logout();
     } finally {
       set({ user: null, isAuthenticated: false });
     }
   },
 }));
+

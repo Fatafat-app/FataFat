@@ -3,6 +3,7 @@
 const { Worker } = require('bullmq');
 const redis = require('../config/redis');
 const { sendPushNotification } = require('../integrations/firebase.client');
+const { sendPushToUser } = require('../integrations/onesignal.client');
 const User = require('../modules/users/user.model');
 const logger = require('../config/logger');
 
@@ -42,20 +43,29 @@ const worker = new Worker(
       return;
     }
 
-    const user = await User.findById(userId).select('+fcmToken');
-    if (!user?.fcmToken) {
-      logger.debug('[NotificationWorker] User has no FCM token', { userId });
-      return;
+    const { title, body, data } = template(job.data);
+    let sentViaOneSignal = false;
+
+    // 1. Send via OneSignal using external_id (matches oneSignalService.login on mobile)
+    try {
+      await sendPushToUser(userId, { title, body, data });
+      sentViaOneSignal = true;
+      logger.info('[NotificationWorker] OneSignal push sent successfully', { userId, jobName: job.name });
+    } catch (onesignalErr) {
+      logger.warn('[NotificationWorker] OneSignal push error', { userId, error: onesignalErr.message });
     }
 
-    const { title, body, data } = template(job.data);
-
+    // 2. Also try FCM if user has registered FCM device token
     try {
-      await sendPushNotification(user.fcmToken, { title, body, data });
-      logger.info('[NotificationWorker] Push sent', { userId, jobName: job.name });
-    } catch (err) {
-      logger.error('[NotificationWorker] Push failed', { userId, error: err.message });
-      throw err;
+      const user = await User.findById(userId).select('+fcmToken');
+      if (user?.fcmToken) {
+        await sendPushNotification(user.fcmToken, { title, body, data });
+        logger.info('[NotificationWorker] FCM push sent', { userId, jobName: job.name });
+      } else if (!sentViaOneSignal) {
+        logger.debug('[NotificationWorker] User has no FCM token and OneSignal did not deliver', { userId });
+      }
+    } catch (fcmErr) {
+      logger.warn('[NotificationWorker] FCM push failed', { userId, error: fcmErr.message });
     }
   },
   { connection: redis, concurrency: 10 }

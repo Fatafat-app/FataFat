@@ -67,17 +67,10 @@ export const pushNotificationService = {
         }
       }
 
-      // Check permissions
+      // Check permissions without prompting prematurely (permission is gated by OneSignal verification dialog)
       if (Notifications.getPermissionsAsync) {
         const { status: existingStatus } = await Notifications.getPermissionsAsync();
-        let finalStatus = existingStatus;
-
-        if (existingStatus !== 'granted' && Notifications.requestPermissionsAsync) {
-          const { status } = await Notifications.requestPermissionsAsync();
-          finalStatus = status;
-        }
-
-        if (finalStatus !== 'granted') {
+        if (existingStatus !== 'granted') {
           return null;
         }
       }

@@ -95,6 +95,10 @@ const env = {
     templateLang: process.env.WAKIT_TEMPLATE_LANG || 'en',
     baseUrl: process.env.WAKIT_BASE_URL || 'https://wakit.in/api/v1',
   },
+  onesignal: {
+    appId: process.env.ONESIGNAL_APP_ID || '06421e37-d6b3-4074-8b76-565e25449498',
+    apiKey: process.env.ONESIGNAL_REST_API_KEY || '',
+  },
 };
 
 module.exports = env;
