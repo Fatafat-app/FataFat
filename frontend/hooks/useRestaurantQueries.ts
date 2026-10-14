@@ -121,3 +121,44 @@ export function useUnder99ProductsQuery(isVeg?: boolean) {
     staleTime: 1000 * 60 * 5, // 5 minutes cache
   });
 }
+
+/**
+ * Hook to fetch, cache and deduplicate Trending dishes
+ */
+export function useTrendingProductsQuery(isVeg?: boolean) {
+  return useQuery<MenuItem[]>({
+    queryKey: ['food', 'trending', isVeg],
+    queryFn: async () => {
+      const items = await restaurantService.getTrendingItems({ isVeg, limit: 20 }).catch(() => []);
+      if (items && items.length > 0) {
+        return items;
+      }
+      return restaurantService.getRecommendedItems({ isVeg, limit: 20 }).catch(() => []);
+    },
+    staleTime: 1000 * 60 * 5, // 5 minutes cache
+  });
+}
+
+/**
+ * Hook to fetch single food dish details by ID
+ */
+export function useFoodProductDetailQuery(id?: string) {
+  return useQuery<MenuItem | null>({
+    queryKey: ['food', 'item', id],
+    queryFn: () => (id ? restaurantService.getMenuItemById(id) : Promise.resolve(null)),
+    enabled: Boolean(id),
+    staleTime: 1000 * 60 * 5,
+  });
+}
+
+/**
+ * Hook to fetch unified home feed (All sections + Admin configuration in 1 fast cached call)
+ */
+export function useHomeFeedQuery(params?: { lat?: number; lng?: number; isVeg?: boolean }) {
+  return useQuery({
+    queryKey: ['home', 'unified-feed', params?.lat, params?.lng, params?.isVeg],
+    queryFn: () => restaurantService.getHomeFeed(params),
+    staleTime: 1000 * 60 * 3, // 3 minutes stale
+    gcTime: 1000 * 60 * 10,   // 10 minutes cache
+  });
+}

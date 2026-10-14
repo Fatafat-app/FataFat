@@ -90,16 +90,59 @@ import { bannerService } from '../services/banner.service';
 
 let cachedFoodBanners: any[] | null = null;
 
-export function AutoScrollHeroBanners() {
+export function AutoScrollHeroBanners({ initialBanners }: { initialBanners?: any[] } = {}) {
   const router = useRouter();
   const scrollViewRef = useRef<ScrollView>(null);
   const [currentIndex, setCurrentIndex] = useState(0);
-  const [banners, setBanners] = useState<any[]>(() => cachedFoodBanners || []);
-  const [loading, setLoading] = useState(() => !cachedFoodBanners);
+  const [banners, setBanners] = useState<any[]>(() => {
+    if (initialBanners && initialBanners.length > 0) {
+      return initialBanners.map((b) => ({
+        id: b._id || b.id,
+        tag: b.tag || 'PROMO',
+        title: b.title,
+        titleBrand: b.subtitle || '',
+        sub: b.description || '',
+        img: typeof b.image === 'string' ? b.image.replace(/&amp;/g, '&') : b.image,
+        displayMode: b.displayMode || 'CARD_TEMPLATE',
+        colors: b.colors && b.colors.length >= 2 ? b.colors : ['#0D9488', '#0F766E'],
+        accent: b.accentColor || '#CCFBF1',
+        textColor: b.textColor || '#FFFFFF',
+        actionText: b.actionText || 'Order Now',
+        watermark: (b.tag || b.title || 'DEAL').slice(0, 6).toUpperCase(),
+        targetType: b.targetType,
+        targetId: b.targetId,
+      }));
+    }
+    return cachedFoodBanners || [];
+  });
+  const [loading, setLoading] = useState(() => !(initialBanners?.length || cachedFoodBanners));
   const BANNER_WIDTH = SCREEN_WIDTH - 24;
   const ITEM_WIDTH = BANNER_WIDTH + 12;
 
   useEffect(() => {
+    if (initialBanners && initialBanners.length > 0) {
+      const mapped = initialBanners.map((b) => ({
+        id: b._id || b.id,
+        tag: b.tag || 'PROMO',
+        title: b.title,
+        titleBrand: b.subtitle || '',
+        sub: b.description || '',
+        img: typeof b.image === 'string' ? b.image.replace(/&amp;/g, '&') : b.image,
+        displayMode: b.displayMode || 'CARD_TEMPLATE',
+        colors: b.colors && b.colors.length >= 2 ? b.colors : ['#0D9488', '#0F766E'],
+        accent: b.accentColor || '#CCFBF1',
+        textColor: b.textColor || '#FFFFFF',
+        actionText: b.actionText || 'Order Now',
+        watermark: (b.tag || b.title || 'DEAL').slice(0, 6).toUpperCase(),
+        targetType: b.targetType,
+        targetId: b.targetId,
+      }));
+      cachedFoodBanners = mapped;
+      setBanners(mapped);
+      setLoading(false);
+      return;
+    }
+
     let isMounted = true;
     bannerService
       .getBanners('FOOD_HERO')
@@ -128,20 +171,15 @@ export function AutoScrollHeroBanners() {
           cachedFoodBanners = [];
           setBanners([]);
         }
-        setLoading(false);
       })
-      .catch(() => {
-        if (!isMounted) return;
-        if (!cachedFoodBanners) {
-          setBanners(bannersData);
-        }
-        setLoading(false);
+      .finally(() => {
+        if (isMounted) setLoading(false);
       });
 
     return () => {
       isMounted = false;
     };
-  }, []);
+  }, [initialBanners]);
 
   useEffect(() => {
     if (banners.length <= 1) return;

@@ -139,4 +139,55 @@ async function getUnder99Items(queryParams = {}) {
   return { items };
 }
 
-module.exports = { searchRestaurants, searchMenuItems, getRecommendedItems, getUnder99Items };
+async function getTrendingItems(queryParams = {}) {
+  const limit = Math.min(parseInt(queryParams.limit, 10) || 20, 50);
+  const filter = {
+    isAvailable: { $ne: false },
+    $or: [
+      { isBestseller: true },
+      { tags: { $in: ['trending', 'bestseller'] } },
+      { 'rating.average': { $gte: 4.5 } },
+    ],
+  };
+
+  if (queryParams.isVeg === 'true' || queryParams.isVeg === true) {
+    filter.isVeg = true;
+  }
+
+  let items = await MenuItem.find(filter)
+    .populate('restaurant', 'name isOpen coverImage images address rating deliveryInfo isPureVeg')
+    .sort({ isBestseller: -1, 'rating.average': -1, createdAt: -1 })
+    .limit(limit);
+
+  // If few items matched the strict trending filter, fallback to any available items
+  if (items.length < 5) {
+    const fallbackFilter = { isAvailable: { $ne: false } };
+    if (queryParams.isVeg === 'true' || queryParams.isVeg === true) {
+      fallbackFilter.isVeg = true;
+    }
+    items = await MenuItem.find(fallbackFilter)
+      .populate('restaurant', 'name isOpen coverImage images address rating deliveryInfo isPureVeg')
+      .sort({ 'rating.average': -1, createdAt: -1 })
+      .limit(limit);
+  }
+
+  return { items };
+}
+
+async function getMenuItemById(id) {
+  if (!id) return null;
+  const mongoose = require('mongoose');
+  if (!mongoose.Types.ObjectId.isValid(id)) return null;
+
+  return MenuItem.findById(id)
+    .populate('restaurant', 'name isOpen coverImage images address rating deliveryInfo isPureVeg phone cuisines taxPercent');
+}
+
+module.exports = {
+  searchRestaurants,
+  searchMenuItems,
+  getRecommendedItems,
+  getUnder99Items,
+  getTrendingItems,
+  getMenuItemById,
+};

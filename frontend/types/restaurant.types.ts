@@ -39,6 +39,12 @@ export interface Restaurant {
   operatingHours?: Record<string, OperatingHours>;
   estimatedDeliveryTime?: number; // in minutes
   distance?: number; // in meters (when querying nearby)
+  deliveryInfo?: {
+    estimatedMinutes?: number;
+    deliveryFee?: number;
+    minOrderAmount?: number;
+    radiusKm?: number;
+  };
   isVerified?: boolean;
   coverImage?: string;
   phone?: string;

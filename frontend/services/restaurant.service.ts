@@ -155,5 +155,69 @@ export const restaurantService = {
     if (data && Array.isArray(data.items)) return data.items;
     if (data && Array.isArray(data.products)) return data.products;
     return [];
-  }
+  },
+
+  /**
+   * Get trending dishes
+   */
+  async getTrendingItems(params?: { isVeg?: boolean; limit?: number }): Promise<MenuItem[]> {
+    const response = await api.get<ApiResponse<any>>('/search/trending', { params });
+    const data = response.data.data;
+    if (Array.isArray(data)) return data;
+    if (data && Array.isArray(data.items)) return data.items;
+    if (data && Array.isArray(data.products)) return data.products;
+    return [];
+  },
+
+  /**
+   * Get single menu item / dish by ID
+   */
+  async getMenuItemById(id: string): Promise<MenuItem | null> {
+    const response = await api.get<ApiResponse<any>>(`/search/items/${id}`);
+    const data = response.data.data;
+    return data?.item || data?.menuItem || null;
+  },
+
+  /**
+   * Get unified home feed (All sections + Admin configuration in 1 single cached call)
+   */
+  async getHomeFeed(params?: { lat?: number; lng?: number; isVeg?: boolean }): Promise<HomeFeedData> {
+    const response = await api.get<ApiResponse<HomeFeedData>>('/feed/home', { params });
+    return response.data.data;
+  },
 };
+
+export interface SectionConfig {
+  enabled: boolean;
+  title: string;
+  subtitle: string;
+  limit: number;
+  sortOrder: number;
+}
+
+export interface HomeFeedData {
+  config: {
+    heroBanners?: SectionConfig;
+    categories?: SectionConfig;
+    recommended?: SectionConfig;
+    stealDeals?: SectionConfig;
+    under99?: SectionConfig;
+    restaurants?: SectionConfig;
+    trending?: SectionConfig;
+    frequentlyBought?: SectionConfig;
+    spotlight?: SectionConfig;
+    mustTry?: SectionConfig;
+    [key: string]: SectionConfig | undefined;
+  };
+  heroBanners: any[];
+  categories: any[];
+  recommended: MenuItem[];
+  stealDeals: any[];
+  under99: MenuItem[];
+  restaurants: Restaurant[];
+  trending: MenuItem[];
+  frequentlyBought: any[];
+  spotlight: any[];
+  mustTry: MenuItem[];
+  timestamp: number;
+}

@@ -22,6 +22,14 @@ router.get('/items', async (req, res) => {
   success(res, { items, menuItems: items }, 'Item search results', 200, meta);
 });
 
+router.get('/items/:id', async (req, res) => {
+  const item = await searchService.getMenuItemById(req.params.id);
+  if (!item) {
+    return res.status(404).json({ success: false, message: 'Dish not found' });
+  }
+  success(res, { item, menuItem: item }, 'Dish details', 200);
+});
+
 router.get('/recommended', async (req, res) => {
   const { items } = await searchService.getRecommendedItems(req.query);
   success(res, { items, products: items }, 'Recommended items', 200);
@@ -30,6 +38,11 @@ router.get('/recommended', async (req, res) => {
 router.get('/under99', async (req, res) => {
   const { items } = await searchService.getUnder99Items(req.query);
   success(res, { items, products: items }, 'Under 99 items', 200);
+});
+
+router.get('/trending', async (req, res) => {
+  const { items } = await searchService.getTrendingItems(req.query);
+  success(res, { items, products: items }, 'Trending items', 200);
 });
 
 module.exports = router;

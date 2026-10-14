@@ -182,6 +182,16 @@ export const api = {
     return res.data?.data;
   },
 
+  // Home Screen Layout & Section Limits
+  getHomeConfig: async () => {
+    const res = await apiClient.get('/admin/home-config');
+    return res.data?.data?.config;
+  },
+  updateHomeConfig: async (sections) => {
+    const res = await apiClient.put('/admin/home-config', sections);
+    return res.data?.data?.config;
+  },
+
   // Notifications Broadcast
   sendNotification: async (payload) => {
     const res = await apiClient.post('/admin/notifications', payload);

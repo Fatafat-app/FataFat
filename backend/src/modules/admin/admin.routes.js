@@ -34,5 +34,8 @@ router.patch('/orders/:id/status', controller.updateOrderStatus);
 router.post('/notifications', controller.sendNotification);
 router.get('/notifications', controller.getNotificationHistory);
 
+router.get('/home-config', controller.getHomeConfig);
+router.put('/home-config', controller.updateHomeConfig);
+
 module.exports = router;
 

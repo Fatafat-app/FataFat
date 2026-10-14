@@ -5,7 +5,7 @@ const { NotFoundError } = require('../../common/errors');
 const redis = require('../../config/redis');
 const logger = require('../../config/logger');
 
-const BANNER_CACHE_TTL = 300; // 5 mins
+const BANNER_CACHE_TTL = 60; // 1 min
 
 function bannerCacheKey(section) {
   return `banners:${section || 'ALL'}`;

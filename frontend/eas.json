@@ -15,7 +15,13 @@
       },
       "env": {
         "EXPO_PUBLIC_API_URL": "https://fatafat-ps0j.onrender.com/api/v1",
-        "EXPO_PUBLIC_SOCKET_URL": "https://fatafat-ps0j.onrender.com"
+        "EXPO_PUBLIC_SOCKET_URL": "https://fatafat-ps0j.onrender.com",
+        "EXPO_PUBLIC_ONESIGNAL_APP_ID": "06421e37-d6b3-4074-8b76-565e25449498",
+        "EXPO_PUBLIC_FIREBASE_SENDER_ID": "392432738097",
+        "EXPO_PUBLIC_FIREBASE_VAPID_KEY": "BE_tTdadEo3c0CziopAP7_VdZvxoFAkJd3S_1FAl-klBPoNXk7m6JYOkuZgb0SaT-itYV822RgFLGyKNwo5kuag",
+        "EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID": "392432738097-bs54bnjhhjg873ufvdgi2g84vsuoei3p.apps.googleusercontent.com",
+        "EXPO_PUBLIC_GOOGLE_CLIENT_ID": "392432738097-bs54bnjhhjg873ufvdgi2g84vsuoei3p.apps.googleusercontent.com",
+        "EXPO_PUBLIC_GOOGLE_ANDROID_CLIENT_ID": "392432738097-bs54bnjhhjg873ufvdgi2g84vsuoei3p.apps.googleusercontent.com"
       }
     },
     "production": {
@@ -24,7 +30,13 @@
       },
       "env": {
         "EXPO_PUBLIC_API_URL": "https://fatafat-ps0j.onrender.com/api/v1",
-        "EXPO_PUBLIC_SOCKET_URL": "https://fatafat-ps0j.onrender.com"
+        "EXPO_PUBLIC_SOCKET_URL": "https://fatafat-ps0j.onrender.com",
+        "EXPO_PUBLIC_ONESIGNAL_APP_ID": "06421e37-d6b3-4074-8b76-565e25449498",
+        "EXPO_PUBLIC_FIREBASE_SENDER_ID": "392432738097",
+        "EXPO_PUBLIC_FIREBASE_VAPID_KEY": "BE_tTdadEo3c0CziopAP7_VdZvxoFAkJd3S_1FAl-klBPoNXk7m6JYOkuZgb0SaT-itYV822RgFLGyKNwo5kuag",
+        "EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID": "392432738097-bs54bnjhhjg873ufvdgi2g84vsuoei3p.apps.googleusercontent.com",
+        "EXPO_PUBLIC_GOOGLE_CLIENT_ID": "392432738097-bs54bnjhhjg873ufvdgi2g84vsuoei3p.apps.googleusercontent.com",
+        "EXPO_PUBLIC_GOOGLE_ANDROID_CLIENT_ID": "392432738097-bs54bnjhhjg873ufvdgi2g84vsuoei3p.apps.googleusercontent.com"
       }
     }
   },

@@ -3,54 +3,6 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { Image, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { BOLD_FONT, STYLISH_FONT } from '../constants/Theme';
 
-const FALLBACK_PRODUCTS = [
-  {
-    _id: 'u99-1',
-    name: 'Veg Nikku Singh Burger',
-    price: 4900,
-    isVeg: true,
-    rating: { average: 3.9, count: 26 },
-    images: ['https://images.unsplash.com/photo-1568901346375-23c9450c58cd?w=400&q=80'],
-    restaurant: { name: 'Burger Singh' },
-  },
-  {
-    _id: 'u99-2',
-    name: 'White Sauce Pasta',
-    price: 9500,
-    isVeg: true,
-    rating: { average: 3.2, count: 58 },
-    images: ['https://images.unsplash.com/photo-1621996346565-e3dbc646d9a9?w=400&q=80'],
-    restaurant: { name: 'Delicious Paharganj' },
-  },
-  {
-    _id: 'u99-3',
-    name: 'Veggie Roll',
-    price: 8900,
-    isVeg: true,
-    rating: { average: 4.4, count: 754 },
-    images: ['https://images.unsplash.com/photo-1626804475297-41609ae0f4dc?w=400&q=80'],
-    restaurant: { name: 'Baap Of Rolls' },
-  },
-  {
-    _id: 'u99-4',
-    name: 'Tomato Pizza',
-    price: 9900,
-    isVeg: true,
-    rating: { average: 4.1, count: 188 },
-    images: ['https://images.unsplash.com/photo-1513104890138-7c749659a591?w=400&q=80'],
-    restaurant: { name: "La Pino'z Pizza" },
-  },
-  {
-    _id: 'u99-5',
-    name: 'Masala Dosa',
-    price: 7900,
-    isVeg: true,
-    rating: { average: 4.6, count: 201 },
-    images: ['https://images.unsplash.com/photo-1668236543090-982473d4d69c?w=400&q=80'],
-    restaurant: { name: 'South Spice' },
-  },
-];
-
 type StoreProduct = {
   _id?: string;
   name: string;
@@ -68,6 +20,7 @@ type Props = {
   getQty: (id: string) => number;
   onAdd: (prod: StoreProduct) => void;
   onChangeQty: (id: string, delta: number) => void;
+  onOpenProduct?: (id: string, prod?: any) => void;
   onOpenRestaurant: (id: string) => void;
   onViewAll: () => void;
 };
@@ -94,10 +47,15 @@ export function NinetyNineStoreSection({
   getQty,
   onAdd,
   onChangeQty,
+  onOpenProduct,
   onOpenRestaurant,
   onViewAll,
 }: Props) {
-  const list = products.length > 0 ? products : FALLBACK_PRODUCTS;
+  if (!products || products.length === 0) {
+    return null;
+  }
+
+  const list = products;
 
   return (
     <View style={styles.shell}>
@@ -152,8 +110,13 @@ export function NinetyNineStoreSection({
                 key={prodId}
                 activeOpacity={0.92}
                 onPress={() => {
-                  if (restId) onOpenRestaurant(restId);
-                  else onAdd(prod);
+                  if (onOpenProduct) {
+                    onOpenProduct(prodId, prod);
+                  } else if (restId) {
+                    onOpenRestaurant(restId);
+                  } else {
+                    onAdd(prod);
+                  }
                 }}
                 style={styles.card}
               >

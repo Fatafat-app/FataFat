@@ -17,6 +17,13 @@ import {
   ShoppingBag,
   Store,
   Layers,
+  LayoutGrid,
+  CheckCircle2,
+  ChevronRight,
+  Hash,
+  Sparkles,
+  Eye,
+  EyeOff,
 } from 'lucide-react';
 import { useApp } from '../context/AppContext';
 import { api } from '../services/api';
@@ -25,7 +32,23 @@ import { paiseToRupees, rupeesToPaise } from '../utils/formatters';
 export const RemoteConfig = () => {
   const { remoteConfig, updateConfig, showToast } = useApp();
   const [formData, setFormData] = useState({ ...remoteConfig });
-  const [activeTab, setActiveTab] = useState('ALL'); // ALL, VERTICALS, FEES, EMERGENCY
+  const [activeTab, setActiveTab] = useState('ALL'); // ALL, HOME_SCREEN, VERTICALS, FEES, EMERGENCY
+
+  // Mobile Home Screen Manager State (from /admin/home-config)
+  const [homeSections, setHomeSections] = useState({
+    heroBanners: { enabled: true, title: 'Hero Banners', subtitle: '', limit: 10, sortOrder: 1 },
+    categories: { enabled: true, title: "What's on your mind?", subtitle: '', limit: 12, sortOrder: 2 },
+    recommended: { enabled: true, title: 'Recommended for You', subtitle: 'Handpicked dishes based on popular cravings', limit: 15, sortOrder: 3 },
+    stealDeals: { enabled: true, title: 'Steal Deals for You', subtitle: 'Unbeatable discounts & pocket-friendly feasts', limit: 10, sortOrder: 4 },
+    under99: { enabled: true, title: '99 Store', subtitle: 'Meals at ₹99 + Free Delivery', limit: 18, sortOrder: 5 },
+    restaurants: { enabled: true, title: 'Restaurants Near You', subtitle: 'Handpicked spots around your location', limit: 10, sortOrder: 6 },
+    trending: { enabled: true, title: 'Trending Dishes', subtitle: 'Local favourites everyone is loving', limit: 15, sortOrder: 7 },
+    frequentlyBought: { enabled: true, title: 'Frequently bought', subtitle: 'Top picks, ready for your basket', limit: 10, sortOrder: 8 },
+    spotlight: { enabled: true, title: 'Spotlight Deals', subtitle: 'Curated dining specials', limit: 10, sortOrder: 9 },
+    mustTry: { enabled: true, title: 'Must-Try Products', subtitle: 'Handpicked dishes from top restaurants', limit: 15, sortOrder: 10 },
+  });
+  const [loadingHomeConfig, setLoadingHomeConfig] = useState(false);
+  const [isSavingHomeConfig, setIsSavingHomeConfig] = useState(false);
 
   // Verticals Mode State (from /config/verticals)
   const [foodMode, setFoodMode] = useState('ON'); // ON, DRAIN, OFF
@@ -57,10 +80,12 @@ export const RemoteConfig = () => {
   const loadAllConfigs = async () => {
     setLoadingVerticals(true);
     setLoadingFees(true);
+    setLoadingHomeConfig(true);
     try {
-      const [vertRes, feeRes] = await Promise.allSettled([
+      const [vertRes, feeRes, homeRes] = await Promise.allSettled([
         api.getVerticals(),
         api.getFees(),
+        api.getHomeConfig(),
       ]);
 
       if (vertRes.status === 'fulfilled' && Array.isArray(vertRes.value)) {
@@ -89,11 +114,38 @@ export const RemoteConfig = () => {
           })),
         });
       }
+
+      if (homeRes.status === 'fulfilled' && homeRes.value?.sections) {
+        setHomeSections(homeRes.value.sections);
+      }
     } catch {
       // Fallback
     } finally {
       setLoadingVerticals(false);
       setLoadingFees(false);
+      setLoadingHomeConfig(false);
+    }
+  };
+
+  const handleSectionChange = (sectionKey, field, value) => {
+    setHomeSections((prev) => ({
+      ...prev,
+      [sectionKey]: {
+        ...prev[sectionKey],
+        [field]: value,
+      },
+    }));
+  };
+
+  const handleSaveHomeConfig = async () => {
+    setIsSavingHomeConfig(true);
+    try {
+      await api.updateHomeConfig(homeSections);
+      showToast('Mobile Home Screen configuration updated & live Redis cache purged!');
+    } catch (err) {
+      showToast(`Failed to update home config: ${err.message}`, 'error');
+    } finally {
+      setIsSavingHomeConfig(false);
     }
   };
 
@@ -243,7 +295,253 @@ export const RemoteConfig = () => {
         </div>
       </div>
 
+      {/* Navigation Filter Tabs */}
+      <div className="flex items-center gap-2 overflow-x-auto pb-1 scrollbar-none">
+        {[
+          { id: 'ALL', label: 'All Controls', icon: Sliders },
+          { id: 'HOME_SCREEN', label: '📱 Mobile Home Screen Manager', icon: Smartphone, highlight: true },
+          { id: 'VERTICALS', label: 'Vertical Switches', icon: Layers },
+          { id: 'FEES', label: 'Fees & Surge', icon: DollarSign },
+          { id: 'EMERGENCY', label: 'Policies & Emergency', icon: ShieldAlert },
+        ].map((tab) => {
+          const Icon = tab.icon;
+          const isActive = activeTab === tab.id;
+          return (
+            <button
+              key={tab.id}
+              onClick={() => setActiveTab(tab.id)}
+              className={`px-4 py-2 rounded-xl text-xs font-bold flex items-center gap-2 whitespace-nowrap transition cursor-pointer border ${
+                isActive
+                  ? 'bg-orange-500 text-white border-orange-500 shadow-lg shadow-orange-500/20'
+                  : tab.highlight
+                  ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/30 hover:bg-emerald-500/20'
+                  : 'bg-slate-900 text-slate-400 border-slate-800 hover:text-white hover:bg-slate-800'
+              }`}
+            >
+              <Icon size={14} />
+              <span>{tab.label}</span>
+            </button>
+          );
+        })}
+      </div>
+
+      {/* Module: Mobile Home Screen Manager */}
+      {(activeTab === 'ALL' || activeTab === 'HOME_SCREEN') && (
+        <div className="p-6 rounded-2xl bg-slate-900/90 border border-emerald-500/30 shadow-2xl space-y-6">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-800 pb-5">
+            <div className="flex items-center gap-3">
+              <div className="w-12 h-12 rounded-2xl bg-gradient-to-tr from-emerald-600 to-teal-500 text-white flex items-center justify-center shadow-lg shadow-emerald-500/20">
+                <Smartphone size={24} />
+              </div>
+              <div>
+                <div className="flex items-center gap-2">
+                  <h3 className="font-extrabold text-white text-lg">Mobile Home Screen Manager</h3>
+                  <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
+                    Live Mobile Feed
+                  </span>
+                </div>
+                <p className="text-xs text-slate-400 mt-0.5">
+                  Full control over section visibility, item limits, and custom display titles in real-time
+                </p>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-3">
+              <button
+                onClick={loadAllConfigs}
+                className="p-2 rounded-xl text-slate-400 hover:text-white hover:bg-slate-800 transition cursor-pointer"
+                title="Reload Home Config"
+              >
+                <RefreshCw size={16} className={loadingHomeConfig ? 'animate-spin' : ''} />
+              </button>
+              <button
+                onClick={handleSaveHomeConfig}
+                disabled={isSavingHomeConfig}
+                className="px-5 py-2.5 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-500 hover:from-emerald-500 hover:to-teal-400 text-white text-xs font-bold shadow-lg shadow-emerald-500/25 flex items-center gap-2 transition cursor-pointer disabled:opacity-50"
+              >
+                {isSavingHomeConfig ? (
+                  <RefreshCw size={15} className="animate-spin" />
+                ) : (
+                  <CheckCircle2 size={15} />
+                )}
+                <span>{isSavingHomeConfig ? 'Publishing...' : 'Save & Sync Mobile Feed'}</span>
+              </button>
+            </div>
+          </div>
+
+          {/* Quick Stats Pill */}
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+            <div className="p-3 rounded-xl bg-slate-950/70 border border-slate-800">
+              <span className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider block">Active Sections</span>
+              <span className="text-lg font-extrabold text-emerald-400">
+                {Object.values(homeSections).filter((s) => s?.enabled !== false).length} / 10 Active
+              </span>
+            </div>
+            <div className="p-3 rounded-xl bg-slate-950/70 border border-slate-800">
+              <span className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider block">Cache Performance</span>
+              <span className="text-lg font-extrabold text-teal-300">Redis &lt;20ms</span>
+            </div>
+            <div className="p-3 rounded-xl bg-slate-950/70 border border-slate-800">
+              <span className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider block">Network Requests</span>
+              <span className="text-lg font-extrabold text-purple-400">1 Unified Call</span>
+            </div>
+            <div className="p-3 rounded-xl bg-slate-950/70 border border-slate-800">
+              <span className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider block">Mobile Status</span>
+              <span className="text-lg font-extrabold text-white flex items-center gap-1.5">
+                <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+                Live Sync
+              </span>
+            </div>
+          </div>
+
+          {/* Section Grid */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {[
+              { key: 'heroBanners', label: 'Top Hero Banners Carousel', icon: '🎨', defaultLimit: 10, maxLimit: 20, desc: 'Auto-scrolling promo banners at top' },
+              { key: 'categories', label: "What's on your mind? (Categories)", icon: '🍕', defaultLimit: 12, maxLimit: 24, desc: 'Circular food category icons' },
+              { key: 'recommended', label: 'Recommended for You', icon: '👨‍🍳', defaultLimit: 15, maxLimit: 30, desc: 'Personalized food items based on cravings' },
+              { key: 'stealDeals', label: 'Steal Deals for You', icon: '🎟️', defaultLimit: 10, maxLimit: 20, desc: 'Discount offer banners & promotional cards' },
+              { key: 'under99', label: '99 Store', icon: '🏷️', defaultLimit: 18, maxLimit: 30, desc: 'Pocket-friendly budget dishes under ₹99' },
+              { key: 'restaurants', label: 'Restaurants Near You', icon: '🏪', defaultLimit: 10, maxLimit: 25, desc: 'Geolocated restaurant cards' },
+              { key: 'trending', label: 'Trending Dishes', icon: '🔥', defaultLimit: 15, maxLimit: 30, desc: 'Top ordered dishes in current area' },
+              { key: 'frequentlyBought', label: 'Frequently Bought (Grocery)', icon: '🛒', defaultLimit: 10, maxLimit: 25, desc: '10-minute quick commerce groceries' },
+              { key: 'spotlight', label: 'Spotlight Deals', icon: '✨', defaultLimit: 10, maxLimit: 20, desc: 'Full poster curated dining deals' },
+              { key: 'mustTry', label: 'Must-Try Products', icon: '⭐', defaultLimit: 15, maxLimit: 30, desc: 'Signature items from top restaurants' },
+            ].map((def) => {
+              const sec = homeSections[def.key] || { enabled: true, title: '', subtitle: '', limit: def.defaultLimit };
+              const isEnabled = sec.enabled !== false;
+
+              return (
+                <div
+                  key={def.key}
+                  className={`p-4 rounded-xl border transition ${
+                    isEnabled
+                      ? 'bg-slate-950/80 border-slate-800 hover:border-slate-700'
+                      : 'bg-slate-950/40 border-slate-900 opacity-60'
+                  }`}
+                >
+                  <div className="flex items-center justify-between mb-3">
+                    <div className="flex items-center gap-2.5">
+                      <span className="text-xl">{def.icon}</span>
+                      <div>
+                        <div className="flex items-center gap-2">
+                          <h4 className="font-bold text-white text-xs">{def.label}</h4>
+                          <span
+                            className={`text-[9px] font-bold px-1.5 py-0.5 rounded ${
+                              isEnabled
+                                ? 'bg-emerald-500/20 text-emerald-300'
+                                : 'bg-slate-800 text-slate-500'
+                            }`}
+                          >
+                            {isEnabled ? 'ACTIVE' : 'OFF'}
+                          </span>
+                        </div>
+                        <p className="text-[10px] text-slate-500">{def.desc}</p>
+                      </div>
+                    </div>
+
+                    <button
+                      type="button"
+                      onClick={() => handleSectionChange(def.key, 'enabled', !isEnabled)}
+                      className={`w-11 h-6 rounded-full transition relative flex items-center px-0.5 cursor-pointer ${
+                        isEnabled ? 'bg-emerald-500' : 'bg-slate-800'
+                      }`}
+                    >
+                      <div
+                        className={`w-5 h-5 rounded-full bg-white transition transform ${
+                          isEnabled ? 'translate-x-5' : 'translate-x-0'
+                        }`}
+                      />
+                    </button>
+                  </div>
+
+                  <div className="space-y-2.5 pt-1">
+                    <div>
+                      <label className="block text-[10px] font-semibold text-slate-400 mb-1">
+                        Section Title
+                      </label>
+                      <input
+                        type="text"
+                        value={sec.title || ''}
+                        placeholder={def.label}
+                        onChange={(e) => handleSectionChange(def.key, 'title', e.target.value)}
+                        className="w-full bg-slate-900 border border-slate-800 rounded-lg px-2.5 py-1.5 text-xs text-white focus:outline-none focus:border-emerald-500 font-medium"
+                      />
+                    </div>
+
+                    {def.key !== 'heroBanners' && def.key !== 'categories' && (
+                      <div>
+                        <label className="block text-[10px] font-semibold text-slate-400 mb-1">
+                          Subtitle / Tagline
+                        </label>
+                        <input
+                          type="text"
+                          value={sec.subtitle || ''}
+                          placeholder="Optional description under title"
+                          onChange={(e) => handleSectionChange(def.key, 'subtitle', e.target.value)}
+                          className="w-full bg-slate-900 border border-slate-800 rounded-lg px-2.5 py-1.5 text-xs text-slate-300 focus:outline-none focus:border-emerald-500 text-[11px]"
+                        />
+                      </div>
+                    )}
+
+                    <div>
+                      <div className="flex items-center justify-between mb-1">
+                        <label className="text-[10px] font-semibold text-slate-400">
+                          Max Items To Display
+                        </label>
+                        <span className="text-[11px] font-mono font-bold text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded">
+                          {sec.limit || def.defaultLimit} items
+                        </span>
+                      </div>
+                      <div className="flex items-center gap-3">
+                        <input
+                          type="range"
+                          min="3"
+                          max={def.maxLimit}
+                          value={sec.limit || def.defaultLimit}
+                          onChange={(e) => handleSectionChange(def.key, 'limit', Number(e.target.value))}
+                          className="w-full accent-emerald-500 cursor-pointer"
+                        />
+                        <div className="flex items-center gap-1">
+                          <button
+                            type="button"
+                            onClick={() =>
+                              handleSectionChange(
+                                def.key,
+                                'limit',
+                                Math.max(3, (sec.limit || def.defaultLimit) - 1)
+                              )
+                            }
+                            className="w-6 h-6 rounded bg-slate-800 hover:bg-slate-700 text-white font-bold text-xs flex items-center justify-center cursor-pointer"
+                          >
+                            -
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() =>
+                              handleSectionChange(
+                                def.key,
+                                'limit',
+                                Math.min(def.maxLimit, (sec.limit || def.defaultLimit) + 1)
+                              )
+                            }
+                            className="w-6 h-6 rounded bg-slate-800 hover:bg-slate-700 text-white font-bold text-xs flex items-center justify-center cursor-pointer"
+                          >
+                            +
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
       {/* Module 1: Vertical Kill Switches (Matching mobile flags.tsx) */}
+      {(activeTab === 'ALL' || activeTab === 'VERTICALS') && (
       <div className="p-6 rounded-2xl bg-slate-900/80 border border-slate-800 space-y-5">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
@@ -359,8 +657,10 @@ export const RemoteConfig = () => {
           </div>
         </div>
       </div>
+      )}
 
       {/* Module 2: Platform Fees & Taxes Management (Matching mobile fees.tsx) */}
+      {(activeTab === 'ALL' || activeTab === 'FEES') && (
       <div className="p-6 rounded-2xl bg-slate-900/80 border border-slate-800 space-y-5">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
           <div className="flex items-center gap-3">
@@ -556,8 +856,10 @@ export const RemoteConfig = () => {
           )}
         </div>
       </div>
+      )}
 
       {/* Module 3: App Kill-Switch & Maintenance Mode */}
+      {(activeTab === 'ALL' || activeTab === 'EMERGENCY') && (
       <div className="p-6 rounded-2xl bg-slate-900/80 border border-slate-800 space-y-4">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
@@ -605,8 +907,10 @@ export const RemoteConfig = () => {
           </div>
         )}
       </div>
+      )}
 
       {/* Module 4: App Versioning & Force Update Policy */}
+      {(activeTab === 'ALL' || activeTab === 'EMERGENCY') && (
       <div className="p-6 rounded-2xl bg-slate-900/80 border border-slate-800 space-y-4">
         <div className="flex items-center gap-3">
           <div className="w-10 h-10 rounded-xl bg-blue-500/20 text-blue-400 flex items-center justify-center">
@@ -660,8 +964,10 @@ export const RemoteConfig = () => {
           </div>
         </div>
       </div>
+      )}
 
       {/* Module 5: Feature Flags */}
+      {(activeTab === 'ALL' || activeTab === 'EMERGENCY') && (
       <div className="p-6 rounded-2xl bg-slate-900/80 border border-slate-800 space-y-4">
         <div className="flex items-center gap-3">
           <div className="w-10 h-10 rounded-xl bg-orange-500/20 text-orange-400 flex items-center justify-center">
@@ -704,6 +1010,7 @@ export const RemoteConfig = () => {
           ))}
         </div>
       </div>
+      )}
 
       {/* Add Custom Fee Modal */}
       {isCustomFeeModalOpen && (

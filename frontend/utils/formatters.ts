@@ -64,3 +64,17 @@ export function formatRelativeTime(dateString: string | Date | undefined | null)
     month: 'short',
   });
 }
+
+/**
+ * Decodes HTML entities into clean human-readable text
+ */
+export function decodeHtml(text?: string | null): string {
+  if (!text) return '';
+  return text
+    .replace(/&#x27;/g, "'")
+    .replace(/&#39;/g, "'")
+    .replace(/&quot;/g, '"')
+    .replace(/&amp;/g, '&')
+    .replace(/&lt;/g, '<')
+    .replace(/&gt;/g, '>');
+}

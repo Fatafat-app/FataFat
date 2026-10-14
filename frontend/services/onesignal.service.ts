@@ -56,7 +56,8 @@ export class OneSignalService {
 
     try {
       // Configure log levels
-      if (__DEV__ && LogLevel?.Verbose) {
+      const isDev = typeof __DEV__ !== 'undefined' ? Boolean(__DEV__) : false;
+      if (isDev && LogLevel?.Verbose) {
         OneSignal.Debug.setLogLevel(LogLevel.Verbose);
       } else if (LogLevel?.Warn) {
         OneSignal.Debug.setLogLevel(LogLevel.Warn);

@@ -27,11 +27,13 @@ const analyticsRoutes = require('../modules/analytics/analytics.routes');
 const supportRoutes = require('../modules/support/support.routes');
 const notificationRoutes = require('../modules/notifications/notification.routes');
 const bannerRoutes = require('../modules/banners/banner.routes');
+const feedRoutes = require('../modules/settings/feed.routes');
 
 const router = Router();
 
 // V2 Core Architecture Routes
 router.use('/config', settingsRoutes);
+router.use('/feed', feedRoutes);
 router.use('/vendors', vendorRoutes);
 router.use('/catalog', catalogRoutes);
 router.use('/checkout', checkoutRoutes);

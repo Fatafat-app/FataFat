@@ -104,6 +104,19 @@ async function updateOrderStatus(req, res) {
   return success(res, { order }, 'Order status updated successfully');
 }
 
+async function getHomeConfig(req, res) {
+  const feedService = require('../settings/feed.service');
+  const config = await feedService.getHomeConfig();
+  return success(res, { config }, 'Home configuration retrieved');
+}
+
+async function updateHomeConfig(req, res) {
+  const feedService = require('../settings/feed.service');
+  const userId = req.user?.id || req.user?._id;
+  const config = await feedService.updateHomeConfig(req.body, userId);
+  return success(res, { config }, 'Home configuration updated successfully');
+}
+
 module.exports = {
   getDashboard,
   listUsers,
@@ -122,4 +135,6 @@ module.exports = {
   getNotificationHistory,
   listOrders,
   updateOrderStatus,
+  getHomeConfig,
+  updateHomeConfig,
 };

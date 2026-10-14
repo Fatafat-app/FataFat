@@ -26,6 +26,10 @@ export interface MenuItem {
   isBestseller?: boolean;
   badge?: string;
   tags?: string[];
+  rating?: {
+    average?: number;
+    count?: number;
+  };
   modifierGroups?: MenuItemModifierGroup[];
   createdAt: string;
   updatedAt: string;
