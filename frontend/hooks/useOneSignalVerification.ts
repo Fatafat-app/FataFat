@@ -22,45 +22,59 @@ export function useOneSignalVerification() {
   const hasShownAlertRef = useRef<boolean>(false);
 
   useEffect(() => {
-    const handleVerification = (subscriptionId?: string | null) => {
-      if (
-        subscriptionId &&
-        typeof subscriptionId === 'string' &&
-        subscriptionId.trim().length > 0 &&
-        !subscriptionId.startsWith('local-') &&
-        !hasShownAlertRef.current
-      ) {
-        hasShownAlertRef.current = true;
-        Alert.alert(
-          'Your OneSignal SDK integration is complete!',
-          'You can now send Push Notifications & In-App Messages through OneSignal. Tap below to enable push notifications.',
-          [
-            {
-              text: 'Got it',
-              onPress: () => {
-                oneSignalService.requestPermission(true);
-              },
-            },
-          ]
-        );
+    try {
+      // Ensure OneSignal is initialized before registering observer
+      const isReady = oneSignalService.initialize();
+      if (!isReady) {
+        return;
       }
-    };
 
-    // 1. Evaluate immediately at observer-registration time
-    const initialId = oneSignalService.getPushSubscriptionId();
-    handleVerification(initialId);
+      const handleVerification = (subscriptionId?: string | null) => {
+        if (
+          subscriptionId &&
+          typeof subscriptionId === 'string' &&
+          subscriptionId.trim().length > 0 &&
+          !subscriptionId.startsWith('local-') &&
+          !hasShownAlertRef.current
+        ) {
+          hasShownAlertRef.current = true;
+          Alert.alert(
+            'Your OneSignal SDK integration is complete!',
+            'You can now send Push Notifications & In-App Messages through OneSignal. Tap below to enable push notifications.',
+            [
+              {
+                text: 'Got it',
+                onPress: () => {
+                  oneSignalService.requestPermission(true);
+                },
+              },
+            ]
+          );
+        }
+      };
 
-    // 2. Register push subscription observer and retain in useRef
-    observerRef.current = (event: any) => {
-      const currentId = event?.current?.id ?? event?.current?.subscriptionId;
-      handleVerification(currentId);
-    };
+      // 1. Evaluate immediately at observer-registration time
+      const initialId = oneSignalService.getPushSubscriptionId();
+      handleVerification(initialId);
 
-    oneSignalService.addPushSubscriptionObserver(observerRef.current);
+      // 2. Register push subscription observer and retain in useRef
+      observerRef.current = (event: any) => {
+        const currentId = event?.current?.id ?? event?.current?.subscriptionId;
+        handleVerification(currentId);
+      };
+
+      oneSignalService.addPushSubscriptionObserver(observerRef.current);
+    } catch (err) {
+      console.warn('[useOneSignalVerification] hook error:', err);
+    }
 
     return () => {
-      if (observerRef.current) {
-        oneSignalService.removePushSubscriptionObserver(observerRef.current);
+      try {
+        if (observerRef.current) {
+          oneSignalService.removePushSubscriptionObserver(observerRef.current);
+        }
+      } catch (err) {
+        // Safe cleanup
       }
     };
   }, []);

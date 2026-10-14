@@ -45,13 +45,13 @@ export class OneSignalService {
   /**
    * Initializes the OneSignal SDK with the configured App ID
    */
-  public initialize(appId: string = ONESIGNAL_APP_ID): void {
+  public initialize(appId: string = ONESIGNAL_APP_ID): boolean {
     if (this.isInitialized) {
-      return;
+      return true;
     }
 
     if (!OneSignal) {
-      return;
+      return false;
     }
 
     try {
@@ -66,20 +66,26 @@ export class OneSignalService {
       // Initialize SDK
       OneSignal.initialize(appId);
       this.isInitialized = true;
+      return true;
     } catch (error) {
-      console.error('[OneSignal] Initialization failed:', error);
+      console.warn('[OneSignal] Initialization failed:', error);
+      return false;
     }
+  }
+
+  public isReady(): boolean {
+    return this.isInitialized && !!OneSignal;
   }
 
   /**
    * Sets custom log level
    */
   public setLogLevel(level: any): void {
-    if (!OneSignal) return;
+    if (!OneSignal || !this.isInitialized) return;
     try {
       OneSignal.Debug.setLogLevel(level);
     } catch (error) {
-      console.error('[OneSignal] setLogLevel error:', error);
+      console.warn('[OneSignal] setLogLevel error:', error);
     }
   }
 
@@ -87,11 +93,11 @@ export class OneSignalService {
    * Set user identity (login external user ID)
    */
   public login(externalId: string): void {
-    if (!OneSignal || !externalId) return;
+    if (!OneSignal || !this.isInitialized || !externalId) return;
     try {
       OneSignal.login(String(externalId));
     } catch (error) {
-      console.error('[OneSignal] login error:', error);
+      console.warn('[OneSignal] login error:', error);
     }
   }
 
@@ -99,11 +105,11 @@ export class OneSignalService {
    * Clear user identity (logout)
    */
   public logout(): void {
-    if (!OneSignal) return;
+    if (!OneSignal || !this.isInitialized) return;
     try {
       OneSignal.logout();
     } catch (error) {
-      console.error('[OneSignal] logout error:', error);
+      console.warn('[OneSignal] logout error:', error);
     }
   }
 
@@ -111,11 +117,11 @@ export class OneSignalService {
    * Add email subscription for current user
    */
   public addEmail(email: string): void {
-    if (!OneSignal || !email) return;
+    if (!OneSignal || !this.isInitialized || !email) return;
     try {
       OneSignal.User.addEmail(email);
     } catch (error) {
-      console.error('[OneSignal] addEmail error:', error);
+      console.warn('[OneSignal] addEmail error:', error);
     }
   }
 
@@ -123,11 +129,11 @@ export class OneSignalService {
    * Remove email subscription
    */
   public removeEmail(email: string): void {
-    if (!OneSignal || !email) return;
+    if (!OneSignal || !this.isInitialized || !email) return;
     try {
       OneSignal.User.removeEmail(email);
     } catch (error) {
-      console.error('[OneSignal] removeEmail error:', error);
+      console.warn('[OneSignal] removeEmail error:', error);
     }
   }
 
@@ -135,11 +141,11 @@ export class OneSignalService {
    * Add SMS subscription for current user
    */
   public addSms(smsNumber: string): void {
-    if (!OneSignal || !smsNumber) return;
+    if (!OneSignal || !this.isInitialized || !smsNumber) return;
     try {
       OneSignal.User.addSms(smsNumber);
     } catch (error) {
-      console.error('[OneSignal] addSms error:', error);
+      console.warn('[OneSignal] addSms error:', error);
     }
   }
 
@@ -147,11 +153,11 @@ export class OneSignalService {
    * Remove SMS subscription
    */
   public removeSms(smsNumber: string): void {
-    if (!OneSignal || !smsNumber) return;
+    if (!OneSignal || !this.isInitialized || !smsNumber) return;
     try {
       OneSignal.User.removeSms(smsNumber);
     } catch (error) {
-      console.error('[OneSignal] removeSms error:', error);
+      console.warn('[OneSignal] removeSms error:', error);
     }
   }
 
@@ -159,11 +165,11 @@ export class OneSignalService {
    * Add user tag
    */
   public addTag(key: string, value: string): void {
-    if (!OneSignal || !key) return;
+    if (!OneSignal || !this.isInitialized || !key) return;
     try {
       OneSignal.User.addTag(key, String(value));
     } catch (error) {
-      console.error('[OneSignal] addTag error:', error);
+      console.warn('[OneSignal] addTag error:', error);
     }
   }
 
@@ -171,11 +177,11 @@ export class OneSignalService {
    * Add multiple user tags
    */
   public addTags(tags: Record<string, string>): void {
-    if (!OneSignal || !tags) return;
+    if (!OneSignal || !this.isInitialized || !tags) return;
     try {
       OneSignal.User.addTags(tags);
     } catch (error) {
-      console.error('[OneSignal] addTags error:', error);
+      console.warn('[OneSignal] addTags error:', error);
     }
   }
 
@@ -183,11 +189,11 @@ export class OneSignalService {
    * Remove user tag
    */
   public removeTag(key: string): void {
-    if (!OneSignal || !key) return;
+    if (!OneSignal || !this.isInitialized || !key) return;
     try {
       OneSignal.User.removeTag(key);
     } catch (error) {
-      console.error('[OneSignal] removeTag error:', error);
+      console.warn('[OneSignal] removeTag error:', error);
     }
   }
 
@@ -195,11 +201,11 @@ export class OneSignalService {
    * Remove multiple user tags
    */
   public removeTags(keys: string[]): void {
-    if (!OneSignal || !keys || keys.length === 0) return;
+    if (!OneSignal || !this.isInitialized || !keys || keys.length === 0) return;
     try {
       OneSignal.User.removeTags(keys);
     } catch (error) {
-      console.error('[OneSignal] removeTags error:', error);
+      console.warn('[OneSignal] removeTags error:', error);
     }
   }
 
@@ -207,11 +213,11 @@ export class OneSignalService {
    * Request push notification permission
    */
   public async requestPermission(fallbackToSettings: boolean = true): Promise<boolean> {
-    if (!OneSignal) return false;
+    if (!OneSignal || !this.isInitialized) return false;
     try {
       return await OneSignal.Notifications.requestPermission(fallbackToSettings);
     } catch (error) {
-      console.error('[OneSignal] requestPermission error:', error);
+      console.warn('[OneSignal] requestPermission error:', error);
       return false;
     }
   }
@@ -220,12 +226,12 @@ export class OneSignalService {
    * Retrieve current push subscription ID (server-assigned ID)
    */
   public getPushSubscriptionId(): string | null {
-    if (!OneSignal) return null;
+    if (!OneSignal || !this.isInitialized) return null;
     try {
       const sub = OneSignal.User?.pushSubscription;
       return sub?.id ?? sub?.getPushSubscriptionId?.() ?? null;
     } catch (error) {
-      console.error('[OneSignal] getPushSubscriptionId error:', error);
+      console.warn('[OneSignal] getPushSubscriptionId error:', error);
       return null;
     }
   }
@@ -234,12 +240,12 @@ export class OneSignalService {
    * Retrieve current push subscription token
    */
   public getPushSubscriptionToken(): string | null {
-    if (!OneSignal) return null;
+    if (!OneSignal || !this.isInitialized) return null;
     try {
       const sub = OneSignal.User?.pushSubscription;
       return sub?.token ?? sub?.getPushSubscriptionToken?.() ?? null;
     } catch (error) {
-      console.error('[OneSignal] getPushSubscriptionToken error:', error);
+      console.warn('[OneSignal] getPushSubscriptionToken error:', error);
       return null;
     }
   }
@@ -248,7 +254,7 @@ export class OneSignalService {
    * Check if user is currently opted in to push notifications
    */
   public isPushSubscribed(): boolean {
-    if (!OneSignal) return false;
+    if (!OneSignal || !this.isInitialized) return false;
     try {
       return !!OneSignal.User?.pushSubscription?.optedIn;
     } catch (error) {
@@ -260,11 +266,11 @@ export class OneSignalService {
    * Register a push subscription state change observer
    */
   public addPushSubscriptionObserver(observer: (state: any) => void): void {
-    if (!OneSignal) return;
+    if (!OneSignal || !this.isInitialized) return;
     try {
       OneSignal.User?.pushSubscription?.addEventListener('change', observer);
     } catch (error) {
-      console.error('[OneSignal] addPushSubscriptionObserver error:', error);
+      console.warn('[OneSignal] addPushSubscriptionObserver error:', error);
     }
   }
 
@@ -272,11 +278,11 @@ export class OneSignalService {
    * Remove a push subscription state change observer
    */
   public removePushSubscriptionObserver(observer: (state: any) => void): void {
-    if (!OneSignal) return;
+    if (!OneSignal || !this.isInitialized) return;
     try {
       OneSignal.User?.pushSubscription?.removeEventListener('change', observer);
     } catch (error) {
-      console.error('[OneSignal] removePushSubscriptionObserver error:', error);
+      console.warn('[OneSignal] removePushSubscriptionObserver error:', error);
     }
   }
 }
