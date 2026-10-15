@@ -69,7 +69,7 @@ export default function RiderDeliveryScreen() {
             try {
               setIsUpdating(true);
               await updateDeliveryStatus(partner.activeOrder!._id, targetStatus);
-              
+
               if (targetStatus === 'DELIVERED') {
                 Alert.alert(
                   'Delivery Completed! 🎉',
