@@ -17,6 +17,7 @@ import { formatPaise } from '../../utils/formatters';
 import { Order, OrderStatus } from '../../types';
 import { Typography, Colors } from '../../constants/Theme';
 import { OrderCardSkeleton } from '../../components/ui/Skeleton';
+import { socketService } from '../../services/socket.service';
 
 type FilterTab = 'ALL' | 'PENDING' | 'PREPARING' | 'READY' | 'OUT_FOR_DELIVERY' | 'COMPLETED';
 
@@ -28,7 +29,36 @@ export default function OwnerOrdersScreen() {
 
   useEffect(() => {
     fetchOwnerData();
-  }, []);
+
+    let activeSocket: any = null;
+    socketService.connect().then((sock) => {
+      activeSocket = sock;
+      if (restaurant?._id) {
+        sock.emit('restaurant:join', { restaurantId: restaurant._id });
+      }
+
+      sock.on('order:rider_assigned', () => {
+        fetchOwnerData();
+      });
+      sock.on('order:new', () => {
+        fetchOwnerData();
+      });
+      sock.on('order:status_changed', () => {
+        fetchOwnerData();
+      });
+    });
+
+    return () => {
+      if (activeSocket) {
+        if (restaurant?._id) {
+          activeSocket.emit('restaurant:leave', { restaurantId: restaurant._id });
+        }
+        activeSocket.off('order:rider_assigned');
+        activeSocket.off('order:new');
+        activeSocket.off('order:status_changed');
+      }
+    };
+  }, [restaurant?._id]);
 
   const onRefresh = async () => {
     setRefreshing(true);
@@ -179,6 +209,7 @@ export default function OwnerOrdersScreen() {
             const instructions = (order as any).specialInstructions || order.deliveryInstructions;
             const totalPrice = order.pricing?.totalAmount || (order as any).totalAmount || 0;
             const paymentMethod = (order as any).paymentMethod || ((order as any).payment?.method) || 'COD';
+            const rider = (order as any).deliveryPartner || (order as any).deliveryPartnerId;
 
             return (
               <View
@@ -255,6 +286,44 @@ export default function OwnerOrdersScreen() {
                     </Text>
                   </View>
                 </View>
+
+                {/* Delivery Partner Assigned Box */}
+                {rider ? (
+                  <View style={styles.riderBox}>
+                    <View style={styles.riderHeaderRow}>
+                      <View style={styles.riderInfoLeft}>
+                        <View style={styles.riderIconBadge}>
+                          <Ionicons name="bicycle" size={16} color="#2563EB" />
+                        </View>
+                        <View>
+                          <Text style={styles.riderRoleLabel}>DELIVERY PARTNER</Text>
+                          <Text style={styles.riderName}>{rider.name || 'Assigned Partner'}</Text>
+                        </View>
+                      </View>
+
+                      {rider.phone ? (
+                        <TouchableOpacity
+                          onPress={() => handleCallCustomer(rider.phone)}
+                          style={styles.callRiderBtn}
+                          activeOpacity={0.7}
+                        >
+                          <Ionicons name="call" size={12} color="#FFF" style={{ marginRight: 4 }} />
+                          <Text style={styles.callRiderBtnText}>Call Rider</Text>
+                        </TouchableOpacity>
+                      ) : null}
+                    </View>
+                    <View style={styles.riderSubRow}>
+                      <Text style={styles.riderSubText}>
+                        {rider.vehicle?.type?.toUpperCase() || rider.vehicleDetails?.model || 'SCOOTER'} • {rider.vehicle?.licenseNumber || rider.vehicleDetails?.plateNumber || 'Verified Partner'}
+                      </Text>
+                    </View>
+                  </View>
+                ) : !isDelivered && !isCancelled ? (
+                  <View style={styles.unassignedRiderBox}>
+                    <Ionicons name="time-outline" size={14} color="#D97706" style={{ marginRight: 6 }} />
+                    <Text style={styles.unassignedRiderText}>Waiting for delivery partner to accept...</Text>
+                  </View>
+                ) : null}
 
                 {/* Special Instructions Note */}
                 {instructions ? (
@@ -514,6 +583,48 @@ const styles = StyleSheet.create({
   callButtonText: { ...Typography.button, color: '#FFF', fontSize: 11 },
   addressRow: { flexDirection: 'row', alignItems: 'flex-start', marginTop: 2 },
   addressText: { ...Typography.bodySmall, fontSize: 12, color: '#475569', flex: 1 },
+
+  riderBox: {
+    backgroundColor: '#EFF6FF',
+    borderRadius: 12,
+    padding: 12,
+    marginBottom: 10,
+    borderWidth: 1,
+    borderColor: '#BFDBFE',
+  },
+  riderHeaderRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 4,
+  },
+  riderInfoLeft: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  riderIconBadge: { width: 28, height: 28, borderRadius: 14, backgroundColor: '#DBEAFE', alignItems: 'center', justifyContent: 'center' },
+  riderRoleLabel: { ...Typography.caption, fontSize: 9, color: '#1E40AF', fontWeight: '800', letterSpacing: 0.5 },
+  riderName: { ...Typography.title, fontSize: 13, color: '#1E293B', fontWeight: '700' },
+  callRiderBtn: {
+    backgroundColor: '#2563EB',
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 12,
+  },
+  callRiderBtnText: { ...Typography.button, color: '#FFF', fontSize: 11 },
+  riderSubRow: { marginTop: 4, paddingLeft: 36 },
+  riderSubText: { ...Typography.caption, fontSize: 11, color: '#64748B' },
+  unassignedRiderBox: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#FEF3C7',
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 10,
+    marginBottom: 10,
+    borderWidth: 1,
+    borderColor: '#FDE68A',
+  },
+  unassignedRiderText: { ...Typography.caption, color: '#92400E', fontSize: 11, fontWeight: '600' },
 
   instructionsBox: {
     flexDirection: 'row',

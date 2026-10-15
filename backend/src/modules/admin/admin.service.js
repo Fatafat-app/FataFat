@@ -6,7 +6,8 @@ const Order = require('../orders/order.model');
 const DeliveryPartner = require('../delivery/delivery.model');
 const AuditLog = require('./auditLog.model');
 const { ORDER_STATUS, PAYMENT_STATUS } = require('../../common/constants/orderStatuses');
-const { NotFoundError } = require('../../common/errors');
+const { NotFoundError, BusinessError } = require('../../common/errors');
+const logger = require('../../config/logger');
 const { getPagination, buildPaginationMeta } = require('../../common/utils/pagination');
 
 async function getDashboardOverview() {
@@ -547,6 +548,7 @@ async function listOrdersAdmin(query) {
       .populate('customerId', 'name phone email role')
       .populate('restaurant', 'name coverImage phone')
       .populate('vendorId', 'name images phone')
+      .populate('deliveryPartner', 'name phone vehicle')
       .populate('items.menuItem', 'images isVeg')
       .populate('items.itemId', 'images isVeg')
       .sort({ createdAt: -1 })

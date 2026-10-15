@@ -1,6 +1,15 @@
 import axios from 'axios';
 
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000/api/v1';
+const normalizeApiUrl = (url) => {
+  if (!url) return 'http://localhost:3000/api/v1';
+  let trimmed = String(url).trim().replace(/\/+$/, '');
+  if (!trimmed.endsWith('/api/v1')) {
+    trimmed = `${trimmed}/api/v1`;
+  }
+  return trimmed;
+};
+
+const API_BASE_URL = normalizeApiUrl(import.meta.env.VITE_API_URL);
 
 export const apiClient = axios.create({
   baseURL: API_BASE_URL,

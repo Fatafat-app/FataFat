@@ -101,6 +101,10 @@ export default function SearchScreen() {
   useEffect(() => {
     if (params.q) {
       const q = Array.isArray(params.q) ? params.q[0] : params.q;
+      if (typeof q === 'string' && q.toLowerCase() === 'recommended') {
+        router.replace('/recommended');
+        return;
+      }
       setQuery(q);
       setDebouncedQuery(q);
     }

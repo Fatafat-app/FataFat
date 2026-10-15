@@ -176,7 +176,9 @@ export const AdminLayout = () => {
                 <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
                 Backend API
               </span>
-              <span className="text-[11px] text-emerald-400 font-mono">Port 3000</span>
+              <span className={`text-[11px] font-mono ${isBackendConnected ? 'text-emerald-400' : 'text-rose-400'}`}>
+                {isBackendConnected ? 'Connected' : 'Offline'}
+              </span>
             </div>
             <div className="flex items-center justify-between text-xs text-slate-400">
               <span>Rain Surge:</span>
@@ -248,7 +250,7 @@ export const AdminLayout = () => {
             >
               <span className={`w-2 h-2 rounded-full ${isBackendConnected ? 'bg-emerald-400 animate-pulse' : 'bg-rose-500'}`} />
               <span className="hidden sm:inline font-mono text-[11px]">
-                {isBackendConnected ? 'Live MongoDB: 3000' : 'Backend Disconnected'}
+                {isBackendConnected ? 'Backend Live' : 'Backend Disconnected'}
               </span>
             </button>
 
@@ -296,12 +298,12 @@ export const AdminLayout = () => {
 
             {/* Customer App Link */}
             <a
-              href="http://localhost:8081"
+              href={import.meta.env.VITE_CONSUMER_APP_URL || 'http://localhost:8081'}
               target="_blank"
               rel="noreferrer"
               className="hidden md:flex items-center gap-1 text-xs text-orange-400 hover:text-orange-300 bg-orange-500/10 border border-orange-500/20 px-3 py-1.5 rounded-xl transition font-medium"
             >
-              <span>Consumer App (Expo)</span>
+              <span>Consumer App</span>
               <ExternalLink size={13} />
             </a>
           </div>

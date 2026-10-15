@@ -120,6 +120,7 @@ const orderSchema = new mongoose.Schema(
     },
 
     // 3. Delivery Status Track
+    deliveryPartner: { type: mongoose.Schema.Types.ObjectId, ref: 'User', index: true },
     delivery: {
       status: {
         type: String,

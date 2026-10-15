@@ -881,7 +881,7 @@ export default function HomeScreen() {
                   </View>
                   <TouchableOpacity
                     activeOpacity={0.7}
-                    onPress={() => router.push({ pathname: '/(tabs)/search', params: { q: 'Recommended' } })}
+                    onPress={() => router.push('/recommended' as any)}
                     style={{
                       flexDirection: 'row',
                       alignItems: 'center',
@@ -1394,7 +1394,7 @@ export default function HomeScreen() {
                 onChangeQty={updateQuantity}
                 onOpenProduct={(id) => router.push({ pathname: '/food/[id]', params: { id } } as any)}
                 onOpenRestaurant={(id) => router.push(`/restaurant/${id}`)}
-                onViewAll={() => router.push({ pathname: '/(tabs)/search', params: { q: 'budget' } } as any)}
+                onViewAll={() => router.push('/(tabs)/under99' as any)}
               />
             )}
 

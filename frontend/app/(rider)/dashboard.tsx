@@ -10,8 +10,8 @@ import {
   StyleSheet,
   Alert,
   Image,
+  SafeAreaView,
 } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
 import { useRiderStore } from '../../store/rider.store';
@@ -23,29 +23,64 @@ import { DashboardSkeleton } from '../../components/ui/Skeleton';
 import * as Location from 'expo-location';
 
 export default function RiderDashboardScreen() {
-  const { partner, isLoading, fetchProfile, toggleOnline, updateLiveLocation } = useRiderStore();
+  const {
+    partner,
+    isLoading,
+    fetchProfile,
+    toggleOnline,
+    updateLiveLocation,
+    availableOrders,
+    fetchAvailableOrders,
+    acceptOrder,
+    removeClaimedOrder,
+    addAvailableOrder,
+  } = useRiderStore();
   const user = useAuthStore((state) => state.user);
+  const [acceptingId, setAcceptingId] = React.useState<string | null>(null);
   
   const locationIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   useEffect(() => {
     fetchProfile();
-    return () => stopLocationInterval();
+    fetchAvailableOrders();
+    // Poll available orders every 7 seconds for live updates
+    const pollInterval = setInterval(() => {
+      fetchAvailableOrders();
+    }, 7000);
+    return () => {
+      clearInterval(pollInterval);
+      stopLocationInterval();
+    };
   }, []);
 
   useEffect(() => {
     // Start interval when online
     if (partner?.isOnline) {
       startLocationInterval();
+      fetchAvailableOrders();
     } else {
       stopLocationInterval();
     }
   }, [partner?.isOnline]);
 
   useEffect(() => {
+    let activeSocket: any = null;
+
     const startSocketListeners = async () => {
-      const socket = await socketService.connect();
-      socket.on('delivery:order_assigned', (data) => {
+      activeSocket = await socketService.connect();
+      
+      // When a new order is placed and waiting for a rider
+      activeSocket.on('delivery:order_available', (data: any) => {
+        addAvailableOrder(data);
+      });
+
+      // When another rider claims an order, remove it immediately in real-time
+      activeSocket.on('delivery:order_claimed', ({ orderId }: { orderId: string }) => {
+        removeClaimedOrder(orderId);
+      });
+
+      // When order is directly assigned
+      activeSocket.on('delivery:order_assigned', (data: any) => {
         Alert.alert(
           'New Delivery Request 🚨',
           `You have been assigned an order from ${data.restaurant?.name || 'Restaurant'}. Pickup location is nearby!`,
@@ -53,16 +88,18 @@ export default function RiderDashboardScreen() {
             { text: 'View Route', onPress: () => router.push('/(rider)/delivery') }
           ]
         );
-        fetchProfile(); // Pull new active order data
+        fetchProfile();
       });
     };
 
     startSocketListeners();
 
     return () => {
-      // Remove listeners safely if socket is initialized
-      const socket = socketService.connect();
-      socket.then((s) => s.off('delivery:order_assigned'));
+      if (activeSocket) {
+        activeSocket.off('delivery:order_available');
+        activeSocket.off('delivery:order_claimed');
+        activeSocket.off('delivery:order_assigned');
+      }
     };
   }, []);
 
@@ -94,6 +131,24 @@ export default function RiderDashboardScreen() {
       }
     }
     await toggleOnline();
+  };
+
+  const handleAcceptOrder = async (orderId: string) => {
+    try {
+      setAcceptingId(orderId);
+      const success = await acceptOrder(orderId);
+      if (success) {
+        Alert.alert('Order Accepted! 🚀', 'Heading to delivery route screen.', [
+          { text: 'Start Pickup', onPress: () => router.push('/(rider)/delivery') }
+        ]);
+      }
+    } finally {
+      setAcceptingId(null);
+    }
+  };
+
+  const handleRefresh = async () => {
+    await Promise.all([fetchProfile(), fetchAvailableOrders()]);
   };
 
   if (isLoading && !partner) {
@@ -160,7 +215,7 @@ export default function RiderDashboardScreen() {
         style={styles.scrollContainer}
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
-        refreshControl={<RefreshControl refreshing={isLoading} onRefresh={fetchProfile} colors={['#2563EB']} />}
+        refreshControl={<RefreshControl refreshing={isLoading} onRefresh={handleRefresh} colors={['#2563EB']} />}
       >
         {/* Active Order Alert */}
         {partner?.activeOrder && (
@@ -182,6 +237,148 @@ export default function RiderDashboardScreen() {
               <Ionicons name="arrow-forward" size={20} color="#FFF" />
             </View>
           </TouchableOpacity>
+        )}
+
+        {/* Live Available Orders Feed */}
+        {!partner?.activeOrder && (
+          <View style={styles.ordersFeedSection}>
+            <View style={styles.feedHeaderRow}>
+              <View style={styles.feedTitleContainer}>
+                <View style={[styles.radarPulseDot, !isOnline && { backgroundColor: '#94A3B8' }]} />
+                <Text style={styles.sectionTitleBold}>LIVE ORDERS NEARBY</Text>
+              </View>
+              <View style={[styles.liveBadge, !isOnline && styles.offlineBadge]}>
+                <Text style={[styles.liveBadgeText, !isOnline && styles.offlineBadgeText]}>
+                  {availableOrders.length} {availableOrders.length === 1 ? 'ORDER' : 'ORDERS'}
+                </Text>
+              </View>
+            </View>
+
+            {!isOnline && (
+              <TouchableOpacity onPress={handleOnlineToggle} style={styles.offlineNoticeBanner} activeOpacity={0.8}>
+                <Ionicons name="power" size={16} color="#DC2626" style={{ marginRight: 8 }} />
+                <Text style={styles.offlineNoticeText}>
+                  You are currently OFFLINE. Tap here or switch toggle to go online & accept orders!
+                </Text>
+              </TouchableOpacity>
+            )}
+
+            {availableOrders.length === 0 ? (
+              <View style={styles.emptyFeedCard}>
+                <View style={[styles.emptyRadarIconCircle, !isOnline && { backgroundColor: '#F1F5F9' }]}>
+                  <Ionicons name={isOnline ? "radio" : "cloud-offline"} size={30} color={isOnline ? "#3B82F6" : "#64748B"} />
+                </View>
+                <Text style={styles.emptyFeedTitle}>
+                  {isOnline ? 'Searching for nearby orders...' : 'No orders available yet'}
+                </Text>
+                <Text style={styles.emptyFeedSubtitle}>
+                  {isOnline
+                    ? "You're online and visible. New customer orders will pop up here in real-time!"
+                    : "Turn your status ONLINE to receive incoming delivery requests."}
+                </Text>
+              </View>
+            ) : (
+              availableOrders.map((order: any) => {
+                const orderId = order._id || order.id || order.orderId;
+                const isAcceptingThis = acceptingId === orderId;
+                const restName = order.restaurantName || order.restaurant?.name || 'Restaurant Partner';
+                const restAddr = order.restaurantAddress || order.restaurant?.address?.street || order.restaurant?.address?.line1 || order.restaurant?.address?.city || 'Local Kitchen';
+                const dropAddr = order.deliveryAddress?.line1 || order.deliveryAddress?.street || (typeof order.deliveryAddress === 'string' ? order.deliveryAddress : 'Customer Address');
+                const payoutPaise = order.deliveryFee || 4000;
+                const itemsCount = order.itemsCount || order.items?.length || 1;
+                const totalAmountPaise = order.totalAmount || order.pricing?.totalAmount || 0;
+
+                return (
+                  <View key={orderId} style={styles.orderAvailableCard}>
+                    {/* Card Top: Order Number & Payout */}
+                    <View style={styles.orderCardTopRow}>
+                      <View style={styles.orderNumTag}>
+                        <Text style={styles.orderNumText}>
+                          #{order.orderNumber || String(orderId).slice(-6).toUpperCase()}
+                        </Text>
+                      </View>
+                      <View style={styles.payoutBadge}>
+                        <Text style={styles.payoutLabel}>YOU EARN</Text>
+                        <Text style={styles.payoutAmount}>{formatPaise(payoutPaise)}</Text>
+                      </View>
+                    </View>
+
+                    {/* Route Details */}
+                    <View style={styles.routeContainer}>
+                      {/* Pickup */}
+                      <View style={styles.routePointRow}>
+                        <View style={[styles.routeIconDot, { backgroundColor: '#F59E0B' }]}>
+                          <Ionicons name="storefront" size={12} color="#FFF" />
+                        </View>
+                        <View style={styles.routeTextContainer}>
+                          <Text style={styles.routePointTitle} numberOfLines={1}>{restName}</Text>
+                          <Text style={styles.routePointSub} numberOfLines={1}>{restAddr}</Text>
+                        </View>
+                      </View>
+
+                      {/* Route Line */}
+                      <View style={styles.routeDottedLine} />
+
+                      {/* Drop */}
+                      <View style={styles.routePointRow}>
+                        <View style={[styles.routeIconDot, { backgroundColor: '#10B981' }]}>
+                          <Ionicons name="location" size={12} color="#FFF" />
+                        </View>
+                        <View style={styles.routeTextContainer}>
+                          <Text style={styles.routePointTitle}>Delivery Location</Text>
+                          <Text style={styles.routePointSub} numberOfLines={1}>{dropAddr}</Text>
+                        </View>
+                      </View>
+                    </View>
+
+                    {/* Order Meta */}
+                    <View style={styles.orderMetaBar}>
+                      <View style={styles.orderMetaItem}>
+                        <Ionicons name="fast-food-outline" size={14} color="#64748B" />
+                        <Text style={styles.orderMetaText}>{itemsCount} items</Text>
+                      </View>
+                      <View style={styles.orderMetaItem}>
+                        <Ionicons name="card-outline" size={14} color="#64748B" />
+                        <Text style={styles.orderMetaText}>{formatPaise(totalAmountPaise)} order</Text>
+                      </View>
+                    </View>
+
+                    {/* Accept Action Button */}
+                    <TouchableOpacity
+                      onPress={() => {
+                        if (!isOnline) {
+                          handleOnlineToggle();
+                        } else {
+                          handleAcceptOrder(orderId);
+                        }
+                      }}
+                      disabled={isAcceptingThis || (isOnline && acceptingId !== null)}
+                      style={[
+                        styles.acceptOrderBtn,
+                        !isOnline && styles.acceptOrderBtnOffline,
+                        isAcceptingThis && styles.acceptOrderBtnDisabled,
+                      ]}
+                      activeOpacity={0.8}
+                    >
+                      {isAcceptingThis ? (
+                        <ActivityIndicator color="#FFF" size="small" />
+                      ) : !isOnline ? (
+                        <>
+                          <Ionicons name="power" size={16} color="#FFF" style={{ marginRight: 6 }} />
+                          <Text style={styles.acceptOrderBtnText}>GO ONLINE TO ACCEPT</Text>
+                        </>
+                      ) : (
+                        <>
+                          <Ionicons name="flash" size={18} color="#FFF" style={{ marginRight: 6 }} />
+                          <Text style={styles.acceptOrderBtnText}>ACCEPT DELIVERY ⚡</Text>
+                        </>
+                      )}
+                    </TouchableOpacity>
+                  </View>
+                );
+              })
+            )}
+          </View>
         )}
 
         {/* Premium Dashboard Metrics */}
@@ -324,4 +521,95 @@ const styles = StyleSheet.create({
   settingRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingVertical: 12, borderBottomWidth: 1, borderBottomColor: '#F1F5F9' },
   settingLabel: { ...Typography.bodySmall, fontSize: 14, color: '#475569' },
   settingValue: { ...Typography.button, fontSize: 14, color: '#0F172A' },
+
+  /* Live Feed Styles */
+  ordersFeedSection: { marginBottom: 24 },
+  feedHeaderRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 },
+  feedTitleContainer: { flexDirection: 'row', alignItems: 'center' },
+  radarPulseDot: { width: 10, height: 10, borderRadius: 5, backgroundColor: '#EF4444', marginRight: 8 },
+  sectionTitleBold: { ...Typography.label, fontSize: 13, letterSpacing: 0.8, color: '#0F172A', fontWeight: '700' },
+  liveBadge: { backgroundColor: '#DCFCE7', paddingHorizontal: 10, paddingVertical: 4, borderRadius: 12, borderWidth: 1, borderColor: '#86EFAC' },
+  liveBadgeText: { ...Typography.caption, color: '#166534', fontWeight: '700', fontSize: 11 },
+  offlineBadge: { backgroundColor: '#F1F5F9', borderColor: '#CBD5E1' },
+  offlineBadgeText: { color: '#64748B' },
+
+  offlineNoticeBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#FEF2F2',
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+    borderRadius: 14,
+    marginBottom: 14,
+    borderWidth: 1,
+    borderColor: '#FECACA',
+  },
+  offlineNoticeText: { ...Typography.caption, color: '#B91C1C', flex: 1, fontWeight: '600', fontSize: 12 },
+
+  emptyFeedCard: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 24,
+    padding: 24,
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+    borderStyle: 'dashed',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.03,
+    shadowRadius: 6,
+    elevation: 1,
+  },
+  emptyRadarIconCircle: { width: 56, height: 56, borderRadius: 28, backgroundColor: '#EFF6FF', alignItems: 'center', justifyContent: 'center', marginBottom: 12 },
+  emptyFeedTitle: { ...Typography.title, fontSize: 15, color: '#1E293B', marginBottom: 4 },
+  emptyFeedSubtitle: { ...Typography.bodySmall, fontSize: 12, color: '#64748B', textAlign: 'center', lineHeight: 18, paddingHorizontal: 16 },
+
+  orderAvailableCard: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 24,
+    padding: 18,
+    marginBottom: 14,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.08,
+    shadowRadius: 10,
+    elevation: 4,
+    borderWidth: 1.5,
+    borderColor: '#3B82F6',
+  },
+  orderCardTopRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 },
+  orderNumTag: { backgroundColor: '#F1F5F9', paddingHorizontal: 10, paddingVertical: 4, borderRadius: 8 },
+  orderNumText: { ...Typography.caption, fontWeight: '700', color: '#334155', letterSpacing: 0.5 },
+  payoutBadge: { backgroundColor: '#ECFDF5', paddingHorizontal: 12, paddingVertical: 6, borderRadius: 12, alignItems: 'flex-end', borderWidth: 1, borderColor: '#A7F3D0' },
+  payoutLabel: { ...Typography.caption, fontSize: 9, color: '#059669', fontWeight: '800' },
+  payoutAmount: { ...Typography.heading, fontSize: 18, color: '#047857' },
+
+  routeContainer: { backgroundColor: '#F8FAFC', borderRadius: 16, padding: 12, marginBottom: 12 },
+  routePointRow: { flexDirection: 'row', alignItems: 'center' },
+  routeIconDot: { width: 22, height: 22, borderRadius: 11, alignItems: 'center', justifyContent: 'center', marginRight: 10 },
+  routeTextContainer: { flex: 1 },
+  routePointTitle: { ...Typography.title, fontSize: 13, color: '#0F172A' },
+  routePointSub: { ...Typography.bodySmall, fontSize: 11, color: '#64748B' },
+  routeDottedLine: { width: 2, height: 14, backgroundColor: '#CBD5E1', marginLeft: 10, marginVertical: 3 },
+
+  orderMetaBar: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: 4, marginBottom: 14 },
+  orderMetaItem: { flexDirection: 'row', alignItems: 'center', gap: 4 },
+  orderMetaText: { ...Typography.caption, color: '#64748B', fontSize: 12 },
+
+  acceptOrderBtn: {
+    backgroundColor: '#2563EB',
+    borderRadius: 16,
+    paddingVertical: 14,
+    flexDirection: 'row',
+    justifyContent: 'center',
+    alignItems: 'center',
+    shadowColor: '#2563EB',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 3,
+  },
+  acceptOrderBtnOffline: { backgroundColor: '#475569', shadowColor: '#475569' },
+  acceptOrderBtnDisabled: { backgroundColor: '#94A3B8', shadowOpacity: 0 },
+  acceptOrderBtnText: { ...Typography.button, color: '#FFFFFF', fontSize: 14, letterSpacing: 0.5 },
 });

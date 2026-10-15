@@ -9,6 +9,7 @@ import {
   StyleSheet,
   Image,
   Modal,
+  Linking,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useLocalSearchParams, router } from 'expo-router';
@@ -51,21 +52,40 @@ export default function OrderDetailsScreen() {
   const updateOrderStatus = useOrderTrackingStore((state) => state.updateOrderStatus);
 
   useEffect(() => {
+    let activeSocket: any = null;
     const isFinished = !order || ['DELIVERED', 'CANCELLED', 'REFUNDED', 'REJECTED', 'EXPIRED'].includes(
       (order.status || (order as any).orderStatus || '').toString().toUpperCase()
     );
-    if (!isFinished && order) {
-      socketService.connect().then(() => {
+    if (!isFinished && order?._id) {
+      socketService.connect().then((sock) => {
+        activeSocket = sock;
         socketService.joinOrderRoom(order._id);
+
+        sock.on('order:rider_assigned', (data: any) => {
+          if (data?.orderId === order._id || !data?.orderId) {
+            fetchOrderDetails();
+          }
+        });
+
+        sock.on('order:status_changed', (payload: any) => {
+          if (payload?.orderId === order._id) {
+            updateOrderStatus(payload.status);
+            fetchOrderDetails();
+          }
+        });
       });
     }
 
     return () => {
-      if (!isFinished && order) {
+      if (activeSocket) {
+        activeSocket.off('order:rider_assigned');
+        activeSocket.off('order:status_changed');
+      }
+      if (!isFinished && order?._id) {
         socketService.leaveOrderRoom(order._id);
       }
     };
-  }, [order]);
+  }, [order?._id]);
 
   const [cancelModalVisible, setCancelModalVisible] = useState(false);
   const { data: cancelReasons = [] } = useCancellationReasonsQuery('customer');
@@ -154,6 +174,8 @@ export default function OrderDetailsScreen() {
     || (typeof order.restaurantId === 'object' && order.restaurantId !== null && (order.restaurantId as any).name)
     || 'Partner Store';
 
+  const assignedPartner = order.deliveryPartner || (order as any).deliveryPartnerId;
+
   return (
     <SafeAreaView style={styles.safeArea}>
       <View style={styles.navbar}>
@@ -198,6 +220,52 @@ export default function OrderDetailsScreen() {
                 <Text style={styles.cancelButtonText}>Cancel Order</Text>
               </TouchableOpacity>
             )}
+          </View>
+        )}
+
+        {/* Delivery Partner Assigned Card */}
+        {assignedPartner && !isCancelled && (
+          <View style={styles.riderCard}>
+            <View style={styles.riderCardHeader}>
+              <View style={styles.riderCardHeaderLeft}>
+                <Ionicons name="bicycle" size={16} color="#2563EB" />
+                <Text style={styles.riderCardHeading}>DELIVERY PARTNER</Text>
+              </View>
+              <View style={styles.verifiedBadge}>
+                <Ionicons name="shield-checkmark" size={12} color="#16A34A" />
+                <Text style={styles.verifiedText}>Verified</Text>
+              </View>
+            </View>
+
+            <View style={styles.riderCardBody}>
+              <Image
+                source={{
+                  uri: assignedPartner.avatar || 'https://images.pexels.com/photos/2379004/pexels-photo-2379004.jpeg',
+                }}
+                style={styles.riderAvatar}
+              />
+              <View style={styles.riderInfo}>
+                <Text style={styles.riderNameText}>{assignedPartner.name || 'Delivery Partner'}</Text>
+                <Text style={styles.riderVehicleText}>
+                  {assignedPartner.vehicle?.type?.toUpperCase() || (assignedPartner as any).vehicleDetails?.model || 'SCOOTER'} • {assignedPartner.vehicle?.licenseNumber || (assignedPartner as any).vehicleDetails?.plateNumber || 'Verified Partner'}
+                </Text>
+                <Text style={styles.riderStatusText}>
+                  {displayStatus === 'OUT_FOR_DELIVERY' || displayStatus === 'PICKED_UP'
+                    ? '🛵 Out for delivery to your location'
+                    : 'Arriving at store to pick up food'}
+                </Text>
+              </View>
+
+              {assignedPartner.phone ? (
+                <TouchableOpacity
+                  onPress={() => Linking.openURL(`tel:${assignedPartner.phone}`)}
+                  style={styles.callRiderBtn}
+                  activeOpacity={0.8}
+                >
+                  <Ionicons name="call" size={18} color="#FFFFFF" />
+                </TouchableOpacity>
+              ) : null}
+            </View>
           </View>
         )}
 
@@ -388,4 +456,46 @@ const styles = StyleSheet.create({
   reasonOptionText: { ...Typography.body, fontSize: 14, color: Colors.text, marginLeft: 10, flex: 1 },
   closeModalBtn: { marginTop: 12, paddingVertical: 12, alignItems: 'center', borderRadius: 12, backgroundColor: '#F1F5F9' },
   closeModalBtnText: { ...Typography.button, color: '#64748B', fontSize: 13 },
+
+  /* Delivery Partner Card Styles */
+  riderCard: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 20,
+    padding: 16,
+    marginBottom: 14,
+    borderWidth: 1.5,
+    borderColor: '#BFDBFE',
+    shadowColor: '#2563EB',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.08,
+    shadowRadius: 10,
+    elevation: 3,
+  },
+  riderCardHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 },
+  riderCardHeaderLeft: { flexDirection: 'row', alignItems: 'center', gap: 6 },
+  riderCardHeading: { ...Typography.label, letterSpacing: 0.5, color: '#1E40AF', fontSize: 11, fontWeight: '700' },
+  verifiedBadge: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#DCFCE7', paddingHorizontal: 8, paddingVertical: 2, borderRadius: 10, gap: 3 },
+  verifiedText: { ...Typography.caption, fontSize: 10, color: '#15803D', fontWeight: '700' },
+
+  riderCardBody: { flexDirection: 'row', alignItems: 'center' },
+  riderAvatar: { width: 48, height: 48, borderRadius: 24, borderWidth: 2, borderColor: '#3B82F6', marginRight: 12 },
+  riderInfo: { flex: 1 },
+  riderNameText: { ...Typography.title, fontSize: 15, color: '#0F172A', fontWeight: '700' },
+  riderVehicleText: { ...Typography.caption, color: '#64748B', fontSize: 11, marginTop: 2 },
+  riderStatusText: { ...Typography.bodySmall, color: '#2563EB', fontSize: 11, fontWeight: '600', marginTop: 3 },
+
+  callRiderBtn: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: '#16A34A',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginLeft: 10,
+    shadowColor: '#16A34A',
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.3,
+    shadowRadius: 6,
+    elevation: 3,
+  },
 });

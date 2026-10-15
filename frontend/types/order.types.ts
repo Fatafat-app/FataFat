@@ -55,6 +55,17 @@ export interface Order {
       plateNumber: string;
     };
   };
+  deliveryPartner?: {
+    _id: string;
+    name: string;
+    phone: string;
+    avatar?: string;
+    vehicle?: {
+      type?: string;
+      model?: string;
+      licenseNumber?: string;
+    };
+  };
   items: OrderItem[];
   pricing: OrderPricing;
   deliveryFee?: number;

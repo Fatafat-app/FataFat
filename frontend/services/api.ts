@@ -50,6 +50,9 @@ export function getSocketUrl(): string {
 }
 
 export const API_BASE_URL = getApiBaseUrl();
+if (__DEV__) {
+  console.log(`[API Config] Connecting to backend at: ${API_BASE_URL}`);
+}
 
 export const TOKEN_KEY = 'ftafat_access_token';
 export const REFRESH_TOKEN_KEY = 'ftafat_refresh_token';

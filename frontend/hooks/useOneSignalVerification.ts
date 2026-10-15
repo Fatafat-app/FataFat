@@ -1,21 +1,14 @@
 import { useEffect, useRef } from 'react';
-import { Alert } from 'react-native';
 import { oneSignalService } from '../services/onesignal.service';
 
 /**
- * Hook to handle the Push Subscription Verification Dialog.
+ * Hook to handle Push Subscription Registration.
  *
- * Implements OneSignal Verification Dialog requirements:
  * 1. Register a push subscription observer immediately after OneSignal is initialized.
  * 2. Retain the observer for the lifetime of the component in framework-retained state (useRef).
  * 3. Treat the device as registered only when the push subscription ID is a real, server-assigned value
  *    (non-empty and not prefixed with 'local-').
- * 4. Evaluate current subscription ID both on change and immediately at observer-registration time.
- * 5. Show alert exactly once when a real ID is present:
- *    - Title: "Your OneSignal SDK integration is complete!"
- *    - Message: "You can now send Push Notifications & In-App Messages through OneSignal. Tap below to enable push notifications."
- *    - Single button: "Got it"
- * 6. On button tap, request push permission.
+ * 4. Silently request OS notification permission without developer debug dialogs.
  */
 export function useOneSignalVerification() {
   const observerRef = useRef<((event: any) => void) | null>(null);
@@ -38,18 +31,8 @@ export function useOneSignalVerification() {
           !hasShownAlertRef.current
         ) {
           hasShownAlertRef.current = true;
-          Alert.alert(
-            'Your OneSignal SDK integration is complete!',
-            'You can now send Push Notifications & In-App Messages through OneSignal. Tap below to enable push notifications.',
-            [
-              {
-                text: 'Got it',
-                onPress: () => {
-                  oneSignalService.requestPermission(true);
-                },
-              },
-            ]
-          );
+          // Automatically request native notification permission without developer debug alert
+          oneSignalService.requestPermission(false);
         }
       };
 
