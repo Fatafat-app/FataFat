@@ -5,6 +5,7 @@ node_modules/
 
 # Expo
 .expo/
+.expo-shared/
 dist/
 web-build/
 expo-env.d.ts
@@ -74,6 +75,10 @@ lerna-debug.log*
 # Testing
 /coverage
 .nyc_output
+.eslintcache
+
+# Local caches
+.cache/
 
 # Keystores & Certificates (Security)
 *.keystore
