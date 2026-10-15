@@ -22,7 +22,7 @@ const FOOD_TABS = [
   { id: 'index', route: '/(tabs)', label: 'Home', icon: 'home-outline', iconFocused: 'home' },
   { id: 'orders', route: '/(tabs)/orders', label: 'Orders', icon: 'receipt-outline', iconFocused: 'receipt' },
   { id: 'cart', route: '/(tabs)/cart', label: 'Cart', icon: 'bag-handle-outline', iconFocused: 'bag-handle', isCenter: true },
-  { id: 'saved', route: '/(tabs)/saved', label: 'Saved', icon: 'heart-outline', iconFocused: 'heart' },
+  { id: 'under99', route: '/(tabs)/under99', label: '99 Store', icon: 'pricetag-outline', iconFocused: 'pricetag' },
   { id: 'profile', route: '/(tabs)/profile', label: 'Profile', icon: 'person-outline', iconFocused: 'person' },
 ] as const;
 
@@ -93,6 +93,8 @@ function TabItem({ tab, isFocused, onPress, cartCount }: any) {
 
   const translateY = animatedScale.interpolate({ inputRange: [0, 1], outputRange: [0, -3] });
   const dotScale = animatedScale.interpolate({ inputRange: [0, 1], outputRange: [0, 1] });
+  const is99Tab = tab.id === 'under99';
+  const activeColor = is99Tab ? '#0D9488' : Colors.primary;
 
   return (
     <TouchableOpacity onPress={onPress} activeOpacity={0.8} style={styles.tabItem}>
@@ -100,11 +102,31 @@ function TabItem({ tab, isFocused, onPress, cartCount }: any) {
         <Ionicons
           name={isFocused ? tab.iconFocused : tab.icon}
           size={22}
-          color={isFocused ? Colors.primary : '#94A3B8'}
+          color={isFocused ? activeColor : '#94A3B8'}
         />
-        <Animated.View style={[styles.activeDot, { transform: [{ scale: dotScale }] }]} />
+        {is99Tab && (
+          <View style={styles.dealBadge}>
+            <Text style={styles.dealBadgeText}>99</Text>
+          </View>
+        )}
+        <Animated.View
+          style={[
+            styles.activeDot,
+            {
+              transform: [{ scale: dotScale }],
+              backgroundColor: activeColor,
+            },
+          ]}
+        />
       </Animated.View>
-      <Text style={[styles.label, isFocused && styles.labelActive]}>{tab.label}</Text>
+      <Text
+        style={[
+          styles.label,
+          isFocused && (is99Tab ? { color: '#0D9488', fontWeight: '800' } : styles.labelActive),
+        ]}
+      >
+        {tab.label}
+      </Text>
     </TouchableOpacity>
   );
 }
@@ -118,7 +140,7 @@ export function FoodTabBar() {
   const getActiveIndex = () => {
     if (pathname.includes('/orders')) return 1;
     if (pathname.includes('/cart')) return 2;
-    if (pathname.includes('/saved')) return 3;
+    if (pathname.includes('/under99')) return 3;
     if (pathname.includes('/profile')) return 4;
     return 0;
   };
@@ -212,6 +234,23 @@ const styles = StyleSheet.create({
     height: 4,
     borderRadius: 2,
     backgroundColor: Colors.primary,
+  },
+  dealBadge: {
+    position: 'absolute',
+    top: -5,
+    right: -10,
+    backgroundColor: '#0D9488',
+    paddingHorizontal: 4,
+    paddingVertical: 1,
+    borderRadius: 6,
+    borderWidth: 1,
+    borderColor: '#FFFFFF',
+  },
+  dealBadgeText: {
+    color: '#FFFFFF',
+    fontSize: 7.5,
+    fontWeight: '900',
+    includeFontPadding: false,
   },
 
   // Center Cart button

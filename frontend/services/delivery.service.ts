@@ -87,5 +87,25 @@ export const deliveryService = {
   async getHistory(params?: { page?: number; limit?: number }): Promise<DeliveryHistoryResponse> {
     const response = await api.get<ApiResponse<DeliveryHistoryResponse>>('/delivery/history', { params });
     return response.data.data;
-  }
+  },
+
+  /**
+   * Get all available unassigned orders waiting for a rider
+   */
+  async getAvailableOrders(): Promise<Order[]> {
+    const response = await api.get('/delivery/available-orders');
+    const data: any = response.data?.data;
+    if (Array.isArray(data)) return data;
+    if (Array.isArray(data?.orders)) return data.orders;
+    if (Array.isArray((response.data as any)?.orders)) return (response.data as any).orders;
+    return [];
+  },
+
+  /**
+   * Accept an order (atomic first-come, first-served)
+   */
+  async acceptOrder(orderId: string): Promise<Order> {
+    const response = await api.post<ApiResponse<{ order: Order }>>(`/delivery/orders/${orderId}/accept`);
+    return response.data.data.order;
+  },
 };

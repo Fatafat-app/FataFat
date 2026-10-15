@@ -13,21 +13,30 @@ import { oneSignalService } from '../services/onesignal.service';
 import { useOneSignalVerification } from '../hooks/useOneSignalVerification';
 import InAppNotificationBanner from '../components/InAppNotificationBanner';
 
+// Early OneSignal initialization
+try {
+  oneSignalService.initialize();
+} catch (e) {
+  // Safe fallback
+}
+
 export default function RootLayout() {
   const initAuth = useAuthStore((state) => state.initAuth);
   const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
 
-  // OneSignal Push Subscription Verification Observer
-  useOneSignalVerification();
-
   useEffect(() => {
-    // Initialize OneSignal SDK at root lifecycle before rendering
-    oneSignalService.initialize();
-
+    try {
+      oneSignalService.initialize();
+    } catch (e) {
+      // Safe fallback
+    }
     initAuth();
     useLocationStore.getState().detectCurrentLocation();
     useConfigStore.getState().fetchBootstrap();
   }, [initAuth]);
+
+  // OneSignal Push Subscription Verification Observer
+  useOneSignalVerification();
 
   useEffect(() => {
     if (isAuthenticated) {

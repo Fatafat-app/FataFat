@@ -22,6 +22,8 @@ router.post('/register', validate(registerPartnerSchema), controller.registerPar
 router.get('/profile', requireRole([ROLES.DELIVERY_PARTNER]), controller.getProfile);
 router.patch('/toggle-online', requireRole([ROLES.DELIVERY_PARTNER]), validate(toggleOnlineSchema), controller.toggleOnline);
 router.post('/location', requireRole([ROLES.DELIVERY_PARTNER]), validate(updateLocationSchema), controller.updateLocation);
+router.get('/available-orders', requireRole([ROLES.DELIVERY_PARTNER]), controller.getAvailableOrders);
+router.post('/orders/:orderId/accept', requireRole([ROLES.DELIVERY_PARTNER]), controller.acceptOrder);
 router.patch('/orders/:orderId/status', requireRole([ROLES.DELIVERY_PARTNER]), controller.updateDeliveryStatus);
 router.get('/history', requireRole([ROLES.DELIVERY_PARTNER]), controller.getDeliveryHistory);
 

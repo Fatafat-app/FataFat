@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "392432738097",
+    "project_id": "ftafat-48f91",
+    "storage_bucket": "ftafat-48f91.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:392432738097:android:af6c57511292cc87d25a10",
+        "android_client_info": {
+          "package_name": "com.ftafat.app"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAEcylWjthqxaVSK6uP_pb2JyzZKtprwDk"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

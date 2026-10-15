@@ -238,6 +238,14 @@ async function placeOrder(userId, payload = {}) {
 
   analyticsQueue.add('order-placed', { orderId: order._id, restaurantId: restaurant._id, amount: totalAmount }).catch(() => {});
 
+  // Broadcast new order to all available online riders
+  try {
+    const deliveryService = require('../delivery/delivery.service');
+    deliveryService.broadcastOrderToRiders(order);
+  } catch (bErr) {
+    logger.debug('[OrderService] Rider broadcast notice', { error: bErr.message });
+  }
+
   return {
     order,
     payment: razorpayOrder ? {
@@ -252,7 +260,9 @@ async function getOrderById(orderId, requestingUser) {
   const order = await Order.findById(orderId)
     .populate('restaurant', 'name phone address coverImage')
     .populate('vendorId', 'name address images')
-    .populate('user', 'name phone');
+    .populate('user', 'name phone')
+    .populate('deliveryPartner', 'name phone vehicle avatar')
+    .populate('delivery.riderId', 'name phone');
 
   if (!order) throw new NotFoundError('Order not found');
 
@@ -309,6 +319,7 @@ async function getRestaurantOrders(restaurantId, query) {
   const [orders, total] = await Promise.all([
     Order.find(filter)
       .populate('user', 'name phone')
+      .populate('deliveryPartner', 'name phone vehicle')
       .sort({ createdAt: -1 })
       .skip(skip)
       .limit(limit),
@@ -338,6 +349,15 @@ async function updateOrderStatus(orderId, newStatus, requestingUser, options = {
 
   await order.populate('user', 'name phone email');
   await order.populate('restaurant', 'name phone address');
+  await order.populate('deliveryPartner', 'name phone vehicle');
+
+  // If order is confirmed or ready and no delivery partner yet, broadcast to riders
+  if (!order.deliveryPartner && ['CONFIRMED', 'PREPARING', 'READY_FOR_PICKUP', 'ready_for_pickup'].includes(order.orderStatus)) {
+    try {
+      const deliveryService = require('../delivery/delivery.service');
+      deliveryService.broadcastOrderToRiders(order);
+    } catch {}
+  }
 
   notificationQueue.add('order-status-changed', {
     userId: order.user?._id ? order.user._id.toString() : order.user?.toString?.(),

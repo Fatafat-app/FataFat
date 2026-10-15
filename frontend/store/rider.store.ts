@@ -7,11 +7,16 @@ import { Alert } from 'react-native';
 interface RiderState {
   partner: DeliveryPartner | null;
   history: DeliveryHistoryResponse | null;
+  availableOrders: Order[];
   isLoading: boolean;
   isUpdatingLocation: boolean;
   
   fetchProfile: () => Promise<void>;
   toggleOnline: () => Promise<void>;
+  fetchAvailableOrders: () => Promise<void>;
+  acceptOrder: (orderId: string) => Promise<boolean>;
+  removeClaimedOrder: (orderId: string) => void;
+  addAvailableOrder: (order: any) => void;
   updateDeliveryStatus: (orderId: string, status: string) => Promise<void>;
   fetchHistory: (page?: number) => Promise<void>;
   updateLiveLocation: () => Promise<void>;
@@ -20,6 +25,7 @@ interface RiderState {
 export const useRiderStore = create<RiderState>((set, get) => ({
   partner: null,
   history: null,
+  availableOrders: [],
   isLoading: false,
   isUpdatingLocation: false,
 
@@ -53,6 +59,9 @@ export const useRiderStore = create<RiderState>((set, get) => ({
       set({ isLoading: true });
       const updatedPartner = await deliveryService.toggleOnline(nextState);
       set({ partner: updatedPartner });
+      if (nextState) {
+        get().fetchAvailableOrders();
+      }
     } catch (error: any) {
       Alert.alert('Error', error.response?.data?.message || 'Could not change status');
     } finally {
@@ -60,14 +69,87 @@ export const useRiderStore = create<RiderState>((set, get) => ({
     }
   },
 
+  fetchAvailableOrders: async () => {
+    try {
+      const orders = await deliveryService.getAvailableOrders();
+      if (__DEV__) {
+        console.log(`[RiderStore] Fetched ${orders.length} available orders`);
+      }
+      set({ availableOrders: orders });
+    } catch (error) {
+      console.warn('[RiderStore] fetchAvailableOrders error:', error);
+    }
+  },
+
+  acceptOrder: async (orderId: string) => {
+    try {
+      set({ isLoading: true });
+      await deliveryService.acceptOrder(orderId);
+      set((state) => ({
+        availableOrders: state.availableOrders.filter((o) => (o._id || (o as any).id) !== orderId),
+      }));
+      await get().fetchProfile();
+      return true;
+    } catch (error: any) {
+      const msg = error.response?.data?.message || 'Ye order kisi aur delivery partner ne accept kar liya hai.';
+      Alert.alert('Order Unavailable', msg);
+      set((state) => ({
+        availableOrders: state.availableOrders.filter((o) => (o._id || (o as any).id) !== orderId),
+      }));
+      return false;
+    } finally {
+      set({ isLoading: false });
+    }
+  },
+
+  removeClaimedOrder: (orderId: string) => {
+    set((state) => ({
+      availableOrders: state.availableOrders.filter((o) => (o._id || (o as any).id) !== orderId),
+    }));
+  },
+
+  addAvailableOrder: (newOrder: any) => {
+    set((state) => {
+      const exists = state.availableOrders.some((o) => (o._id || (o as any).id) === (newOrder._id || newOrder.orderId));
+      if (exists) return state;
+      return { availableOrders: [newOrder, ...state.availableOrders] };
+    });
+  },
+
   updateDeliveryStatus: async (orderId, status) => {
     try {
       set({ isLoading: true });
+      // Optimistic update
+      set((state) => {
+        if (!state.partner?.activeOrder) return state;
+        const isDelivered = status.toUpperCase() === 'DELIVERED';
+        if (isDelivered) {
+          return {
+            partner: {
+              ...state.partner,
+              activeOrder: null,
+              isAvailable: state.partner.isOnline,
+            },
+          };
+        }
+        return {
+          partner: {
+            ...state.partner,
+            activeOrder: {
+              ...state.partner.activeOrder,
+              status: status as any,
+              orderStatus: status,
+            },
+          },
+        };
+      });
+
       await deliveryService.updateDeliveryStatus(orderId, status);
-      // Refresh profile to pull down new active order state (null if delivered)
+      // Fresh profile to ensure server-synced earnings, stats, etc.
       const partner = await deliveryService.getProfile();
       set({ partner });
     } catch (error: any) {
+      await get().fetchProfile();
       Alert.alert('Error', error.response?.data?.message || 'Could not update delivery status');
       throw error;
     } finally {

@@ -51,6 +51,17 @@ async function getDeliveryHistory(req, res) {
   return success(res, history);
 }
 
+async function getAvailableOrders(req, res) {
+  const orders = await deliveryService.getAvailableOrders(req.user.id);
+  return success(res, { orders });
+}
+
+async function acceptOrder(req, res) {
+  const { orderId } = req.params;
+  const order = await deliveryService.acceptOrder(req.user.id, orderId);
+  return success(res, { order }, 'Order accepted successfully');
+}
+
 module.exports = {
   registerPartner,
   getProfile,
@@ -58,6 +69,8 @@ module.exports = {
   updateLocation,
   findNearbyRiders,
   assignOrder,
+  acceptOrder,
+  getAvailableOrders,
   updateDeliveryStatus,
   getDeliveryHistory,
 };

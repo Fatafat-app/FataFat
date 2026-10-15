@@ -85,7 +85,7 @@ lerna-debug.log*
 *.crt
 *.cer
 *.profile
-google-services.json
+!google-services.json
 GoogleService-Info.plist
 credentials.json
 

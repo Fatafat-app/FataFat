@@ -43,6 +43,7 @@ export default function TabsLayout() {
         <Tabs.Screen name="profile" options={{ title: 'Profile' }} />
         <Tabs.Screen name="search"  options={{ href: null }} />
         <Tabs.Screen name="saved"   options={{ href: null }} />
+        <Tabs.Screen name="under99" options={{ title: '99 Store' }} />
       </Tabs>
 
       {/* Custom Tab Bar — Food or Grocery based on activeSection & flags */}

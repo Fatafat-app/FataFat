@@ -150,6 +150,21 @@ class SocketService {
       );
     });
 
+    this.socket.on('order:rider_assigned', (data: any) => {
+      console.log('[Socket] Rider assigned to order:', data);
+      queryClient.invalidateQueries({ queryKey: ['orders'] });
+      if (data?.orderId) {
+        queryClient.invalidateQueries({ queryKey: ['order', data.orderId] });
+      }
+      const riderName = data?.deliveryPartner?.name || data?.rider?.name || 'A delivery partner';
+      useNotificationStore.getState().showInAppNotification(
+        'Delivery Partner Assigned! 🛵',
+        `${riderName} has accepted your order and is heading to the store.`,
+        'order_status',
+        { orderId: data?.orderId }
+      );
+    });
+
     // 5. Broadcast & In-App Direct Notification Events
     this.socket.on('notification:new', (data: any) => {
       console.log('[Socket] New notification received:', data);

@@ -122,8 +122,8 @@ export const AppProvider = ({ children }) => {
             totalAmount: paiseToRupees(ord.totalAmount || ord.pricing?.totalPaise || ord.pricing?.grandTotal || 0),
             paymentMethod: ord.paymentMethod || ord.payment?.method || 'ONLINE',
             status,
-            riderName: ord.deliveryPartnerId?.name || (status === 'OUT_FOR_DELIVERY' ? 'Assigned Partner' : 'Unassigned'),
-            riderPhone: ord.deliveryPartnerId?.phone || '-',
+            riderName: ord.deliveryPartner?.name || ord.deliveryPartnerId?.name || (status === 'OUT_FOR_DELIVERY' ? 'Assigned Partner' : 'Unassigned'),
+            riderPhone: ord.deliveryPartner?.phone || ord.deliveryPartnerId?.phone || '-',
             placedAt: ord.createdAt ? new Date(ord.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : 'Recent',
             address: ord.deliveryAddress ? `${ord.deliveryAddress.line1 || ''}, ${ord.deliveryAddress.city || ''}` : 'Location provided in app',
           };
@@ -248,6 +248,10 @@ export const AppProvider = ({ children }) => {
   useEffect(() => {
     if (token) {
       fetchAllData();
+      const interval = setInterval(() => {
+        fetchAllData();
+      }, 12000);
+      return () => clearInterval(interval);
     }
   }, [token, fetchAllData]);
 
