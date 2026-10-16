@@ -13,10 +13,11 @@ import {
   Dimensions,
   ScrollView,
   FlatList,
-  type NativeScrollEvent,
-  type NativeSyntheticEvent,
+  StatusBar,
+  Keyboard,
+  TouchableWithoutFeedback,
 } from 'react-native';
-import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
 import { useAuthStore } from '../../store/auth.store';
@@ -27,23 +28,33 @@ import Animated, {
   useAnimatedStyle,
   useSharedValue,
   withSpring,
+  withTiming,
 } from 'react-native-reanimated';
+
+const AnimatedView = Animated.View as any;
 
 const { width, height } = Dimensions.get('window');
 
+// ─── Brand Colors ───────────────────────────────────────────────────────────
+const BRAND_ORANGE = '#FF6B00';
+const TEXT_DARK = '#0F172A';
+const TEXT_MUTED = '#64748B';
+const INPUT_BG = '#F8FAFC';
+const BORDER_COLOR = '#E2E8F0';
+
+// ─── Carousel Posters (1173 x 1341 ratio) ───────────────────────────────────
+// Placed vibrant Ftafat brand posters first so top status bar area is seamless & dark/red
 const CAROUSEL_IMAGES = [
-  require('../../assets/login screen/Cravings Delivered in Minutes-1.png'),
   require('../../assets/login screen/Everything You Need, Ftafat-2.png'),
-  require('../../assets/login screen/Ftafat Grocery Delivery Poster.png'),
   require('../../assets/login screen/Ftafat_ Food, Groceries & More.png'),
   require('../../assets/login screen/Ftafat_ Freshness Delivered Fast-3.png'),
+  require('../../assets/login screen/Cravings Delivered in Minutes-1.png'),
+  require('../../assets/login screen/Ftafat Grocery Delivery Poster.png'),
 ];
 
-const WAVE_HEIGHT = 44; // white wave that overlaps carousel bottom
-
-// ─── Image Carousel with wave ─────────────────────────────────────────────────
-function ImageCarousel({ imgH }: { imgH: number }) {
-  const ref = useRef<FlatList>(null);
+// ─── Hero Carousel with Top Corner Design at Status Bar / Mobile Time ───────
+function FullWidthHeroBanner({ bannerH, topInset }: { bannerH: number; topInset: number }) {
+  const ref = useRef<any>(null);
   const [active, setActive] = useState(0);
   const cur = useRef(0);
 
@@ -53,81 +64,88 @@ function ImageCarousel({ imgH }: { imgH: number }) {
       ref.current?.scrollToIndex({ index: next, animated: true });
       cur.current = next;
       setActive(next);
-    }, 3000);
+    }, 3400);
     return () => clearInterval(t);
   }, []);
 
-  const onScroll = (e: NativeSyntheticEvent<NativeScrollEvent>) => {
+  const onScroll = (e: any) => {
     const i = Math.round(e.nativeEvent.contentOffset.x / width);
     cur.current = i;
     setActive(i);
   };
 
+  const cornerTop = Math.max(topInset * 0.35, 10);
+
   return (
-    <View style={{ flex: 1 }}>
+    <View style={[styles.heroContainer, { height: bannerH }]}>
       <FlatList
         ref={ref}
         data={CAROUSEL_IMAGES}
-        horizontal pagingEnabled
+        horizontal
+        pagingEnabled
         showsHorizontalScrollIndicator={false}
         onScroll={onScroll}
         scrollEventThrottle={16}
-        keyExtractor={(_, i) => String(i)}
-        getItemLayout={(_, i) => ({ length: width, offset: width * i, index: i })}
-        renderItem={({ item }) => (
-          <Image source={item} style={{ width, height: imgH }} resizeMode="cover" />
+        keyExtractor={(_: any, i: number) => String(i)}
+        getItemLayout={(_: any, i: number) => ({ length: width, offset: width * i, index: i })}
+        renderItem={({ item }: { item: any }) => (
+          <View style={[styles.slideItem, { width, height: bannerH }]}>
+            <Image
+              source={item}
+              style={[styles.heroImage, { width, height: bannerH }]}
+              resizeMode="cover"
+            />
+          </View>
         )}
       />
 
-      {/* Dots — sit above the wave */}
-      <View style={[styles.dotsRow, { bottom: WAVE_HEIGHT + 10 }]}>
+      {/* ── TOP CORNER DESIGN (Placed at the very top where the mobile time sits) ── */}
+      <View style={[styles.cornerBracketLeft, { top: cornerTop }]} />
+      <View style={[styles.cornerBracketRight, { top: cornerTop }]} />
+
+      {/* Floating Dot Indicators */}
+      <View style={styles.dotsRow}>
         {CAROUSEL_IMAGES.map((_, i) => (
-          <View key={i} style={[styles.dot, i === active ? styles.dotActive : styles.dotInactive]} />
+          <View
+            key={i}
+            style={[styles.dot, i === active ? styles.dotActive : styles.dotInactive]}
+          />
         ))}
       </View>
-
-      {/* ── White wave mask at carousel bottom ── */}
-      <View style={styles.waveMask} />
     </View>
   );
 }
 
-// ─── Quick account badge ──────────────────────────────────────────────────────
-function QuickBadge({
-  label, icon, color, onPress, disabled,
-}: {
-  label: string;
-  icon: keyof typeof Ionicons.glyphMap;
-  color: string;
-  onPress: () => void;
-  disabled: boolean;
-}) {
-  return (
-    <TouchableOpacity style={styles.quickBadge} onPress={onPress} disabled={disabled}>
-      <Ionicons name={icon} size={22} color={color} />
-      <Text style={styles.quickText}>{label}</Text>
-    </TouchableOpacity>
-  );
-}
-
-// ─── Main Screen ──────────────────────────────────────────────────────────────
+// ─── Main Screen Component ──────────────────────────────────────────────────
 export default function LoginScreen() {
   const insets = useSafeAreaInsets();
   const usableH = height - insets.top - insets.bottom;
-  const CAROUSEL_H = usableH * 0.52; // 52% — full image, no top cut
+
+  // Include top inset so the image extends behind the mobile status bar (time/clock)
+  const BANNER_H = Math.min(
+    Math.round(width * (1341 / 1173)),
+    Math.round(usableH * 0.52)
+  ) + insets.top;
 
   const [phone, setPhone] = useState('');
   const [otp, setOtp] = useState('');
   const [isOtpSent, setIsOtpSent] = useState(false);
   const [isNewUser, setIsNewUser] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [isPhoneFocused, setIsPhoneFocused] = useState(false);
 
   const setUser = useAuthStore((s) => s.setUser);
 
   const scale = useSharedValue(1);
   const animStyle = useAnimatedStyle(() => ({ transform: [{ scale: scale.value }] }));
-  const pressIn  = () => (scale.value = withSpring(0.96, { damping: 15, stiffness: 400 }));
+  const pressIn  = () => (scale.value = withSpring(0.97, { damping: 15, stiffness: 400 }));
   const pressOut = () => (scale.value = withSpring(1,    { damping: 15, stiffness: 400 }));
+
+  // Smooth slide-up offset so the box & button sit comfortably above the mobile keyboard
+  const keyboardOffset = useSharedValue(0);
+  const cardShiftStyle = useAnimatedStyle(() => ({
+    transform: [{ translateY: keyboardOffset.value }],
+  }));
 
   const goHome = (role?: string) => {
     if (['admin','super_admin','ops_admin','catalog_admin','finance_admin','support_admin'].includes(role ?? ''))
@@ -140,28 +158,33 @@ export default function LoginScreen() {
   };
 
   const handleSendOtp = async () => {
-    if (!phone || phone.length < 10)
+    const cleanPhone = phone.replace(/[^0-9]/g, '');
+    if (!cleanPhone || cleanPhone.length < 10)
       return Alert.alert('Invalid Number', 'Please enter a valid 10-digit phone number');
     try {
       setLoading(true);
-      const full = phone.startsWith('+') ? phone : `+91${phone}`;
+      const full = cleanPhone.startsWith('+') ? cleanPhone : `+91${cleanPhone}`;
       const res = await authService.sendOtp({ phone: full });
       setIsNewUser(!!res.isNewUser);
       setIsOtpSent(true);
-      if (res.otp)
+      if (res.otp) {
+        setOtp(String(res.otp));
         Alert.alert('🔐 Dev OTP', `Your test OTP is: ${res.otp}`, [{ text: 'Got it!' }]);
+      }
     } catch (e: any) {
       Alert.alert('Error', e.response?.data?.message ?? 'Failed to send OTP.');
     } finally { setLoading(false); }
   };
 
   const handleVerifyOtp = async () => {
-    if (!otp || otp.length < 4)
+    const cleanOtp = otp.trim();
+    if (!cleanOtp || cleanOtp.length < 4)
       return Alert.alert('Invalid OTP', 'Please enter the OTP code');
     try {
       setLoading(true);
-      const full = phone.startsWith('+') ? phone : `+91${phone}`;
-      const data = await authService.verifyOtp({ phone: full, otp });
+      const cleanPhone = phone.replace(/[^0-9]/g, '');
+      const full = cleanPhone.startsWith('+') ? cleanPhone : `+91${cleanPhone}`;
+      const data = await authService.verifyOtp({ phone: full, otp: cleanOtp });
       setUser(data.user);
       data.isNewUser ? router.replace('/(auth)/onboarding') : goHome(data.user?.role);
     } catch (e: any) {
@@ -180,24 +203,51 @@ export default function LoginScreen() {
     } finally { setLoading(false); }
   };
 
+  const isPhoneValid = phone.replace(/[^0-9]/g, '').length === 10;
+
+  useEffect(() => {
+    if (Platform.OS === 'android') {
+      StatusBar.setTranslucent(true);
+      StatusBar.setBackgroundColor('transparent');
+    }
+
+    const showEvt = Platform.OS === 'ios' ? 'keyboardWillShow' : 'keyboardDidShow';
+    const hideEvt = Platform.OS === 'ios' ? 'keyboardWillHide' : 'keyboardDidHide';
+
+    const showSub = Keyboard.addListener(showEvt, () => {
+      keyboardOffset.value = withTiming(-80, { duration: 240 });
+    });
+    const hideSub = Keyboard.addListener(hideEvt, () => {
+      keyboardOffset.value = withTiming(0, { duration: 200 });
+    });
+
+    return () => {
+      showSub.remove();
+      hideSub.remove();
+    };
+  }, []);
+
   return (
-    <SafeAreaView style={styles.root} edges={['top', 'bottom']}>
+    <View style={[styles.root, { paddingBottom: insets.bottom }]}>
+      <StatusBar
+        barStyle="light-content"
+        translucent={true}
+        backgroundColor="transparent"
+      />
 
       {/* ══════════════════════════════════════════
-          TOP — Scrolling carousel  (FIXED, never moves)
+          TOP — Full width image extending behind status bar (mobile time)
           ══════════════════════════════════════════ */}
-      <View style={[styles.carouselBox, { height: CAROUSEL_H }]}>
-        <ImageCarousel imgH={CAROUSEL_H} />
-      </View>
+      <TouchableWithoutFeedback onPress={Keyboard.dismiss} accessible={false}>
+        <View style={{ width, height: BANNER_H }}>
+          <FullWidthHeroBanner bannerH={BANNER_H} topInset={insets.top} />
+        </View>
+      </TouchableWithoutFeedback>
 
       {/* ══════════════════════════════════════════
-          BOTTOM — Sign in card  (keyboard-aware)
-          Overlaps carousel by WAVE_HEIGHT - 8
+          BOTTOM — Sign in section (Smoothly slides up on focus)
           ══════════════════════════════════════════ */}
-      <KeyboardAvoidingView
-        style={[styles.kavWrap, { marginTop: -(WAVE_HEIGHT - 8) }]}
-        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-      >
+      <AnimatedView style={[styles.kavWrap, cardShiftStyle]}>
         <ScrollView
           contentContainerStyle={styles.scrollWrap}
           keyboardShouldPersistTaps="handled"
@@ -205,148 +255,137 @@ export default function LoginScreen() {
           bounces={false}
         >
 
-          {/* ── STEP 1: Phone ─────────────────────────────────────────── */}
+          {/* ── STEP 1: Phone Input ───────────────────────────────────── */}
           {!isOtpSent && (
-            <Animated.View entering={FadeIn.duration(300)}>
+            <AnimatedView entering={FadeIn.duration(260)}>
 
-              {/* Logo + title */}
-              <View style={styles.titleRow}>
-                <View style={styles.logoBox}>
-                  <Image
-                    source={require('../../assets/logo/Ftafat logo.jpeg')}
-                    style={styles.logoImg}
-                    resizeMode="cover"
+              {/* Title: "Sign in with phone" (Clean, NO F logo) */}
+              <View style={styles.titleWrap}>
+                <Text style={styles.title}>Sign in with phone</Text>
+                <Text style={styles.subText}>
+                  {isNewUser
+                    ? 'A new account will be created for you'
+                    : 'Enter your 10-digit mobile number'}
+                </Text>
+              </View>
+
+              {/* Phone Input: Left Flag Box + Right Phone Box */}
+              <View style={styles.phoneRow}>
+                {/* Left Flag Box */}
+                <View style={styles.countryBox}>
+                  <Text style={styles.flagText}>🇮🇳</Text>
+                  <Ionicons name="caret-down" size={10} color="#64748B" />
+                </View>
+
+                {/* Right Phone Input Box with active Orange Focus */}
+                <View
+                  style={[
+                    styles.phoneInputBox,
+                    isPhoneFocused && styles.phoneInputBoxFocused,
+                  ]}
+                >
+                  <Text style={styles.codeText}>+91</Text>
+                  <TextInput
+                    style={styles.phoneTextInput}
+                    placeholder="Enter Phone Number"
+                    placeholderTextColor="#94A3B8"
+                    keyboardType="phone-pad"
+                    value={phone}
+                    onChangeText={(val: string) => setPhone(val.replace(/[^0-9]/g, ''))}
+                    maxLength={10}
+                    onFocus={() => {
+                      setIsPhoneFocused(true);
+                      keyboardOffset.value = withTiming(-80, { duration: 240 });
+                    }}
+                    onBlur={() => {
+                      setIsPhoneFocused(false);
+                      keyboardOffset.value = withTiming(0, { duration: 200 });
+                    }}
+                    autoFocus
                   />
-                </View>
-                <View style={{ flex: 1 }}>
-                  <Text style={styles.title}>Sign in with phone</Text>
-                  <Text style={styles.sub}>
-                    {isNewUser
-                      ? 'A new account will be created for you'
-                      : "We'll send you a verification code"}
-                  </Text>
+                  {isPhoneValid && (
+                    <Ionicons name="checkmark-circle" size={19} color="#22C55E" />
+                  )}
                 </View>
               </View>
 
-              {isNewUser && (
-                <View style={styles.badge}>
-                  <Ionicons name="sparkles" size={13} color="#D97706" />
-                  <Text style={styles.badgeText}>New account will be created for you!</Text>
-                </View>
-              )}
-
-              {/* Phone input */}
-              <View style={styles.inputBox}>
-                <View style={styles.countryWrap}>
-                  <Text style={styles.flag}>🇮🇳</Text>
-                  <Text style={styles.cc}>+91</Text>
-                  <Ionicons name="caret-down" size={10} color="#9CA3AF" />
-                </View>
-                <View style={styles.inputDivider} />
-                <TextInput
-                  style={styles.inputText}
-                  placeholder="Phone number"
-                  placeholderTextColor="#B0B8C1"
-                  keyboardType="phone-pad"
-                  value={phone}
-                  onChangeText={setPhone}
-                  maxLength={10}
-                  autoFocus
-                />
-                {phone.length === 10 && (
-                  <Ionicons name="checkmark-circle" size={20} color="#22C55E" style={{ marginRight: 14 }} />
-                )}
-              </View>
-
-              <Animated.View style={animStyle}>
+              {/* Continue Button — ALWAYS Vibrant Brand Orange */}
+              <AnimatedView style={[animStyle, { marginTop: 18 }]}>
                 <TouchableOpacity
-                  style={styles.mainBtn}
+                  style={styles.continueBtn}
                   onPress={handleSendOtp}
                   onPressIn={pressIn}
                   onPressOut={pressOut}
                   disabled={loading}
-                  activeOpacity={1}
+                  activeOpacity={0.88}
                 >
-                  {loading ? <ActivityIndicator color="#fff" /> : (
-                    <>
-                      <Text style={styles.mainBtnText}>Send OTP</Text>
-                      <View style={styles.mainBtnCircle}>
-                        <Ionicons name="arrow-forward" size={20} color="#FF6B00" />
-                      </View>
-                    </>
+                  {loading ? (
+                    <ActivityIndicator color="#FFFFFF" size="small" />
+                  ) : (
+                    <Text style={styles.continueBtnText}>Continue</Text>
                   )}
                 </TouchableOpacity>
-              </Animated.View>
+              </AnimatedView>
 
-            </Animated.View>
+            </AnimatedView>
           )}
 
-          {/* ── STEP 2: OTP ───────────────────────────────────────────── */}
+          {/* ── STEP 2: OTP Verification ──────────────────────────────── */}
           {isOtpSent && (
-            <Animated.View entering={SlideInRight.duration(300)}>
+            <AnimatedView entering={SlideInRight.duration(260)}>
 
-              <View style={styles.titleRow}>
-                <View style={styles.logoBox}>
-                  <Image
-                    source={require('../../assets/logo/Ftafat logo.jpeg')}
-                    style={styles.logoImg}
-                    resizeMode="cover"
-                  />
-                </View>
-                <View style={{ flex: 1 }}>
-                  <Text style={styles.title}>
-                    {isNewUser ? 'Create Account' : 'Verify Phone Number'}
-                  </Text>
-                  <Text style={styles.sub}>Enter code sent to +91 {phone}</Text>
-                </View>
+              <View style={styles.titleWrap}>
+                <Text style={styles.title}>
+                  {isNewUser ? 'Create Account' : 'Verify Phone Number'}
+                </Text>
+                <Text style={styles.subText}>Enter 6-digit code sent to +91 {phone}</Text>
               </View>
 
-              {isNewUser && (
-                <View style={styles.badge}>
-                  <Ionicons name="sparkles" size={13} color="#D97706" />
-                  <Text style={styles.badgeText}>Verify to get started 🎉</Text>
-                </View>
-              )}
-
-              <View style={[styles.inputBox, { justifyContent: 'center' }]}>
+              {/* OTP Input */}
+              <View style={styles.otpInputBox}>
                 <TextInput
-                  style={[styles.inputText, styles.otpText]}
+                  style={styles.otpTextInput}
                   placeholder="• • • •"
-                  placeholderTextColor="#D1D5DB"
+                  placeholderTextColor="#CBD5E1"
                   keyboardType="number-pad"
                   value={otp}
-                  onChangeText={setOtp}
+                  onChangeText={(val: string) => setOtp(val.replace(/[^0-9]/g, ''))}
                   maxLength={6}
                   autoFocus
+                  onFocus={() => {
+                    keyboardOffset.value = withTiming(-80, { duration: 240 });
+                  }}
+                  onBlur={() => {
+                    keyboardOffset.value = withTiming(0, { duration: 200 });
+                  }}
                 />
               </View>
 
-              <Animated.View style={animStyle}>
+              {/* Verify Button — ALWAYS Vibrant Brand Orange */}
+              <AnimatedView style={animStyle}>
                 <TouchableOpacity
-                  style={styles.mainBtn}
+                  style={styles.continueBtn}
                   onPress={handleVerifyOtp}
                   onPressIn={pressIn}
                   onPressOut={pressOut}
                   disabled={loading}
-                  activeOpacity={1}
+                  activeOpacity={0.88}
                 >
-                  {loading ? <ActivityIndicator color="#fff" /> : (
-                    <>
-                      <Text style={styles.mainBtnText}>
-                        {isNewUser ? 'Verify & Create Account' : 'Verify & Sign In'}
-                      </Text>
-                      <View style={styles.mainBtnCircle}>
-                        <Ionicons name="checkmark" size={20} color="#FF6B00" />
-                      </View>
-                    </>
+                  {loading ? (
+                    <ActivityIndicator color="#FFFFFF" size="small" />
+                  ) : (
+                    <Text style={styles.continueBtnText}>
+                      {isNewUser ? 'Create Account & Continue' : 'Verify and proceed'}
+                    </Text>
                   )}
                 </TouchableOpacity>
-              </Animated.View>
+              </AnimatedView>
 
-              <View style={styles.otpLinks}>
+              {/* Resend / Change Number */}
+              <View style={styles.otpLinksRow}>
                 <TouchableOpacity onPress={handleSendOtp} disabled={loading} style={styles.linkBtn}>
-                  <Ionicons name="refresh" size={13} color="#FF6B00" />
-                  <Text style={styles.linkOrange}>Resend Code</Text>
+                  <Ionicons name="refresh" size={13} color={BRAND_ORANGE} />
+                  <Text style={[styles.linkText, { color: BRAND_ORANGE }]}>Resend Code</Text>
                 </TouchableOpacity>
                 <View style={styles.linkDot} />
                 <TouchableOpacity
@@ -354,281 +393,362 @@ export default function LoginScreen() {
                   disabled={loading}
                   style={styles.linkBtn}
                 >
-                  <Ionicons name="pencil" size={13} color="#6B7280" />
-                  <Text style={styles.linkGray}>Change Number</Text>
+                  <Ionicons name="pencil" size={13} color="#64748B" />
+                  <Text style={[styles.linkText, { color: '#64748B' }]}>Change Number</Text>
                 </TouchableOpacity>
               </View>
 
-            </Animated.View>
+            </AnimatedView>
           )}
 
-          {/* ── Quick Test Accounts ────────────────────────────────────── */}
-          <View style={styles.quickSection}>
-            <Text style={styles.quickLabel}>Quick test accounts</Text>
-            <View style={styles.quickRow}>
-              <QuickBadge label="Admin" icon="person-circle-outline" color="#FF6B00"
-                onPress={() => quickLogin('+919999999999')} disabled={loading} />
-              <QuickBadge label="Owner" icon="ribbon-outline" color="#16A34A"
-                onPress={() => quickLogin('+919876543210')} disabled={loading} />
-              <QuickBadge label="Rider" icon="bicycle-outline" color="#DC2626"
-                onPress={() => quickLogin('+919811122233')} disabled={loading} />
-              <QuickBadge label="User" icon="people-outline" color="#7C3AED"
-                onPress={() => quickLogin('+919822233344')} disabled={loading} />
+          {/* ── Quick Dev Test Accounts (Small helper at bottom) ──────── */}
+          <View style={styles.quickDevWrap}>
+            <Text style={styles.quickDevLabel}>DEV TEST ACCOUNTS</Text>
+            <View style={styles.quickDevRow}>
+              <TouchableOpacity
+                style={styles.quickDevChip}
+                onPress={() => quickLogin('+919999999999')}
+                disabled={loading}
+              >
+                <Ionicons name="shield-checkmark" size={11} color="#EA580C" />
+                <Text style={styles.quickDevText}>Admin</Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={styles.quickDevChip}
+                onPress={() => quickLogin('+919876543210')}
+                disabled={loading}
+              >
+                <Ionicons name="restaurant" size={11} color="#16A34A" />
+                <Text style={styles.quickDevText}>Owner</Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={styles.quickDevChip}
+                onPress={() => quickLogin('+919811122233')}
+                disabled={loading}
+              >
+                <Ionicons name="bicycle" size={11} color="#DC2626" />
+                <Text style={styles.quickDevText}>Rider</Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={styles.quickDevChip}
+                onPress={() => quickLogin('+919822233344')}
+                disabled={loading}
+              >
+                <Ionicons name="person" size={11} color="#7C3AED" />
+                <Text style={styles.quickDevText}>User</Text>
+              </TouchableOpacity>
             </View>
           </View>
 
-          {/* Terms */}
-          <Text style={styles.terms}>
-            By continuing, you agree to Ftafat's{' '}
-            <Text style={styles.termsLink}>Terms of Service</Text>
-            {' '}and{' '}
-            <Text style={styles.termsLink}>Privacy Policy</Text>
-          </Text>
-
-          {/* Bottom decoration */}
-          <View style={styles.bottomDecor}>
-            <View style={styles.decorLine} />
-            <Ionicons name="heart" size={14} color="#FF6B00" />
-            <View style={styles.decorLine} />
+          {/* ── Terms & Policy Footer ─────────────────────────────────── */}
+          <View style={styles.termsFooter}>
+            <Text style={styles.termsIntro}>By continuing, you agree to our</Text>
+            <View style={styles.termsLinksRow}>
+              <Text style={styles.termsLink}>Terms of Service</Text>
+              <Text style={styles.termsDot}>•</Text>
+              <Text style={styles.termsLink}>Privacy Policy</Text>
+              <Text style={styles.termsDot}>•</Text>
+              <Text style={styles.termsLink}>Content Policy</Text>
+            </View>
           </View>
 
         </ScrollView>
-      </KeyboardAvoidingView>
+      </AnimatedView>
 
-    </SafeAreaView>
+    </View>
   );
 }
 
-// ─── Styles ───────────────────────────────────────────────────────────────────
+// ─── STYLES ───────────────────────────────────────────────────────────────────
 const styles = StyleSheet.create({
   root: {
     flex: 1,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: '#000000',
   },
 
-  // ── Carousel ──────────────────────────────────────────────────────────────
-  carouselBox: {
+  // ── Hero Container ────────────────────────────────────────────────────────
+  heroContainer: {
     width: '100%',
-    flexShrink: 0,
-    overflow: 'visible',
+    overflow: 'hidden',
+    position: 'relative',
+    backgroundColor: '#000000',
   },
+  slideItem: {
+    width: '100%',
+    overflow: 'hidden',
+  },
+  heroImage: {
+    width: '100%',
+  },
+  cornerBracketLeft: {
+    position: 'absolute',
+    left: 12,
+    width: 24,
+    height: 24,
+    borderTopWidth: 2.5,
+    borderLeftWidth: 2.5,
+    borderTopLeftRadius: 12,
+    borderColor: BRAND_ORANGE,
+    zIndex: 10,
+  },
+  cornerBracketRight: {
+    position: 'absolute',
+    right: 12,
+    width: 24,
+    height: 24,
+    borderTopWidth: 2.5,
+    borderRightWidth: 2.5,
+    borderTopRightRadius: 12,
+    borderColor: BRAND_ORANGE,
+    zIndex: 10,
+  },
+
+  // ── Dot Indicators ────────────────────────────────────────────────────────
   dotsRow: {
     position: 'absolute',
-    left: 0, right: 0,
+    bottom: 20,
+    left: 0,
+    right: 0,
     flexDirection: 'row',
     justifyContent: 'center',
+    alignItems: 'center',
     gap: 6,
   },
-  dot: { height: 7, borderRadius: 4 },
-  dotActive: { width: 24, backgroundColor: '#FFFFFF' },
-  dotInactive: { width: 7, backgroundColor: 'rgba(255,255,255,0.5)' },
-
-  // White wave mask — sits at bottom of carousel
-  waveMask: {
-    position: 'absolute',
-    bottom: 0, left: 0, right: 0,
-    height: WAVE_HEIGHT,
+  dot: {
+    height: 5,
+    borderRadius: 2.5,
+  },
+  dotActive: {
+    width: 20,
     backgroundColor: '#FFFFFF',
-    borderTopLeftRadius: 40,
-    borderTopRightRadius: 40,
+  },
+  dotInactive: {
+    width: 5,
+    backgroundColor: 'rgba(255, 255, 255, 0.45)',
   },
 
-  // ── KAV + scroll ──────────────────────────────────────────────────────────
+  // ── Form Wrap ─────────────────────────────────────────────────────────────
   kavWrap: {
     flex: 1,
     backgroundColor: '#FFFFFF',
+    borderTopLeftRadius: 26,
+    borderTopRightRadius: 26,
+    marginTop: -14,
+    shadowColor: '#000000',
+    shadowOffset: { width: 0, height: -4 },
+    shadowOpacity: 0.08,
+    shadowRadius: 14,
+    elevation: 8,
+    zIndex: 10,
+    paddingBottom: 90,
   },
   scrollWrap: {
     flexGrow: 1,
     paddingHorizontal: 22,
-    paddingTop: 4,
+    paddingTop: 20,
     paddingBottom: 16,
   },
 
-  // ── Title row ─────────────────────────────────────────────────────────────
-  titleRow: {
-    flexDirection: 'row',
+  // ── Title Wrap (Centered, Clean, NO F logo) ───────────────────────────────
+  titleWrap: {
     alignItems: 'center',
-    gap: 13,
-    marginBottom: 18,
+    marginBottom: 6,
   },
-  logoBox: {
-    width: 48,
-    height: 48,
-    borderRadius: 14,
-    overflow: 'hidden',
-    shadowColor: '#FF6B00',
-    shadowOffset: { width: 0, height: 3 },
-    shadowOpacity: 0.25,
-    shadowRadius: 8,
-    elevation: 5,
-  },
-  logoImg: { width: 48, height: 48 },
   title: {
-    fontSize: 22,
+    fontFamily: Platform.select({ ios: 'System', android: 'sans-serif-medium' }),
+    fontSize: 20,
     fontWeight: '800',
-    color: '#111827',
-    letterSpacing: -0.4,
+    color: '#1C1C1C',
+    letterSpacing: -0.2,
   },
-  sub: {
+  subText: {
+    fontFamily: Platform.select({ ios: 'System', android: 'sans-serif' }),
     fontSize: 13,
-    color: '#6B7280',
-    marginTop: 2,
-    lineHeight: 18,
-  },
-
-  // ── Badge ─────────────────────────────────────────────────────────────────
-  badge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#FFFBEB',
-    borderRadius: 10,
-    paddingVertical: 9,
-    paddingHorizontal: 12,
-    marginBottom: 16,
-    gap: 7,
-    borderWidth: 1,
-    borderColor: '#FDE68A',
-  },
-  badgeText: { fontSize: 12.5, color: '#92400E', fontWeight: '500', flex: 1 },
-
-  // ── Phone input ───────────────────────────────────────────────────────────
-  inputBox: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    height: 58,
-    borderRadius: 16,
-    borderWidth: 1.5,
-    borderColor: '#E5E7EB',
-    backgroundColor: '#FFFFFF',
-    marginBottom: 16,
-    overflow: 'hidden',
-  },
-  countryWrap: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 14,
-    height: '100%',
-    gap: 5,
-  },
-  flag: { fontSize: 19 },
-  cc: { fontSize: 15, fontWeight: '700', color: '#1F2937' },
-  inputDivider: { width: 1.5, height: 26, backgroundColor: '#E5E7EB' },
-  inputText: {
-    flex: 1,
-    paddingHorizontal: 14,
-    fontSize: 16,
-    fontWeight: '500',
-    color: '#111827',
-    height: '100%',
-  },
-  otpText: {
+    color: '#64748B',
+    marginTop: 4,
     textAlign: 'center',
-    letterSpacing: 18,
-    fontSize: 26,
-    fontWeight: '800',
   },
 
-  // ── Main button ───────────────────────────────────────────────────────────
-  mainBtn: {
-    backgroundColor: '#FF6B00',
-    borderRadius: 50,
-    height: 58,
+  // ── Phone Row (Flag Box + Phone Input Box) ────────────────────────────────
+  phoneRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    marginTop: 16,
+  },
+  countryBox: {
+    width: 68,
+    height: 50,
+    borderRadius: 12,
+    borderWidth: 1.5,
+    borderColor: BORDER_COLOR,
+    backgroundColor: INPUT_BG,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    marginBottom: 8,
-    shadowColor: '#FF6B00',
-    shadowOffset: { width: 0, height: 6 },
-    shadowOpacity: 0.35,
-    shadowRadius: 14,
-    elevation: 8,
+    gap: 5,
   },
-  mainBtnText: {
+  flagText: {
+    fontSize: 20,
+  },
+  phoneInputBox: {
+    flex: 1,
+    height: 50,
+    borderRadius: 12,
+    borderWidth: 1.5,
+    borderColor: BORDER_COLOR,
+    backgroundColor: INPUT_BG,
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 14,
+  },
+  phoneInputBoxFocused: {
+    borderColor: BRAND_ORANGE,
+    backgroundColor: '#FFFFFF',
+  },
+  codeText: {
+    fontSize: 15,
+    fontWeight: '800',
+    color: BRAND_ORANGE,
+    marginRight: 8,
+  },
+  phoneTextInput: {
+    flex: 1,
+    fontSize: 15.5,
+    fontWeight: '600',
+    color: TEXT_DARK,
+    height: '100%',
+  },
+
+  // ── Continue Button (ALWAYS Vibrant Brand Orange) ─────────────────────────
+  continueBtn: {
+    height: 52,
+    borderRadius: 14,
+    backgroundColor: BRAND_ORANGE,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 20,
+    shadowColor: BRAND_ORANGE,
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.38,
+    shadowRadius: 12,
+    elevation: 6,
+  },
+  continueBtnText: {
     color: '#FFFFFF',
-    fontSize: 18,
+    fontSize: 16.5,
     fontWeight: '800',
     letterSpacing: 0.3,
   },
-  mainBtnCircle: {
-    position: 'absolute',
-    right: 8,
-    width: 40,
-    height: 40,
-    borderRadius: 40,
+
+  // ── OTP Screen Specific ───────────────────────────────────────────────────
+  otpInputBox: {
+    height: 52,
+    borderRadius: 12,
+    borderWidth: 1.5,
+    borderColor: BRAND_ORANGE,
     backgroundColor: '#FFFFFF',
-    alignItems: 'center',
     justifyContent: 'center',
+    alignItems: 'center',
+    marginTop: 16,
+    marginBottom: 16,
   },
-
-  // ── OTP links ─────────────────────────────────────────────────────────────
-  otpLinks: {
+  otpTextInput: {
+    fontSize: 24,
+    fontWeight: '800',
+    letterSpacing: 18,
+    color: TEXT_DARK,
+    textAlign: 'center',
+    width: '100%',
+  },
+  otpLinksRow: {
     flexDirection: 'row',
     justifyContent: 'center',
     alignItems: 'center',
-    marginTop: 10,
     gap: 14,
+    marginTop: 4,
+    marginBottom: 18,
   },
-  linkBtn: { flexDirection: 'row', alignItems: 'center', gap: 5 },
-  linkOrange: { color: '#FF6B00', fontWeight: '700', fontSize: 13 },
-  linkGray: { color: '#6B7280', fontSize: 13, fontWeight: '500' },
-  linkDot: { width: 4, height: 4, borderRadius: 2, backgroundColor: '#D1D5DB' },
-
-  // ── Quick test accounts ───────────────────────────────────────────────────
-  quickSection: {
-    marginTop: 22,
-    alignItems: 'center',
-  },
-  quickLabel: {
-    fontSize: 12,
-    color: '#9CA3AF',
-    marginBottom: 12,
-    fontWeight: '500',
-  },
-  quickRow: {
+  linkBtn: {
     flexDirection: 'row',
-    gap: 10,
-    justifyContent: 'center',
-  },
-  quickBadge: {
     alignItems: 'center',
     gap: 5,
-    borderWidth: 1.5,
-    borderColor: '#E5E7EB',
-    paddingHorizontal: 14,
-    paddingVertical: 10,
-    borderRadius: 14,
-    backgroundColor: '#FAFAFA',
-    minWidth: 68,
   },
-  quickText: {
-    fontSize: 12,
+  linkText: {
+    fontSize: 13,
+    fontWeight: '600',
+  },
+  linkDot: {
+    width: 4,
+    height: 4,
+    borderRadius: 2,
+    backgroundColor: '#CBD5E1',
+  },
+
+  // ── Quick Dev Test Logins (Small chips at bottom) ─────────────────────────
+  quickDevWrap: {
+    alignItems: 'center',
+    marginTop: 4,
+    marginBottom: 14,
+  },
+  quickDevLabel: {
+    fontSize: 10,
     fontWeight: '700',
-    color: '#374151',
+    color: '#94A3B8',
+    letterSpacing: 0.8,
+    marginBottom: 7,
+  },
+  quickDevRow: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    gap: 7,
+  },
+  quickDevChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 9,
+    paddingVertical: 5,
+    borderRadius: 7,
+    backgroundColor: '#F8FAFC',
+    borderWidth: 1,
+    borderColor: BORDER_COLOR,
+    gap: 4,
+  },
+  quickDevText: {
+    fontSize: 11.5,
+    fontWeight: '600',
+    color: '#475569',
   },
 
-  // ── Terms ─────────────────────────────────────────────────────────────────
-  terms: {
+  // ── Terms & Policy Footer ─────────────────────────────────────────────────
+  termsFooter: {
+    alignItems: 'center',
+    marginTop: 2,
+    paddingBottom: 4,
+  },
+  termsIntro: {
+    fontSize: 11.5,
+    color: TEXT_MUTED,
     textAlign: 'center',
-    fontSize: 11,
-    color: '#9CA3AF',
-    marginTop: 14,
-    lineHeight: 17,
   },
-  termsLink: { color: '#FF6B00', fontWeight: '600' },
-
-  // ── Bottom decoration ─────────────────────────────────────────────────────
-  bottomDecor: {
+  termsLinksRow: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 10,
-    marginTop: 14,
+    gap: 6,
+    marginTop: 3,
   },
-  decorLine: {
-    width: 40,
-    height: 1.5,
-    backgroundColor: '#FFD4B0',
-    borderRadius: 1,
+  termsLink: {
+    fontSize: 11.5,
+    color: '#475569',
+    fontWeight: '500',
+    textDecorationLine: 'underline',
+  },
+  termsDot: {
+    fontSize: 10,
+    color: '#94A3B8',
   },
 });

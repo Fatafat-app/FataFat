@@ -1,89 +1,190 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { View, Image, StyleSheet, Animated, Dimensions, Text, Platform } from 'react-native';
+import {
+  View,
+  Image,
+  StyleSheet,
+  Animated,
+  Dimensions,
+  Text,
+  Platform,
+  StatusBar,
+} from 'react-native';
+import { LinearGradient } from 'expo-linear-gradient';
 import { Redirect } from 'expo-router';
+import { Ionicons } from '@expo/vector-icons';
 import { useAuthStore } from '../store/auth.store';
 import { useConfigStore } from '../store/config.store';
 import { socketService } from '../services/socket.service';
 
 const { width } = Dimensions.get('window');
 
-const BOLD_FONT = Platform.select({ ios: 'Georgia-Bold', android: 'serif', default: 'System' });
-const REG_FONT  = Platform.select({ ios: 'Georgia', android: 'serif', default: 'System' });
-
-// Rotating funny taglines
+// ─── Rotating High-Energy Taglines ──────────────────────────────────────────
 const TAGLINES = [
-  "Kyunki khana khud nahi chalke aata! 🏃",
-  "Pet pooja sabse badi pooja 🙏🍛",
-  "Bhaiya delivery pe hain... chai mat banana! ☕",
-  "Ghar ka dard door, Ftafat hazir! 🛵💨",
-  "Ek click, aur bhooka kaun? 😏",
+  { text: 'Bhook lagi h? Ftafat aa rha h!', icon: 'flash' },
+  { text: 'Cravings & Groceries in 10 minutes!', icon: 'bicycle' },
+  { text: 'Pet pooja sabse badi pooja 🙏', icon: 'restaurant' },
+  { text: 'Kyunki khana khud chalke nahi aata! 🏃', icon: 'flame' },
+  { text: 'Ghar ka har saman, Ftafat aapke dwar! 🛍️', icon: 'basket' },
 ];
-const randomTagline = TAGLINES[Math.floor(Math.random() * TAGLINES.length)];
+const chosenTagline = TAGLINES[Math.floor(Math.random() * TAGLINES.length)];
 
 export default function Index() {
   const { user, isAuthenticated, isLoading } = useAuthStore();
   const { fetchBootstrap } = useConfigStore();
   const [showSplash, setShowSplash] = useState(true);
 
-  const logoScale    = useRef(new Animated.Value(0.3)).current;
-  const logoOpacity  = useRef(new Animated.Value(0)).current;
-  const textOpacity  = useRef(new Animated.Value(0)).current;
+  // ── Animation Values ──────────────────────────────────────────────────────
+  const logoScale = useRef(new Animated.Value(0.5)).current;
+  const logoOpacity = useRef(new Animated.Value(0)).current;
+  const contentOpacity = useRef(new Animated.Value(0)).current;
+  const contentTranslateY = useRef(new Animated.Value(20)).current;
+  const progressAnim = useRef(new Animated.Value(0)).current;
   const containerOpacity = useRef(new Animated.Value(1)).current;
 
   useEffect(() => {
-    // 1. Fetch live system configuration & vertical statuses
+    // 1. Android translucent status bar
+    if (Platform.OS === 'android') {
+      StatusBar.setTranslucent(true);
+      StatusBar.setBackgroundColor('transparent');
+    }
+
+    // 2. Fetch live system configuration & vertical statuses
     fetchBootstrap();
 
-    // 2. Initialize live socket connection
+    // 3. Initialize live socket connection
     socketService.connect().catch(() => {});
 
-    Animated.sequence([
-      // Logo bounce in
-      Animated.parallel([
-        Animated.spring(logoScale, { toValue: 1, friction: 4, tension: 60, useNativeDriver: true }),
-        Animated.timing(logoOpacity, { toValue: 1, duration: 450, useNativeDriver: true }),
+    // 4. Orchestrated Splash Animation
+    Animated.parallel([
+      // A. Logo springs in smoothly
+      Animated.spring(logoScale, {
+        toValue: 1,
+        friction: 5,
+        tension: 70,
+        useNativeDriver: true,
+      }),
+      Animated.timing(logoOpacity, {
+        toValue: 1,
+        duration: 480,
+        useNativeDriver: true,
+      }),
+
+      // B. Taglines slide up smoothly
+      Animated.sequence([
+        Animated.delay(240),
+        Animated.parallel([
+          Animated.timing(contentOpacity, {
+            toValue: 1,
+            duration: 420,
+            useNativeDriver: true,
+          }),
+          Animated.spring(contentTranslateY, {
+            toValue: 0,
+            friction: 7,
+            tension: 50,
+            useNativeDriver: true,
+          }),
+        ]),
       ]),
-      // Text fades in after logo
-      Animated.timing(textOpacity, { toValue: 1, duration: 400, useNativeDriver: true }),
-      // Hold
-      Animated.delay(1400),
-      // Fade out everything
-      Animated.timing(containerOpacity, { toValue: 0, duration: 450, useNativeDriver: true }),
-    ]).start(() => setShowSplash(false));
+
+      // C. Progress line fills smoothly
+      Animated.timing(progressAnim, {
+        toValue: 1,
+        duration: 1750,
+        useNativeDriver: false,
+      }),
+    ]).start();
+
+    // 5. Hold and smoothly fade transition out to app
+    const timer = setTimeout(() => {
+      Animated.timing(containerOpacity, {
+        toValue: 0,
+        duration: 380,
+        useNativeDriver: true,
+      }).start(() => setShowSplash(false));
+    }, 2200);
+
+    return () => clearTimeout(timer);
   }, []);
 
   if (showSplash || isLoading) {
+    const progressWidth = progressAnim.interpolate({
+      inputRange: [0, 1],
+      outputRange: ['0%', '100%'],
+    });
+
     return (
       <Animated.View style={[styles.container, { opacity: containerOpacity }]}>
-        {/* Decorative bg circles */}
-        <View style={styles.circle1} />
-        <View style={styles.circle2} />
-        <View style={styles.circle3} />
+        <StatusBar barStyle="light-content" translucent backgroundColor="transparent" />
 
-        {/* Logo with bounce */}
-        <Animated.View style={{ transform: [{ scale: logoScale }], opacity: logoOpacity, alignItems: 'center' }}>
-          <Image
-            source={require('../assets/images/logo_transparent.png')}
-            style={styles.logoImage}
-            resizeMode="contain"
-          />
-        </Animated.View>
+        {/* ── Vibrant & Bright Ftafat Gradient (Lighter, energetic, non-dark) ── */}
+        <LinearGradient
+          colors={['#E8331A', '#F75B10', '#FF7A00', '#FFA826']}
+          start={{ x: 0.15, y: 0.05 }}
+          end={{ x: 0.85, y: 0.95 }}
+          style={StyleSheet.absoluteFillObject}
+        />
 
-        {/* Funny tagline fades in */}
-        <Animated.View style={[styles.textBlock, { opacity: textOpacity }]}>
-          <Text style={styles.tagline}>{randomTagline}</Text>
-          <View style={styles.dotsRow}>
-            <View style={[styles.dot, { opacity: 1 }]} />
-            <View style={[styles.dot, { opacity: 0.6 }]} />
-            <View style={[styles.dot, { opacity: 0.3 }]} />
+        {/* ── Main Center Content ─────────────────────────────────────────── */}
+        <View style={styles.centerBlock}>
+
+          {/* Logo — Transparent Full Name "Ftafat" 3D Logo (from assets full Name Ftafat) */}
+          <Animated.View
+            style={[
+              styles.logoTextWrap,
+              {
+                transform: [{ scale: logoScale }],
+                opacity: logoOpacity,
+              },
+            ]}
+          >
+            <Image
+              source={require('../assets/logo/ftafat_full_name_transparent.png')}
+              style={styles.logoTextImage}
+              resizeMode="contain"
+            />
+          </Animated.View>
+
+          {/* Tagline & Progress ───────────────────────────────────────────── */}
+          <Animated.View
+            style={[
+              styles.textContainer,
+              {
+                opacity: contentOpacity,
+                transform: [{ translateY: contentTranslateY }],
+              },
+            ]}
+          >
+            {/* Dynamic Slogan */}
+            <Text style={styles.taglineText}>{chosenTagline.text}</Text>
+
+            {/* Sub-tagline */}
+            <Text style={styles.subTagline}>Food • Groceries • Daily Essentials</Text>
+
+            {/* Glowing Slim Progress Pill */}
+            <View style={styles.progressTrack}>
+              <Animated.View style={[styles.progressBar, { width: progressWidth }]} />
+            </View>
+          </Animated.View>
+
+        </View>
+
+        {/* ── Elegant Bottom Branding ─────────────────────────────────────── */}
+        <Animated.View style={[styles.footer, { opacity: contentOpacity }]}>
+          <View style={styles.secureRow}>
+            <Ionicons name="shield-checkmark" size={13} color="rgba(255,255,255,0.75)" />
+            <Text style={styles.footerText}>100% Safe & Contactless Delivery</Text>
           </View>
+          <Text style={styles.copyrightText}>ftafat.com • Made with ❤️ in India</Text>
         </Animated.View>
+
       </Animated.View>
     );
   }
 
+  // ── Auth & Role-Based Navigation ──────────────────────────────────────────
   if (!isAuthenticated || !user) return <Redirect href="/(auth)/login" />;
-  
+
   const role = user.role;
   if (['admin', 'super_admin', 'ops_admin', 'catalog_admin', 'finance_admin', 'support_admin'].includes(role)) {
     return <Redirect href="/(admin)/dashboard" />;
@@ -94,71 +195,103 @@ export default function Index() {
   if (['delivery_partner', 'rider'].includes(role)) {
     return <Redirect href="/(rider)/dashboard" />;
   }
-  
+
   return <Redirect href="/(tabs)" />;
 }
 
+// ─── STYLES ───────────────────────────────────────────────────────────────────
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#FDF2E3',
+    backgroundColor: '#E8331A',
     alignItems: 'center',
     justifyContent: 'center',
     overflow: 'hidden',
   },
-  circle1: {
-    position: 'absolute',
-    width: width * 1.5,
-    height: width * 1.5,
-    borderRadius: width * 0.75,
-    backgroundColor: 'rgba(255,96,0,0.07)',
-    top: -width * 0.7,
-    right: -width * 0.5,
-  },
-  circle2: {
-    position: 'absolute',
-    width: width * 1.2,
-    height: width * 1.2,
-    borderRadius: width * 0.6,
-    backgroundColor: 'rgba(255,96,0,0.05)',
-    bottom: -width * 0.6,
-    left: -width * 0.4,
-  },
-  circle3: {
-    position: 'absolute',
-    width: width * 0.4,
-    height: width * 0.4,
-    borderRadius: width * 0.2,
-    backgroundColor: 'rgba(255,160,0,0.1)',
-    bottom: width * 0.15,
-    right: width * 0.05,
-  },
-  logoImage: {
-    width: width * 0.78,
-    height: width * 0.28,
-    marginBottom: 40,
-  },
-  textBlock: {
+
+  // ── Center Content ────────────────────────────────────────────────────────
+  centerBlock: {
     alignItems: 'center',
-    paddingHorizontal: 32,
+    justifyContent: 'center',
+    zIndex: 10,
+    paddingHorizontal: 24,
   },
-  tagline: {
-    fontFamily: BOLD_FONT,
-    fontSize: 17,
-    color: '#7C3500',
+
+  // ── Transparent Logo Text ─────────────────────────────────────────────────
+  logoTextWrap: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 28,
+    shadowColor: '#000000',
+    shadowOffset: { width: 0, height: 10 },
+    shadowOpacity: 0.22,
+    shadowRadius: 18,
+    elevation: 8,
+  },
+  logoTextImage: {
+    width: width * 0.78,
+    height: Math.round(width * 0.78 * (925 / 1177)),
+  },
+
+  // ── Tagline & Details ─────────────────────────────────────────────────────
+  textContainer: {
+    alignItems: 'center',
+  },
+  taglineText: {
+    fontSize: 21,
+    fontWeight: '900',
+    color: '#FFFFFF',
     textAlign: 'center',
-    lineHeight: 26,
+    letterSpacing: -0.3,
+    marginBottom: 8,
+    textShadowColor: 'rgba(0, 0, 0, 0.35)',
+    textShadowOffset: { width: 0, height: 2 },
+    textShadowRadius: 6,
+  },
+  subTagline: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: 'rgba(255, 255, 255, 0.85)',
+    textAlign: 'center',
     letterSpacing: 0.2,
-    marginBottom: 20,
+    marginBottom: 26,
   },
-  dotsRow: {
+
+  // ── Progress Bar ──────────────────────────────────────────────────────────
+  progressTrack: {
+    width: 130,
+    height: 4,
+    backgroundColor: 'rgba(255, 255, 255, 0.25)',
+    borderRadius: 3,
+    overflow: 'hidden',
+  },
+  progressBar: {
+    height: '100%',
+    backgroundColor: '#FFFFFF',
+    borderRadius: 3,
+  },
+
+  // ── Footer ────────────────────────────────────────────────────────────────
+  footer: {
+    position: 'absolute',
+    bottom: 30,
+    alignItems: 'center',
+    gap: 4,
+  },
+  secureRow: {
     flexDirection: 'row',
-    gap: 8,
+    alignItems: 'center',
+    gap: 5,
   },
-  dot: {
-    width: 8,
-    height: 8,
-    borderRadius: 4,
-    backgroundColor: '#FF6000',
+  footerText: {
+    fontSize: 11.5,
+    fontWeight: '600',
+    color: 'rgba(255, 255, 255, 0.78)',
+    letterSpacing: 0.2,
+  },
+  copyrightText: {
+    fontSize: 10,
+    fontWeight: '500',
+    color: 'rgba(255, 255, 255, 0.52)',
   },
 });

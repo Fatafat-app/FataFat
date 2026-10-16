@@ -7,6 +7,11 @@
     "icon": "./assets/images/appIcon.png",
     "scheme": "ftafat",
     "userInterfaceStyle": "automatic",
+    "androidStatusBar": {
+      "barStyle": "light-content",
+      "backgroundColor": "#00000000",
+      "translucent": true
+    },
     "ios": {
       "icon": "./assets/images/appIcon.png"
     },
