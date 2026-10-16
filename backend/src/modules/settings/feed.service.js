@@ -135,9 +135,20 @@ async function getUnifiedHomeFeed({ lat, lng, isVeg = false }) {
       ? searchService.getRecommendedItems({ isVeg: isVegBool, limit: sec.recommended?.limit || 15 }).then((r) => r.items || []).catch(() => [])
       : Promise.resolve([]),
 
-    // Steal Deals (Offers for You)
+    // Steal Deals (Offers for You) — auto-seed defaults if empty
     sec.stealDeals?.enabled !== false
-      ? Banner.find({ section: 'OFFERS_FOR_YOU', isActive: true }).sort({ sortOrder: 1, createdAt: -1 }).lean()
+      ? Banner.find({ section: 'OFFERS_FOR_YOU', isActive: true }).sort({ sortOrder: 1, createdAt: -1 }).lean().then(async (rows) => {
+          if (rows.length === 0) {
+            const bannerService = require('../banners/banner.service');
+            const defaults = await Banner.insertMany([
+              { tag: 'FLAT DEAL', title: '50% OFF', subtitle: 'on your favourite food', description: 'Valid on orders above ₹199 across top restaurants.', image: 'https://images.unsplash.com/photo-1513104890138-7c749659a591?w=600&q=80', colors: ['#0D9488', '#0F766E'], textColor: '#FFFFFF', accentColor: 'rgba(255,255,255,0.2)', actionText: 'Order Now', section: 'OFFERS_FOR_YOU', targetType: 'search', targetId: 'Pizza', sortOrder: 1, isActive: true },
+              { tag: 'MEGA OFFER', title: 'Buy 1 Get 1', subtitle: 'on selected desserts', description: 'Double the sweetness with exclusive bakery deals.', image: 'https://images.unsplash.com/photo-1551024506-0bccd828d307?w=600&q=80', colors: ['#F59E0B', '#D97706'], textColor: '#FFFFFF', accentColor: 'rgba(255,255,255,0.2)', actionText: 'Claim BOGO', section: 'OFFERS_FOR_YOU', targetType: 'search', targetId: 'Dessert', sortOrder: 2, isActive: true },
+              { tag: 'HEALTHY', title: '30% OFF', subtitle: 'on fresh salads', description: 'Healthy and organic meal bowls delivered fresh.', image: 'https://images.unsplash.com/photo-1512621776951-a57141f2eefd?w=600&q=80', colors: ['#E11D48', '#BE123C'], textColor: '#FFFFFF', accentColor: 'rgba(255,255,255,0.2)', actionText: 'Eat Healthy', section: 'OFFERS_FOR_YOU', targetType: 'search', targetId: 'Healthy', sortOrder: 3, isActive: true },
+            ]).catch(() => []);
+            return defaults;
+          }
+          return rows;
+        })
       : Promise.resolve([]),
 
     // 99 Store

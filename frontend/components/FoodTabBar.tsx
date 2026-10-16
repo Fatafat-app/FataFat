@@ -22,7 +22,7 @@ const FOOD_TABS = [
   { id: 'index', route: '/(tabs)', label: 'Home', icon: 'home-outline', iconFocused: 'home' },
   { id: 'orders', route: '/(tabs)/orders', label: 'Orders', icon: 'receipt-outline', iconFocused: 'receipt' },
   { id: 'cart', route: '/(tabs)/cart', label: 'Cart', icon: 'bag-handle-outline', iconFocused: 'bag-handle', isCenter: true },
-  { id: 'under99', route: '/(tabs)/under99', label: '99 Store', icon: 'pricetag-outline', iconFocused: 'pricetag' },
+  { id: 'under99', route: '/(tabs)/under99', label: '99 Store', icon: 'storefront-outline', iconFocused: 'storefront' },
   { id: 'profile', route: '/(tabs)/profile', label: 'Profile', icon: 'person-outline', iconFocused: 'person' },
 ] as const;
 

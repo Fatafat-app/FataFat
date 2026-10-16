@@ -261,7 +261,7 @@ export default function LoginScreen() {
 
               {/* Title: "Sign in with phone" (Clean, NO F logo) */}
               <View style={styles.titleWrap}>
-                <Text style={styles.title}>Sign in with phone</Text>
+                <Text style={styles.signinTitle}>Sign in with phone</Text>
                 <Text style={styles.subText}>
                   {isNewUser
                     ? 'A new account will be created for you'
@@ -301,7 +301,6 @@ export default function LoginScreen() {
                       setIsPhoneFocused(false);
                       keyboardOffset.value = withTiming(0, { duration: 200 });
                     }}
-                    autoFocus
                   />
                   {isPhoneValid && (
                     <Ionicons name="checkmark-circle" size={19} color="#22C55E" />
@@ -322,7 +321,10 @@ export default function LoginScreen() {
                   {loading ? (
                     <ActivityIndicator color="#FFFFFF" size="small" />
                   ) : (
-                    <Text style={styles.continueBtnText}>Continue</Text>
+                    <View style={styles.continueBtnInner}>
+                      <Text style={styles.continueBtnText}>Continue</Text>
+                      <Ionicons name="arrow-forward" size={18} color="#FFFFFF" />
+                    </View>
                   )}
                 </TouchableOpacity>
               </AnimatedView>
@@ -351,7 +353,6 @@ export default function LoginScreen() {
                   value={otp}
                   onChangeText={(val: string) => setOtp(val.replace(/[^0-9]/g, ''))}
                   maxLength={6}
-                  autoFocus
                   onFocus={() => {
                     keyboardOffset.value = withTiming(-80, { duration: 240 });
                   }}
@@ -445,12 +446,17 @@ export default function LoginScreen() {
 
           {/* ── Terms & Policy Footer ─────────────────────────────────── */}
           <View style={styles.termsFooter}>
+            <View style={styles.termsDividerRow}>
+              <View style={styles.termsDividerLine} />
+              <Ionicons name="lock-closed" size={11} color="#CBD5E1" />
+              <View style={styles.termsDividerLine} />
+            </View>
             <Text style={styles.termsIntro}>By continuing, you agree to our</Text>
             <View style={styles.termsLinksRow}>
               <Text style={styles.termsLink}>Terms of Service</Text>
-              <Text style={styles.termsDot}>•</Text>
+              <Text style={styles.termsDot}>·</Text>
               <Text style={styles.termsLink}>Privacy Policy</Text>
-              <Text style={styles.termsDot}>•</Text>
+              <Text style={styles.termsDot}>·</Text>
               <Text style={styles.termsLink}>Content Policy</Text>
             </View>
           </View>
@@ -564,6 +570,14 @@ const styles = StyleSheet.create({
     color: '#1C1C1C',
     letterSpacing: -0.2,
   },
+  signinTitle: {
+    fontFamily: Platform.select({ ios: 'Georgia', android: 'serif' }),
+    fontStyle: 'italic',
+    fontSize: 22,
+    fontWeight: '700',
+    color: '#1E3A5F',
+    letterSpacing: 0.2,
+  },
   subText: {
     fontFamily: Platform.select({ ios: 'System', android: 'sans-serif' }),
     fontSize: 13,
@@ -642,6 +656,11 @@ const styles = StyleSheet.create({
     fontSize: 16.5,
     fontWeight: '800',
     letterSpacing: 0.3,
+  },
+  continueBtnInner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
   },
 
   // ── OTP Screen Specific ───────────────────────────────────────────────────
@@ -726,29 +745,44 @@ const styles = StyleSheet.create({
   // ── Terms & Policy Footer ─────────────────────────────────────────────────
   termsFooter: {
     alignItems: 'center',
-    marginTop: 2,
-    paddingBottom: 4,
+    marginTop: 8,
+    paddingVertical: 4,
+  },
+  termsDividerRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    marginBottom: 6,
+  },
+  termsDividerLine: {
+    flex: 1,
+    height: 1,
+    backgroundColor: '#E2E8F0',
   },
   termsIntro: {
-    fontSize: 11.5,
-    color: TEXT_MUTED,
+    fontSize: 11,
+    color: '#94A3B8',
     textAlign: 'center',
+    fontWeight: '500',
+    marginBottom: 6,
   },
   termsLinksRow: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 6,
-    marginTop: 3,
+    flexWrap: 'wrap',
+    gap: 4,
   },
   termsLink: {
     fontSize: 11.5,
-    color: '#475569',
-    fontWeight: '500',
+    color: BRAND_ORANGE,
+    fontWeight: '700',
     textDecorationLine: 'underline',
+    textDecorationColor: BRAND_ORANGE,
   },
   termsDot: {
     fontSize: 10,
-    color: '#94A3B8',
+    color: '#CBD5E1',
+    fontWeight: '700',
   },
 });

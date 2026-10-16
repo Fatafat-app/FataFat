@@ -106,7 +106,7 @@ export default function OnboardingScreen() {
           {/* Logo */}
           <Animated.View entering={FadeInDown.duration(700).springify()} style={styles.logoWrap}>
             <Image
-              source={require('../../assets/images/logo_transparent.png')}
+              source={require('../../assets/logo/full Name Ftafat.png')}
               style={styles.logo}
               resizeMode="contain"
             />

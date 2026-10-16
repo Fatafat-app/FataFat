@@ -348,6 +348,12 @@ async function getBanners(section, onlyActive = true) {
     } else if (section === 'GROCERY_HERO') {
       await Banner.insertMany(DEFAULT_GROCERY_HERO);
       banners = await Banner.find(query).sort({ sortOrder: 1, createdAt: -1 }).lean();
+    } else if (section === 'OFFERS_FOR_YOU') {
+      await Banner.insertMany(DEFAULT_OFFERS);
+      banners = await Banner.find(query).sort({ sortOrder: 1, createdAt: -1 }).lean();
+    } else if (section === 'FOOD_HERO') {
+      await Banner.insertMany(DEFAULT_FOOD_HERO);
+      banners = await Banner.find(query).sort({ sortOrder: 1, createdAt: -1 }).lean();
     }
   }
 

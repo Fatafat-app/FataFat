@@ -478,26 +478,26 @@ export default function HomeScreen() {
     const rawRest = prod.restaurant;
     const targetRestaurant: Restaurant = (typeof rawRest === 'object' && rawRest?._id)
       ? {
-          _id: rawRest._id,
-          name: rawRest.name || 'Restaurant',
-          images: rawRest.images || [],
-          isOpen: rawRest.isOpen !== false,
-          rating: rawRest.rating || { average: 4.5, count: 10 },
-          deliveryInfo: rawRest.deliveryInfo || { estimatedMinutes: 30, deliveryFee: 3000 },
-          address: rawRest.address || { line1: 'Partner Store' },
-        } as any
+        _id: rawRest._id,
+        name: rawRest.name || 'Restaurant',
+        images: rawRest.images || [],
+        isOpen: rawRest.isOpen !== false,
+        rating: rawRest.rating || { average: 4.5, count: 10 },
+        deliveryInfo: rawRest.deliveryInfo || { estimatedMinutes: 30, deliveryFee: 3000 },
+        address: rawRest.address || { line1: 'Partner Store' },
+      } as any
       : {
-          _id: (typeof rawRest === 'string' ? rawRest : null) || prod.restaurantId || 'ftft-kitchen-must-try',
-          name: prod.restaurantName || 'Partner Restaurant',
-          images: [],
-          isOpen: true,
-          address: { line1: 'Partner Store' }
-        } as any;
+        _id: (typeof rawRest === 'string' ? rawRest : null) || prod.restaurantId || 'ftft-kitchen-must-try',
+        name: prod.restaurantName || 'Partner Restaurant',
+        images: [],
+        isOpen: true,
+        address: { line1: 'Partner Store' }
+      } as any;
 
     const rawPrice = Number(prod.price) || 0;
     const priceInPaise = rawPrice >= 100 ? rawPrice : rawPrice * 100;
     const dishImages = (prod.images && prod.images.length > 0) ? prod.images : [getFoodProductImage(prod)];
-    
+
     const formattedItem = {
       _id: prod._id || prod.id || `mt-${prod.name.replace(/\s+/g, '-')}`,
       name: prod.name,
@@ -509,7 +509,7 @@ export default function HomeScreen() {
     };
 
     const success = addItem(formattedItem as any, targetRestaurant as any, []);
-    
+
     if (!success) {
       Alert.alert(
         'Replace cart items?',
@@ -1257,34 +1257,38 @@ export default function HomeScreen() {
               </View>
             )}
 
-            {/* STEAL DEALS FOR YOU (Premium Swiggy/Cred Style - Positioned Below Recommended for You) */}
+            {/* HOT DEALS */}
             {feedConfig.stealDeals?.enabled !== false && offerBanners.length > 0 && (
               <View style={{ marginTop: 14, marginBottom: 8 }}>
                 <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: 16, marginBottom: 14 }}>
                   <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
-                    <View
-                      style={{
-                        width: 34,
-                        height: 34,
-                        borderRadius: 10,
-                        backgroundColor: '#FFEDD5',
-                        justifyContent: 'center',
-                        alignItems: 'center',
-                        borderWidth: 1,
-                        borderColor: '#FED7AA',
-                      }}
-                    >
-                      <MaterialCommunityIcons name="ticket-percent" size={19} color="#EA580C" />
-                    </View>
+
+                    <Ionicons name="diamond-outline" size={22} color="#6366F1" />
+
                     <View>
-                      <Text style={{ fontFamily: BOLD_FONT, fontSize: 18, color: Colors.text, letterSpacing: -0.5 }}>
-                        {feedConfig.stealDeals?.title || 'Steal Deals for You'}
-                      </Text>
+                      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                        <Text style={{ fontFamily: BOLD_FONT, fontSize: 18, color: Colors.text, letterSpacing: -0.5 }}>
+                          {feedConfig.stealDeals?.title || 'Hot Deals'}
+                        </Text>
+                        <View style={{
+                          backgroundColor: '#FEF2F2',
+                          borderWidth: 1,
+                          borderColor: '#FECACA',
+                          borderRadius: 8,
+                          paddingHorizontal: 7,
+                          paddingVertical: 2,
+                        }}>
+                          <Text style={{ fontFamily: BOLD_FONT, fontSize: 10, color: '#DC2626', letterSpacing: 0.3 }}>
+                            UP TO 50% OFF
+                          </Text>
+                        </View>
+                      </View>
                       <Text style={{ fontFamily: STYLISH_FONT, fontSize: 11, color: Colors.textSecondary, marginTop: 1 }}>
-                        {feedConfig.stealDeals?.subtitle || 'Unbeatable discounts & pocket-friendly feasts'}
+                        {feedConfig.stealDeals?.subtitle || 'Big saving on your favourite food'}
                       </Text>
                     </View>
                   </View>
+
                   <TouchableOpacity
                     activeOpacity={0.7}
                     onPress={() => router.push({ pathname: '/(tabs)/search', params: { q: 'Offers' } } as any)}
@@ -1307,81 +1311,81 @@ export default function HomeScreen() {
 
                 <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: 10, gap: 14 }}>
                   {offerBanners.slice(0, feedConfig.stealDeals?.limit || 10).map((card) => {
-                  if (card.displayMode === 'FULL_POSTER') {
+                    if (card.displayMode === 'FULL_POSTER') {
+                      return (
+                        <TouchableOpacity
+                          key={card._id}
+                          activeOpacity={0.9}
+                          onPress={() => handleOfferBannerPress(card)}
+                          style={{ width: 280, height: 130, borderRadius: 24, backgroundColor: '#0F172A', overflow: 'hidden' }}
+                        >
+                          <Image
+                            source={{ uri: card.image }}
+                            style={{ width: '100%', height: '100%' }}
+                            resizeMode="cover"
+                          />
+                        </TouchableOpacity>
+                      );
+                    }
+
+                    const bg1 = (Array.isArray(card.colors) && card.colors[0]) ? card.colors[0] : '#0D9488';
+                    const bg2 = (Array.isArray(card.colors) && card.colors[1]) ? card.colors[1] : bg1;
+                    const isDark = card.textColor === '#1A1A1F';
                     return (
                       <TouchableOpacity
                         key={card._id}
                         activeOpacity={0.9}
                         onPress={() => handleOfferBannerPress(card)}
-                        style={{ width: 280, height: 130, borderRadius: 24, backgroundColor: '#0F172A', overflow: 'hidden' }}
+                        style={{ width: 280, height: 130, borderRadius: 24, backgroundColor: bg1, overflow: 'hidden' }}
                       >
                         <Image
                           source={{ uri: card.image }}
-                          style={{ width: '100%', height: '100%' }}
-                          resizeMode="cover"
+                          style={{ position: 'absolute', right: -20, top: -20, width: 140, height: 140, borderRadius: 70, opacity: 0.9 }}
                         />
+                        <LinearGradient
+                          colors={[bg1, bg2]}
+                          start={{ x: 0, y: 0 }}
+                          end={{ x: 1, y: 0 }}
+                          style={{ position: 'absolute', width: '100%', height: '100%' }}
+                        />
+                        <View style={{ padding: 20, flex: 1, justifyContent: 'center' }}>
+                          {card.tag ? (
+                            <View
+                              style={{
+                                backgroundColor: card.accentColor || 'rgba(255,255,255,0.2)',
+                                alignSelf: 'flex-start',
+                                paddingHorizontal: 8,
+                                paddingVertical: 4,
+                                borderRadius: 8,
+                                marginBottom: 8,
+                              }}
+                            >
+                              <Text style={{ fontFamily: BOLD_FONT, fontSize: 10, color: isDark ? '#1A1A1F' : '#FFF' }}>
+                                {card.tag}
+                              </Text>
+                            </View>
+                          ) : null}
+                          <Text style={{ fontFamily: BOLD_FONT, fontSize: 24, color: card.textColor || '#FFF', lineHeight: 28 }}>
+                            {card.title}
+                          </Text>
+                          {card.subtitle ? (
+                            <Text
+                              style={{
+                                fontFamily: STYLISH_FONT,
+                                fontSize: 13,
+                                color: isDark ? 'rgba(0,0,0,0.7)' : 'rgba(255,255,255,0.85)',
+                                marginTop: 2,
+                              }}
+                            >
+                              {card.subtitle}
+                            </Text>
+                          ) : null}
+                        </View>
                       </TouchableOpacity>
                     );
-                  }
-
-                  const bg1 = (Array.isArray(card.colors) && card.colors[0]) ? card.colors[0] : '#0D9488';
-                  const bg2 = (Array.isArray(card.colors) && card.colors[1]) ? card.colors[1] : bg1;
-                  const isDark = card.textColor === '#1A1A1F';
-                  return (
-                    <TouchableOpacity
-                      key={card._id}
-                      activeOpacity={0.9}
-                      onPress={() => handleOfferBannerPress(card)}
-                      style={{ width: 280, height: 130, borderRadius: 24, backgroundColor: bg1, overflow: 'hidden' }}
-                    >
-                      <Image
-                        source={{ uri: card.image }}
-                        style={{ position: 'absolute', right: -20, top: -20, width: 140, height: 140, borderRadius: 70, opacity: 0.9 }}
-                      />
-                      <LinearGradient
-                        colors={[bg1, bg2]}
-                        start={{ x: 0, y: 0 }}
-                        end={{ x: 1, y: 0 }}
-                        style={{ position: 'absolute', width: '100%', height: '100%' }}
-                      />
-                      <View style={{ padding: 20, flex: 1, justifyContent: 'center' }}>
-                        {card.tag ? (
-                          <View
-                            style={{
-                              backgroundColor: card.accentColor || 'rgba(255,255,255,0.2)',
-                              alignSelf: 'flex-start',
-                              paddingHorizontal: 8,
-                              paddingVertical: 4,
-                              borderRadius: 8,
-                              marginBottom: 8,
-                            }}
-                          >
-                            <Text style={{ fontFamily: BOLD_FONT, fontSize: 10, color: isDark ? '#1A1A1F' : '#FFF' }}>
-                              {card.tag}
-                            </Text>
-                          </View>
-                        ) : null}
-                        <Text style={{ fontFamily: BOLD_FONT, fontSize: 24, color: card.textColor || '#FFF', lineHeight: 28 }}>
-                          {card.title}
-                        </Text>
-                        {card.subtitle ? (
-                          <Text
-                            style={{
-                              fontFamily: STYLISH_FONT,
-                              fontSize: 13,
-                              color: isDark ? 'rgba(0,0,0,0.7)' : 'rgba(255,255,255,0.85)',
-                              marginTop: 2,
-                            }}
-                          >
-                            {card.subtitle}
-                          </Text>
-                        ) : null}
-                      </View>
-                    </TouchableOpacity>
-                  );
-                })}
-              </ScrollView>
-            </View>
+                  })}
+                </ScrollView>
+              </View>
             )}
 
             {/* 99 STORE SECTION */}
@@ -1403,560 +1407,562 @@ export default function HomeScreen() {
 
             {/* TOP RESTAURANTS NEAR YOU (VERTICAL FULL WIDTH) */}
             {feedConfig.restaurants?.enabled !== false && (
-            <View style={{ paddingHorizontal: 16 }}>
-              <Text style={{ fontFamily: BOLD_FONT, fontSize: 18, color: Colors.text, letterSpacing: -0.5, marginBottom: 16 }}>
-                {feedConfig.restaurants?.title || 'Restaurants Near You'}
-              </Text>
+              <View style={{ paddingHorizontal: 16 }}>
+                <Text style={{ fontFamily: BOLD_FONT, fontSize: 18, color: Colors.text, letterSpacing: -0.5, marginBottom: 16 }}>
+                  {feedConfig.restaurants?.title || 'Restaurants Near You'}
+                </Text>
 
-              {loading ? (
-                <View style={{ gap: 16, paddingBottom: 16 }}>
-                  <RestaurantCardSkeleton />
-                  <RestaurantCardSkeleton />
-                  <RestaurantCardSkeleton />
-                </View>
-              ) : fetchError ? (
-                <View style={styles.emptyState}><Text style={styles.emptyTitle}>Could not load restaurants</Text></View>
-              ) : restaurants.length === 0 ? (
-                <View style={styles.emptyState}>
-                  <Text style={styles.emptyTitle}>
-                    {vegOnly ? 'No Pure Veg Restaurants Nearby' : 'No Restaurants Nearby'}
-                  </Text>
-                  {vegOnly && (
-                    <TouchableOpacity
-                      onPress={() => setVegOnly(false)}
-                      style={{
-                        marginTop: 12,
-                        backgroundColor: '#10B981',
-                        paddingHorizontal: 18,
-                        paddingVertical: 9,
-                        borderRadius: 12,
-                        alignSelf: 'center',
-                      }}
-                      activeOpacity={0.85}
-                    >
-                      <Text style={{ fontFamily: BOLD_FONT, color: '#FFFFFF', fontSize: 13 }}>
-                        Show All Restaurants
-                      </Text>
-                    </TouchableOpacity>
-                  )}
-                </View>
-              ) : (
-                <View style={{ gap: 24, paddingBottom: 16 }}>
-                  {restaurantsToShow.slice(0, feedConfig.restaurants?.limit || 10).map((r) => {
-                    const isFav = isFavorite(r._id);
-                    return (
-                    <TouchableOpacity
-                      key={r._id}
-                      style={{ backgroundColor: '#FFF', borderRadius: 20, overflow: 'hidden', shadowColor: '#000', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.05, shadowRadius: 10, elevation: 3, borderWidth: 1, borderColor: '#F3F4F6' }}
-                      onPress={() => router.push(`/restaurant/${r._id}`)}
-                      activeOpacity={0.95}
-                    >
-                      <View style={{ width: '100%', height: 190, backgroundColor: '#F3F4F6', position: 'relative' }}>
-                        <Image source={{ uri: r.images?.[0] || 'https://images.pexels.com/photos/260922/pexels-photo-260922.jpeg' }} style={{ width: '100%', height: '100%' }} />
-
-                        <TouchableOpacity 
-                          style={{ position: 'absolute', top: 12, right: 12, width: 32, height: 32, borderRadius: 16, backgroundColor: 'rgba(255,255,255,0.9)', justifyContent: 'center', alignItems: 'center' }}
-                          onPress={(e: any) => {
-                            e.stopPropagation();
-                            toggleFavorite({
-                              _id: r._id,
-                              name: r.name,
-                              price: 0,
-                              image: r.coverImage || r.images?.[0] || '',
-                              images: r.images || [],
-                              type: 'restaurant',
-                              cuisine: r.cuisines?.join(', '),
-                              rating: r.rating?.average,
-                              addedAt: Date.now(),
-                            });
-                          }}
-                          activeOpacity={0.7}
-                        >
-                          <Ionicons name={isFav ? "heart" : "heart-outline"} size={18} color={isFav ? '#EF4444' : Colors.textSecondary} />
-                        </TouchableOpacity>
-
-                        {/* Dynamic Discount / Tag Badge */}
-                        <View style={{ position: 'absolute', bottom: 12, left: 12, backgroundColor: Colors.primary, paddingHorizontal: 10, paddingVertical: 4, borderRadius: 8 }}>
-                          <Text style={{ fontFamily: BOLD_FONT, color: '#FFF', fontSize: 11 }}>
-                            {r.isPureVeg ? '🌱 100% PURE VEG' : (r.deliveryInfo?.deliveryFee === 0 ? 'FREE DELIVERY' : 'FLAT ₹50 OFF')}
-                          </Text>
-                        </View>
-                      </View>
-
-                      <View style={{ padding: 16 }}>
-                        <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 6 }}>
-                          <Text style={{ fontFamily: BOLD_FONT, fontSize: 18, color: Colors.text, flex: 1, marginRight: 8 }} numberOfLines={1}>{r.name}</Text>
-                          <View style={{ flexDirection: 'row', alignItems: 'center', backgroundColor: (r.rating?.count > 0 && r.rating?.average) ? Colors.success : '#6B7280', paddingHorizontal: 7, paddingVertical: 2, borderRadius: 6 }}>
-                            <Text style={{ fontFamily: BOLD_FONT, color: '#FFF', fontSize: 12, marginRight: (r.rating?.count > 0 && r.rating?.average) ? 2 : 0 }}>
-                              {r.rating?.count > 0 && r.rating?.average ? `${r.rating.average.toFixed(1)} (${r.rating.count})` : 'NEW'}
-                            </Text>
-                            {r.rating?.count > 0 && r.rating?.average ? (
-                              <Ionicons name="star" size={10} color="#FFF" />
-                            ) : null}
-                          </View>
-                        </View>
-
-                        <Text style={{ fontFamily: STYLISH_FONT, fontSize: 14, color: Colors.textSecondary, marginBottom: 8 }} numberOfLines={1}>
-                          {r.cuisines?.join(', ') || 'North Indian, Chinese'}
+                {loading ? (
+                  <View style={{ gap: 16, paddingBottom: 16 }}>
+                    <RestaurantCardSkeleton />
+                    <RestaurantCardSkeleton />
+                    <RestaurantCardSkeleton />
+                  </View>
+                ) : fetchError ? (
+                  <View style={styles.emptyState}><Text style={styles.emptyTitle}>Could not load restaurants</Text></View>
+                ) : restaurants.length === 0 ? (
+                  <View style={styles.emptyState}>
+                    <Text style={styles.emptyTitle}>
+                      {vegOnly ? 'No Pure Veg Restaurants Nearby' : 'No Restaurants Nearby'}
+                    </Text>
+                    {vegOnly && (
+                      <TouchableOpacity
+                        onPress={() => setVegOnly(false)}
+                        style={{
+                          marginTop: 12,
+                          backgroundColor: '#10B981',
+                          paddingHorizontal: 18,
+                          paddingVertical: 9,
+                          borderRadius: 12,
+                          alignSelf: 'center',
+                        }}
+                        activeOpacity={0.85}
+                      >
+                        <Text style={{ fontFamily: BOLD_FONT, color: '#FFFFFF', fontSize: 13 }}>
+                          Show All Restaurants
                         </Text>
+                      </TouchableOpacity>
+                    )}
+                  </View>
+                ) : (
+                  <View style={{ gap: 24, paddingBottom: 16 }}>
+                    {restaurantsToShow.slice(0, feedConfig.restaurants?.limit || 10).map((r) => {
+                      const isFav = isFavorite(r._id);
+                      return (
+                        <TouchableOpacity
+                          key={r._id}
+                          style={{ backgroundColor: '#FFF', borderRadius: 20, overflow: 'hidden', shadowColor: '#000', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.05, shadowRadius: 10, elevation: 3, borderWidth: 1, borderColor: '#F3F4F6' }}
+                          onPress={() => router.push(`/restaurant/${r._id}`)}
+                          activeOpacity={0.95}
+                        >
+                          <View style={{ width: '100%', height: 190, backgroundColor: '#F3F4F6', position: 'relative' }}>
+                            <Image source={{ uri: r.images?.[0] || 'https://images.pexels.com/photos/260922/pexels-photo-260922.jpeg' }} style={{ width: '100%', height: '100%' }} />
 
-                        <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-                          <Ionicons name="time-outline" size={14} color={Colors.textSecondary} />
-                          <Text style={{ fontFamily: BOLD_FONT, fontSize: 12, color: Colors.textSecondary, marginLeft: 4, marginRight: 12 }}>
-                            {r.deliveryInfo?.estimatedMinutes ? `${r.deliveryInfo.estimatedMinutes} min` : '25-30 min'}
-                          </Text>
-                          <Ionicons name="location-outline" size={14} color={Colors.textSecondary} />
-                          <Text style={{ fontFamily: BOLD_FONT, fontSize: 12, color: Colors.textSecondary, marginLeft: 4 }}>
-                            {formatDistance(r.distance) || 'Nearby'}
-                          </Text>
-                        </View>
+                            <TouchableOpacity
+                              style={{ position: 'absolute', top: 12, right: 12, width: 32, height: 32, borderRadius: 16, backgroundColor: 'rgba(255,255,255,0.9)', justifyContent: 'center', alignItems: 'center' }}
+                              onPress={(e: any) => {
+                                e.stopPropagation();
+                                toggleFavorite({
+                                  _id: r._id,
+                                  name: r.name,
+                                  price: 0,
+                                  image: r.coverImage || r.images?.[0] || '',
+                                  images: r.images || [],
+                                  type: 'restaurant',
+                                  cuisine: r.cuisines?.join(', '),
+                                  rating: r.rating?.average,
+                                  addedAt: Date.now(),
+                                });
+                              }}
+                              activeOpacity={0.7}
+                            >
+                              <Ionicons name={isFav ? "heart" : "heart-outline"} size={18} color={isFav ? '#EF4444' : Colors.textSecondary} />
+                            </TouchableOpacity>
 
-                        <View style={{ height: 1, backgroundColor: '#F3F4F6', marginVertical: 12 }} />
-                        <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-                          <Ionicons name="pricetag-outline" size={14} color={Colors.primary} style={{ marginRight: 6 }} />
-                          <Text style={{ fontFamily: STYLISH_FONT, fontSize: 12, color: Colors.textSecondary }}>
-                            {r.deliveryInfo?.minOrderAmount ? `Min order ₹${Math.round(r.deliveryInfo.minOrderAmount / 100)} • Standard delivery` : 'Standard fast delivery'}
-                          </Text>
-                        </View>
-                      </View>
-                    </TouchableOpacity>
-                  )})}
-                </View>
-              )}
-            </View>
+                            {/* Dynamic Discount / Tag Badge */}
+                            <View style={{ position: 'absolute', bottom: 12, left: 12, backgroundColor: Colors.primary, paddingHorizontal: 10, paddingVertical: 4, borderRadius: 8 }}>
+                              <Text style={{ fontFamily: BOLD_FONT, color: '#FFF', fontSize: 11 }}>
+                                {r.isPureVeg ? '🌱 100% PURE VEG' : (r.deliveryInfo?.deliveryFee === 0 ? 'FREE DELIVERY' : 'FLAT ₹50 OFF')}
+                              </Text>
+                            </View>
+                          </View>
+
+                          <View style={{ padding: 16 }}>
+                            <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 6 }}>
+                              <Text style={{ fontFamily: BOLD_FONT, fontSize: 18, color: Colors.text, flex: 1, marginRight: 8 }} numberOfLines={1}>{r.name}</Text>
+                              <View style={{ flexDirection: 'row', alignItems: 'center', backgroundColor: (r.rating?.count > 0 && r.rating?.average) ? Colors.success : '#6B7280', paddingHorizontal: 7, paddingVertical: 2, borderRadius: 6 }}>
+                                <Text style={{ fontFamily: BOLD_FONT, color: '#FFF', fontSize: 12, marginRight: (r.rating?.count > 0 && r.rating?.average) ? 2 : 0 }}>
+                                  {r.rating?.count > 0 && r.rating?.average ? `${r.rating.average.toFixed(1)} (${r.rating.count})` : 'NEW'}
+                                </Text>
+                                {r.rating?.count > 0 && r.rating?.average ? (
+                                  <Ionicons name="star" size={10} color="#FFF" />
+                                ) : null}
+                              </View>
+                            </View>
+
+                            <Text style={{ fontFamily: STYLISH_FONT, fontSize: 14, color: Colors.textSecondary, marginBottom: 8 }} numberOfLines={1}>
+                              {r.cuisines?.join(', ') || 'North Indian, Chinese'}
+                            </Text>
+
+                            <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                              <Ionicons name="time-outline" size={14} color={Colors.textSecondary} />
+                              <Text style={{ fontFamily: BOLD_FONT, fontSize: 12, color: Colors.textSecondary, marginLeft: 4, marginRight: 12 }}>
+                                {r.deliveryInfo?.estimatedMinutes ? `${r.deliveryInfo.estimatedMinutes} min` : '25-30 min'}
+                              </Text>
+                              <Ionicons name="location-outline" size={14} color={Colors.textSecondary} />
+                              <Text style={{ fontFamily: BOLD_FONT, fontSize: 12, color: Colors.textSecondary, marginLeft: 4 }}>
+                                {formatDistance(r.distance) || 'Nearby'}
+                              </Text>
+                            </View>
+
+                            <View style={{ height: 1, backgroundColor: '#F3F4F6', marginVertical: 12 }} />
+                            <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                              <Ionicons name="pricetag-outline" size={14} color={Colors.primary} style={{ marginRight: 6 }} />
+                              <Text style={{ fontFamily: STYLISH_FONT, fontSize: 12, color: Colors.textSecondary }}>
+                                {r.deliveryInfo?.minOrderAmount ? `Min order ₹${Math.round(r.deliveryInfo.minOrderAmount / 100)} • Standard delivery` : 'Standard fast delivery'}
+                              </Text>
+                            </View>
+                          </View>
+                        </TouchableOpacity>
+                      )
+                    })}
+                  </View>
+                )}
+              </View>
             )}
 
             {/* TRENDING DISHES */}
             {feedConfig.trending?.enabled !== false && (
-            <View style={{ marginTop: 8, marginBottom: 20 }}>
-              <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: 16, marginBottom: 14 }}>
-                <View>
-                  <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 3 }}>
-                    <Ionicons name="flame" size={19} color="#F97316" style={{ marginRight: 6 }} />
-                    <Text style={{ fontFamily: BOLD_FONT, fontSize: 19, color: Colors.text, letterSpacing: -0.5 }}>
-                      {feedConfig.trending?.title || 'Trending Dishes'}
+              <View style={{ marginTop: 8, marginBottom: 20 }}>
+                <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: 16, marginBottom: 14 }}>
+                  <View>
+                    <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 3 }}>
+                      <Ionicons name="flame" size={19} color="#F97316" style={{ marginRight: 6 }} />
+                      <Text style={{ fontFamily: BOLD_FONT, fontSize: 19, color: Colors.text, letterSpacing: -0.5 }}>
+                        {feedConfig.trending?.title || 'Trending Dishes'}
+                      </Text>
+                    </View>
+                    <Text style={{ fontFamily: STYLISH_FONT, fontSize: 12, color: Colors.textSecondary }}>
+                      {feedConfig.trending?.subtitle || 'Local favourites everyone is loving'}
                     </Text>
                   </View>
-                  <Text style={{ fontFamily: STYLISH_FONT, fontSize: 12, color: Colors.textSecondary }}>
-                    {feedConfig.trending?.subtitle || 'Local favourites everyone is loving'}
-                  </Text>
+                  <TouchableOpacity
+                    activeOpacity={0.75}
+                    onPress={() => router.push({ pathname: '/(tabs)/search', params: { q: 'trending' } } as any)}
+                    style={{ flexDirection: 'row', alignItems: 'center', paddingVertical: 6, paddingLeft: 10 }}
+                  >
+                    <Text style={{ fontFamily: BOLD_FONT, fontSize: 12, color: Colors.primary, marginRight: 3 }}>See all</Text>
+                    <Ionicons name="chevron-forward" size={14} color={Colors.primary} />
+                  </TouchableOpacity>
                 </View>
-                <TouchableOpacity
-                  activeOpacity={0.75}
-                  onPress={() => router.push({ pathname: '/(tabs)/search', params: { q: 'trending' } } as any)}
-                  style={{ flexDirection: 'row', alignItems: 'center', paddingVertical: 6, paddingLeft: 10 }}
-                >
-                  <Text style={{ fontFamily: BOLD_FONT, fontSize: 12, color: Colors.primary, marginRight: 3 }}>See all</Text>
-                  <Ionicons name="chevron-forward" size={14} color={Colors.primary} />
-                </TouchableOpacity>
+
+                {loadingHomeFeed && trendingProducts.length === 0 ? (
+                  <View style={{ flexDirection: 'row', paddingHorizontal: 16, gap: 12 }}>
+                    {[0, 1].map((item) => (
+                      <View
+                        key={item}
+                        style={{ width: 210, height: 230, borderRadius: 20, backgroundColor: '#F3F4F6' }}
+                      />
+                    ))}
+                  </View>
+                ) : trendingProducts.length > 0 ? (
+                  <ScrollView
+                    horizontal
+                    showsHorizontalScrollIndicator={false}
+                    contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: 8, gap: 14 }}
+                  >
+                    {trendingProducts.slice(0, feedConfig.trending?.limit || 15).map((prod: any, idx: number) => {
+                      const prodId = prod._id || prod.id || `trending-${idx}`;
+                      const rawRestaurant = prod.restaurant;
+                      const restaurantId =
+                        (typeof rawRestaurant === 'object' && rawRestaurant?._id)
+                          ? rawRestaurant._id
+                          : (typeof rawRestaurant === 'string' ? rawRestaurant : prod.restaurantId);
+                      const restaurantName =
+                        (typeof rawRestaurant === 'object' && rawRestaurant?.name)
+                          ? rawRestaurant.name
+                          : (prod.restaurantName || 'Popular near you');
+                      const rawPrice = Number(prod.price) || 0;
+                      const priceInPaise = rawPrice >= 100 ? rawPrice : rawPrice * 100;
+
+                      return (
+                        <TouchableOpacity
+                          key={prodId}
+                          activeOpacity={0.93}
+                          onPress={() => {
+                            if (prodId) {
+                              router.push({ pathname: '/food/[id]', params: { id: prodId } } as any);
+                            } else if (restaurantId) {
+                              router.push(`/restaurant/${restaurantId}`);
+                            } else {
+                              router.push({ pathname: '/(tabs)/search', params: { q: prod.name } } as any);
+                            }
+                          }}
+                          style={{
+                            width: 210,
+                            backgroundColor: '#FFFFFF',
+                            borderRadius: 20,
+                            overflow: 'hidden',
+                            borderWidth: 1,
+                            borderColor: '#F1F5F9',
+                            shadowColor: '#0F172A',
+                            shadowOffset: { width: 0, height: 5 },
+                            shadowOpacity: 0.07,
+                            shadowRadius: 10,
+                            elevation: 3,
+                          }}
+                        >
+                          <View style={{ height: 142, backgroundColor: '#F3F4F6', position: 'relative' }}>
+                            <Image
+                              source={{ uri: getFoodProductImage(prod) }}
+                              style={{ width: '100%', height: '100%' }}
+                              resizeMode="cover"
+                            />
+                            <LinearGradient
+                              colors={['transparent', 'rgba(15,23,42,0.4)']}
+                              style={{ position: 'absolute', left: 0, right: 0, bottom: 0, height: 56 }}
+                            />
+                            <View style={{ position: 'absolute', top: 10, left: 10, flexDirection: 'row', alignItems: 'center', backgroundColor: '#FFF7ED', paddingHorizontal: 9, paddingVertical: 5, borderRadius: 10 }}>
+                              <Ionicons name="flame" size={12} color="#EA580C" />
+                              <Text style={{ fontFamily: BOLD_FONT, fontSize: 10, color: '#C2410C', marginLeft: 4 }}>
+                                {prod.isBestseller ? 'BESTSELLER' : 'TRENDING'}
+                              </Text>
+                            </View>
+                            <View style={{ position: 'absolute', bottom: 10, left: 10, backgroundColor: 'rgba(255,255,255,0.96)', paddingHorizontal: 7, paddingVertical: 4, borderRadius: 8 }}>
+                              <Text style={{ fontFamily: BOLD_FONT, fontSize: 10, color: Colors.text }} numberOfLines={1}>
+                                {restaurantName}
+                              </Text>
+                            </View>
+                            <View style={{ position: 'absolute', top: 11, right: 11, width: 17, height: 17, borderWidth: 1, borderColor: prod.isVeg === false ? '#DC2626' : '#059669', alignItems: 'center', justifyContent: 'center', backgroundColor: '#FFFFFF', borderRadius: 3 }}>
+                              <View style={{ width: 7, height: 7, borderRadius: 4, backgroundColor: prod.isVeg === false ? '#DC2626' : '#059669' }} />
+                            </View>
+                          </View>
+
+                          <View style={{ padding: 12 }}>
+                            <Text style={{ fontFamily: BOLD_FONT, fontSize: 15, color: Colors.text, marginBottom: 9 }} numberOfLines={1}>
+                              {prod.name}
+                            </Text>
+                            <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+                              <Text style={{ fontFamily: BOLD_FONT, fontSize: 15, color: Colors.text }}>
+                                {formatPaise(priceInPaise)}
+                              </Text>
+                              <TouchableOpacity
+                                activeOpacity={0.8}
+                                onPress={(event: any) => {
+                                  event.stopPropagation();
+                                  handleAddMustTryProduct(prod);
+                                }}
+                                style={{ flexDirection: 'row', alignItems: 'center', backgroundColor: '#F0FDFA', borderWidth: 1, borderColor: '#99F6E4', borderRadius: 10, paddingHorizontal: 10, paddingVertical: 6 }}
+                              >
+                                <Text style={{ fontFamily: BOLD_FONT, fontSize: 11, color: Colors.primary, marginRight: 3 }}>ADD</Text>
+                                <Ionicons name="add" size={14} color={Colors.primary} />
+                              </TouchableOpacity>
+                            </View>
+                          </View>
+                        </TouchableOpacity>
+                      );
+                    })}
+                  </ScrollView>
+                ) : (
+                  <TouchableOpacity
+                    activeOpacity={0.85}
+                    onPress={() => router.push({ pathname: '/(tabs)/search', params: { q: 'popular dishes' } } as any)}
+                    style={{ marginHorizontal: 16, padding: 16, borderRadius: 16, backgroundColor: '#F0FDFA', flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}
+                  >
+                    <Text style={{ flex: 1, fontFamily: STYLISH_FONT, fontSize: 13, color: Colors.textSecondary, marginRight: 12 }}>
+                      Explore popular dishes around you
+                    </Text>
+                    <Ionicons name="arrow-forward-circle" size={25} color={Colors.primary} />
+                  </TouchableOpacity>
+                )}
               </View>
-
-              {loadingHomeFeed && trendingProducts.length === 0 ? (
-                <View style={{ flexDirection: 'row', paddingHorizontal: 16, gap: 12 }}>
-                  {[0, 1].map((item) => (
-                    <View
-                      key={item}
-                      style={{ width: 210, height: 230, borderRadius: 20, backgroundColor: '#F3F4F6' }}
-                    />
-                  ))}
-                </View>
-              ) : trendingProducts.length > 0 ? (
-                <ScrollView
-                  horizontal
-                  showsHorizontalScrollIndicator={false}
-                  contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: 8, gap: 14 }}
-                >
-                  {trendingProducts.slice(0, feedConfig.trending?.limit || 15).map((prod: any, idx: number) => {
-                    const prodId = prod._id || prod.id || `trending-${idx}`;
-                    const rawRestaurant = prod.restaurant;
-                    const restaurantId =
-                      (typeof rawRestaurant === 'object' && rawRestaurant?._id)
-                        ? rawRestaurant._id
-                        : (typeof rawRestaurant === 'string' ? rawRestaurant : prod.restaurantId);
-                    const restaurantName =
-                      (typeof rawRestaurant === 'object' && rawRestaurant?.name)
-                        ? rawRestaurant.name
-                        : (prod.restaurantName || 'Popular near you');
-                    const rawPrice = Number(prod.price) || 0;
-                    const priceInPaise = rawPrice >= 100 ? rawPrice : rawPrice * 100;
-
-                    return (
-                      <TouchableOpacity
-                        key={prodId}
-                        activeOpacity={0.93}
-                        onPress={() => {
-                          if (prodId) {
-                            router.push({ pathname: '/food/[id]', params: { id: prodId } } as any);
-                          } else if (restaurantId) {
-                            router.push(`/restaurant/${restaurantId}`);
-                          } else {
-                            router.push({ pathname: '/(tabs)/search', params: { q: prod.name } } as any);
-                          }
-                        }}
-                        style={{
-                          width: 210,
-                          backgroundColor: '#FFFFFF',
-                          borderRadius: 20,
-                          overflow: 'hidden',
-                          borderWidth: 1,
-                          borderColor: '#F1F5F9',
-                          shadowColor: '#0F172A',
-                          shadowOffset: { width: 0, height: 5 },
-                          shadowOpacity: 0.07,
-                          shadowRadius: 10,
-                          elevation: 3,
-                        }}
-                      >
-                        <View style={{ height: 142, backgroundColor: '#F3F4F6', position: 'relative' }}>
-                          <Image
-                            source={{ uri: getFoodProductImage(prod) }}
-                            style={{ width: '100%', height: '100%' }}
-                            resizeMode="cover"
-                          />
-                          <LinearGradient
-                            colors={['transparent', 'rgba(15,23,42,0.4)']}
-                            style={{ position: 'absolute', left: 0, right: 0, bottom: 0, height: 56 }}
-                          />
-                          <View style={{ position: 'absolute', top: 10, left: 10, flexDirection: 'row', alignItems: 'center', backgroundColor: '#FFF7ED', paddingHorizontal: 9, paddingVertical: 5, borderRadius: 10 }}>
-                            <Ionicons name="flame" size={12} color="#EA580C" />
-                            <Text style={{ fontFamily: BOLD_FONT, fontSize: 10, color: '#C2410C', marginLeft: 4 }}>
-                              {prod.isBestseller ? 'BESTSELLER' : 'TRENDING'}
-                            </Text>
-                          </View>
-                          <View style={{ position: 'absolute', bottom: 10, left: 10, backgroundColor: 'rgba(255,255,255,0.96)', paddingHorizontal: 7, paddingVertical: 4, borderRadius: 8 }}>
-                            <Text style={{ fontFamily: BOLD_FONT, fontSize: 10, color: Colors.text }} numberOfLines={1}>
-                              {restaurantName}
-                            </Text>
-                          </View>
-                          <View style={{ position: 'absolute', top: 11, right: 11, width: 17, height: 17, borderWidth: 1, borderColor: prod.isVeg === false ? '#DC2626' : '#059669', alignItems: 'center', justifyContent: 'center', backgroundColor: '#FFFFFF', borderRadius: 3 }}>
-                            <View style={{ width: 7, height: 7, borderRadius: 4, backgroundColor: prod.isVeg === false ? '#DC2626' : '#059669' }} />
-                          </View>
-                        </View>
-
-                        <View style={{ padding: 12 }}>
-                          <Text style={{ fontFamily: BOLD_FONT, fontSize: 15, color: Colors.text, marginBottom: 9 }} numberOfLines={1}>
-                            {prod.name}
-                          </Text>
-                          <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
-                            <Text style={{ fontFamily: BOLD_FONT, fontSize: 15, color: Colors.text }}>
-                              {formatPaise(priceInPaise)}
-                            </Text>
-                            <TouchableOpacity
-                              activeOpacity={0.8}
-                              onPress={(event: any) => {
-                                event.stopPropagation();
-                                handleAddMustTryProduct(prod);
-                              }}
-                              style={{ flexDirection: 'row', alignItems: 'center', backgroundColor: '#F0FDFA', borderWidth: 1, borderColor: '#99F6E4', borderRadius: 10, paddingHorizontal: 10, paddingVertical: 6 }}
-                            >
-                              <Text style={{ fontFamily: BOLD_FONT, fontSize: 11, color: Colors.primary, marginRight: 3 }}>ADD</Text>
-                              <Ionicons name="add" size={14} color={Colors.primary} />
-                            </TouchableOpacity>
-                          </View>
-                        </View>
-                      </TouchableOpacity>
-                    );
-                  })}
-                </ScrollView>
-              ) : (
-                <TouchableOpacity
-                  activeOpacity={0.85}
-                  onPress={() => router.push({ pathname: '/(tabs)/search', params: { q: 'popular dishes' } } as any)}
-                  style={{ marginHorizontal: 16, padding: 16, borderRadius: 16, backgroundColor: '#F0FDFA', flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}
-                >
-                  <Text style={{ flex: 1, fontFamily: STYLISH_FONT, fontSize: 13, color: Colors.textSecondary, marginRight: 12 }}>
-                    Explore popular dishes around you
-                  </Text>
-                  <Ionicons name="arrow-forward-circle" size={25} color={Colors.primary} />
-                </TouchableOpacity>
-              )}
-            </View>
             )}
 
             {/* FREQUENTLY BOUGHT PRODUCTS */}
             {feedConfig.frequentlyBought?.enabled !== false && (
-            <View style={{ marginBottom: 24, paddingTop: 8, paddingBottom: 8 }}>
-              <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: 16, marginBottom: 14 }}>
-                <View style={{ flexDirection: 'row', alignItems: 'center', flex: 1 }}>
-                  <View style={{ flex: 1 }}>
-                    <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 3 }}>
-                      <Ionicons name="repeat" size={14} color="#4E6D3A" style={{ marginRight: 5 }} />
-                      <Text style={{ fontFamily: BOLD_FONT, fontSize: 10, color: '#4E6D3A', letterSpacing: 1.1 }}>
-                        EVERYDAY FAVOURITES
+              <View style={{ marginBottom: 24, paddingTop: 8, paddingBottom: 8 }}>
+                <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: 16, marginBottom: 14 }}>
+                  <View style={{ flexDirection: 'row', alignItems: 'center', flex: 1 }}>
+                    <View style={{ flex: 1 }}>
+                      <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 3 }}>
+                        <Ionicons name="repeat" size={14} color="#4E6D3A" style={{ marginRight: 5 }} />
+                        <Text style={{ fontFamily: BOLD_FONT, fontSize: 10, color: '#4E6D3A', letterSpacing: 1.1 }}>
+                          EVERYDAY FAVOURITES
+                        </Text>
+                      </View>
+                      <Text style={{ fontFamily: BOLD_FONT, fontSize: 20, color: '#263523', letterSpacing: -0.5 }}>
+                        {feedConfig.frequentlyBought?.title || 'Frequently bought'}
+                      </Text>
+                      <Text style={{ fontFamily: STYLISH_FONT, fontSize: 12, color: '#7E8978', marginTop: 3 }}>
+                        {feedConfig.frequentlyBought?.subtitle || 'Top picks, ready for your basket'}
                       </Text>
                     </View>
-                    <Text style={{ fontFamily: BOLD_FONT, fontSize: 20, color: '#263523', letterSpacing: -0.5 }}>
-                      {feedConfig.frequentlyBought?.title || 'Frequently bought'}
-                    </Text>
-                    <Text style={{ fontFamily: STYLISH_FONT, fontSize: 12, color: '#7E8978', marginTop: 3 }}>
-                      {feedConfig.frequentlyBought?.subtitle || 'Top picks, ready for your basket'}
-                    </Text>
                   </View>
+                  <TouchableOpacity
+                    activeOpacity={0.8}
+                    onPress={() => setSection('grocery')}
+                    style={{ flexDirection: 'row', alignItems: 'center', backgroundColor: '#FFFFFF', borderWidth: 1, borderColor: '#DEE5D4', paddingHorizontal: 10, paddingVertical: 8, borderRadius: 12, marginLeft: 8 }}
+                  >
+                    <Text style={{ fontFamily: BOLD_FONT, fontSize: 11, color: '#4E6D3A', marginRight: 4 }}>Shop all</Text>
+                    <Ionicons name="arrow-forward" size={12} color="#4E6D3A" />
+                  </TouchableOpacity>
                 </View>
-                <TouchableOpacity
-                  activeOpacity={0.8}
-                  onPress={() => setSection('grocery')}
-                  style={{ flexDirection: 'row', alignItems: 'center', backgroundColor: '#FFFFFF', borderWidth: 1, borderColor: '#DEE5D4', paddingHorizontal: 10, paddingVertical: 8, borderRadius: 12, marginLeft: 8 }}
-                >
-                  <Text style={{ fontFamily: BOLD_FONT, fontSize: 11, color: '#4E6D3A', marginRight: 4 }}>Shop all</Text>
-                  <Ionicons name="arrow-forward" size={12} color="#4E6D3A" />
-                </TouchableOpacity>
-              </View>
 
-              {loadingFrequentProducts && frequentlyBoughtProducts.length === 0 ? (
-                <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ paddingHorizontal: 16, gap: 12 }}>
-                  {[0, 1, 2].map((item) => (
-                    <View key={item} style={{ width: Math.min(width * 0.43, 188), height: 235, borderRadius: 18, backgroundColor: '#F1F4EA' }} />
-                  ))}
-                </ScrollView>
-              ) : frequentProductsError && frequentlyBoughtProducts.length === 0 ? (
-                <TouchableOpacity
-                  activeOpacity={0.8}
-                  onPress={() => refetchFrequentProducts()}
-                  style={{ marginHorizontal: 16, paddingVertical: 12, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}
-                >
-                  <Text style={{ fontFamily: STYLISH_FONT, fontSize: 13, color: '#7E8978' }}>
-                    Couldn’t load products. Tap to retry.
-                  </Text>
-                  <Ionicons name="refresh" size={17} color="#4E6D3A" />
-                </TouchableOpacity>
-              ) : frequentlyBoughtProducts.length > 0 ? (
-                <ScrollView
-                  horizontal
-                  showsHorizontalScrollIndicator={false}
-                  decelerationRate="fast"
-                  contentContainerStyle={{ paddingHorizontal: 16, gap: 12, paddingBottom: 6 }}
-                >
-                  {frequentlyBoughtProducts.slice(0, feedConfig.frequentlyBought?.limit || 10).map((product) => (
-                    <FrequentlyBoughtProductCard
-                      key={product._id || product.id}
-                      product={product}
-                    />
-                  ))}
-                </ScrollView>
-              ) : (
-                <TouchableOpacity
-                  activeOpacity={0.8}
-                  onPress={() => setSection('grocery')}
-                  style={{ marginHorizontal: 16, paddingVertical: 12, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}
-                >
-                  <Text style={{ flex: 1, fontFamily: STYLISH_FONT, fontSize: 13, color: '#7E8978' }}>
-                    Browse groceries and everyday essentials
-                  </Text>
-                  <Ionicons name="arrow-forward-circle" size={24} color="#4E6D3A" />
-                </TouchableOpacity>
-              )}
-            </View>
+                {loadingFrequentProducts && frequentlyBoughtProducts.length === 0 ? (
+                  <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ paddingHorizontal: 16, gap: 12 }}>
+                    {[0, 1, 2].map((item) => (
+                      <View key={item} style={{ width: Math.min(width * 0.43, 188), height: 235, borderRadius: 18, backgroundColor: '#F1F4EA' }} />
+                    ))}
+                  </ScrollView>
+                ) : frequentProductsError && frequentlyBoughtProducts.length === 0 ? (
+                  <TouchableOpacity
+                    activeOpacity={0.8}
+                    onPress={() => refetchFrequentProducts()}
+                    style={{ marginHorizontal: 16, paddingVertical: 12, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}
+                  >
+                    <Text style={{ fontFamily: STYLISH_FONT, fontSize: 13, color: '#7E8978' }}>
+                      Couldn’t load products. Tap to retry.
+                    </Text>
+                    <Ionicons name="refresh" size={17} color="#4E6D3A" />
+                  </TouchableOpacity>
+                ) : frequentlyBoughtProducts.length > 0 ? (
+                  <ScrollView
+                    horizontal
+                    showsHorizontalScrollIndicator={false}
+                    decelerationRate="fast"
+                    contentContainerStyle={{ paddingHorizontal: 16, gap: 12, paddingBottom: 6 }}
+                  >
+                    {frequentlyBoughtProducts.slice(0, feedConfig.frequentlyBought?.limit || 10).map((product) => (
+                      <FrequentlyBoughtProductCard
+                        key={product._id || product.id}
+                        product={product}
+                      />
+                    ))}
+                  </ScrollView>
+                ) : (
+                  <TouchableOpacity
+                    activeOpacity={0.8}
+                    onPress={() => setSection('grocery')}
+                    style={{ marginHorizontal: 16, paddingVertical: 12, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}
+                  >
+                    <Text style={{ flex: 1, fontFamily: STYLISH_FONT, fontSize: 13, color: '#7E8978' }}>
+                      Browse groceries and everyday essentials
+                    </Text>
+                    <Ionicons name="arrow-forward-circle" size={24} color="#4E6D3A" />
+                  </TouchableOpacity>
+                )}
+              </View>
             )}
 
             {/* SPOTLIGHT DEALS */}
             {feedConfig.spotlight?.enabled !== false && (
-            <View style={styles.categoriesSection}>
-              <View style={styles.sectionHeader}>
-                <Text style={styles.sectionTitle}>{feedConfig.spotlight?.title || 'Spotlight Deals'}</Text>
-                <TouchableOpacity
-                  activeOpacity={0.7}
-                  onPress={() => router.push({ pathname: '/search', params: { filter: 'spotlight' } } as any)}
-                >
-                  <Text style={styles.seeAllText}>Explore <Ionicons name="arrow-forward" size={12} /></Text>
-                </TouchableOpacity>
-              </View>
-              <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: 16, gap: 16 }}>
-                {spotlightBanners.length > 0 ? (
-                  spotlightBanners.map((item, idx) => {
-                    if (item.displayMode === 'FULL_POSTER') {
+              <View style={styles.categoriesSection}>
+                <View style={styles.sectionHeader}>
+                  <Text style={styles.sectionTitle}>{feedConfig.spotlight?.title || 'Spotlight Deals'}</Text>
+                  <TouchableOpacity
+                    activeOpacity={0.7}
+                    onPress={() => router.push({ pathname: '/search', params: { filter: 'spotlight' } } as any)}
+                  >
+                    <Text style={styles.seeAllText}>Explore <Ionicons name="arrow-forward" size={12} /></Text>
+                  </TouchableOpacity>
+                </View>
+                <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: 16, gap: 16 }}>
+                  {spotlightBanners.length > 0 ? (
+                    spotlightBanners.map((item, idx) => {
+                      if (item.displayMode === 'FULL_POSTER') {
+                        return (
+                          <TouchableOpacity
+                            key={item._id}
+                            onPress={() => handleOfferBannerPress(item)}
+                            style={{ width: 220, height: 260, borderRadius: 24, overflow: 'hidden', backgroundColor: '#0F172A', shadowColor: '#000', shadowOffset: { width: 0, height: 8 }, shadowOpacity: 0.1, shadowRadius: 12, elevation: 6 }}
+                            activeOpacity={0.9}
+                          >
+                            <Image source={{ uri: item.image }} style={{ width: '100%', height: '100%' }} resizeMode="cover" />
+                          </TouchableOpacity>
+                        );
+                      }
+
                       return (
                         <TouchableOpacity
                           key={item._id}
                           onPress={() => handleOfferBannerPress(item)}
-                          style={{ width: 220, height: 260, borderRadius: 24, overflow: 'hidden', backgroundColor: '#0F172A', shadowColor: '#000', shadowOffset: { width: 0, height: 8 }, shadowOpacity: 0.1, shadowRadius: 12, elevation: 6 }}
+                          style={{ width: 220, height: 260, borderRadius: 24, overflow: 'hidden', backgroundColor: '#FFF', shadowColor: '#000', shadowOffset: { width: 0, height: 8 }, shadowOpacity: 0.1, shadowRadius: 12, elevation: 6 }}
                           activeOpacity={0.9}
                         >
-                          <Image source={{ uri: item.image }} style={{ width: '100%', height: '100%' }} resizeMode="cover" />
+                          <Image source={{ uri: item.image }} style={{ width: '100%', height: '100%', position: 'absolute' }} />
+                          <LinearGradient
+                            colors={['rgba(0,0,0,0.1)', 'rgba(0,0,0,0.85)']}
+                            style={{ flex: 1, justifyContent: 'flex-end', padding: 16 }}
+                          >
+                            {item.tag ? (
+                              <View style={{ backgroundColor: item.accentColor || 'rgba(255,255,255,0.2)', alignSelf: 'flex-start', paddingHorizontal: 10, paddingVertical: 4, borderRadius: 10, marginBottom: 8 }}>
+                                <Text style={{ fontFamily: BOLD_FONT, color: '#FFF', fontSize: 10, textTransform: 'uppercase', letterSpacing: 1 }}>{item.tag}</Text>
+                              </View>
+                            ) : null}
+                            <Text style={{ fontFamily: BOLD_FONT, color: item.textColor || '#FFF', fontSize: 20, marginBottom: 4, textShadowColor: 'rgba(0,0,0,0.5)', textShadowOffset: { width: 0, height: 2 }, textShadowRadius: 4 }} numberOfLines={1}>
+                              {item.title}
+                            </Text>
+                            <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                              <Ionicons name="flame" size={14} color="#F59E0B" />
+                              <Text style={{ fontFamily: STYLISH_FONT, color: '#FCD34D', fontSize: 12, marginLeft: 4 }} numberOfLines={1}>
+                                {item.subtitle || 'Special Deal'}
+                              </Text>
+                            </View>
+                          </LinearGradient>
                         </TouchableOpacity>
                       );
-                    }
-
-                    return (
-                      <TouchableOpacity
-                        key={item._id}
-                        onPress={() => handleOfferBannerPress(item)}
-                        style={{ width: 220, height: 260, borderRadius: 24, overflow: 'hidden', backgroundColor: '#FFF', shadowColor: '#000', shadowOffset: { width: 0, height: 8 }, shadowOpacity: 0.1, shadowRadius: 12, elevation: 6 }}
-                        activeOpacity={0.9}
-                      >
-                        <Image source={{ uri: item.image }} style={{ width: '100%', height: '100%', position: 'absolute' }} />
+                    })
+                  ) : (
+                    restaurants.slice(0, 4).map((item, idx) => (
+                      <TouchableOpacity key={idx} onPress={() => router.push(`/restaurant/${item._id}`)} style={{ width: 220, height: 260, borderRadius: 24, overflow: 'hidden', backgroundColor: '#FFF', shadowColor: '#000', shadowOffset: { width: 0, height: 8 }, shadowOpacity: 0.1, shadowRadius: 12, elevation: 6 }} activeOpacity={0.9}>
+                        <Image source={{ uri: item.images?.[0] || 'https://images.unsplash.com/photo-1550547660-d9450f859349?w=400&q=80' }} style={{ width: '100%', height: '100%', position: 'absolute' }} />
                         <LinearGradient
                           colors={['rgba(0,0,0,0.1)', 'rgba(0,0,0,0.85)']}
                           style={{ flex: 1, justifyContent: 'flex-end', padding: 16 }}
                         >
-                          {item.tag ? (
-                            <View style={{ backgroundColor: item.accentColor || 'rgba(255,255,255,0.2)', alignSelf: 'flex-start', paddingHorizontal: 10, paddingVertical: 4, borderRadius: 10, marginBottom: 8 }}>
-                              <Text style={{ fontFamily: BOLD_FONT, color: '#FFF', fontSize: 10, textTransform: 'uppercase', letterSpacing: 1 }}>{item.tag}</Text>
-                            </View>
-                          ) : null}
-                          <Text style={{ fontFamily: BOLD_FONT, color: item.textColor || '#FFF', fontSize: 20, marginBottom: 4, textShadowColor: 'rgba(0,0,0,0.5)', textShadowOffset: { width: 0, height: 2 }, textShadowRadius: 4 }} numberOfLines={1}>
-                            {item.title}
-                          </Text>
+                          <View style={{ backgroundColor: 'rgba(255,255,255,0.2)', alignSelf: 'flex-start', paddingHorizontal: 10, paddingVertical: 4, borderRadius: 10, marginBottom: 8, backdropFilter: 'blur(10px)' }}>
+                            <Text style={{ fontFamily: BOLD_FONT, color: '#FFF', fontSize: 10, textTransform: 'uppercase', letterSpacing: 1 }}>
+                              {item.isPureVeg ? 'Pure Veg' : (item.rating?.average && item.rating.average >= 4.5 ? 'Top Rated' : 'Featured')}
+                            </Text>
+                          </View>
+                          <Text style={{ fontFamily: BOLD_FONT, color: '#FFF', fontSize: 20, marginBottom: 4, textShadowColor: 'rgba(0,0,0,0.5)', textShadowOffset: { width: 0, height: 2 }, textShadowRadius: 4 }}>{item.name}</Text>
                           <View style={{ flexDirection: 'row', alignItems: 'center' }}>
                             <Ionicons name="flame" size={14} color="#F59E0B" />
-                            <Text style={{ fontFamily: STYLISH_FONT, color: '#FCD34D', fontSize: 12, marginLeft: 4 }} numberOfLines={1}>
-                              {item.subtitle || 'Special Deal'}
+                            <Text style={{ fontFamily: STYLISH_FONT, color: '#FCD34D', fontSize: 12, marginLeft: 4 }}>
+                              {item.cuisines?.slice(0, 2).join(' • ') || 'Kitchen Special'}
                             </Text>
                           </View>
                         </LinearGradient>
                       </TouchableOpacity>
-                    );
-                  })
-                ) : (
-                  restaurants.slice(0, 4).map((item, idx) => (
-                    <TouchableOpacity key={idx} onPress={() => router.push(`/restaurant/${item._id}`)} style={{ width: 220, height: 260, borderRadius: 24, overflow: 'hidden', backgroundColor: '#FFF', shadowColor: '#000', shadowOffset: { width: 0, height: 8 }, shadowOpacity: 0.1, shadowRadius: 12, elevation: 6 }} activeOpacity={0.9}>
-                      <Image source={{ uri: item.images?.[0] || 'https://images.unsplash.com/photo-1550547660-d9450f859349?w=400&q=80' }} style={{ width: '100%', height: '100%', position: 'absolute' }} />
-                      <LinearGradient
-                        colors={['rgba(0,0,0,0.1)', 'rgba(0,0,0,0.85)']}
-                        style={{ flex: 1, justifyContent: 'flex-end', padding: 16 }}
-                      >
-                        <View style={{ backgroundColor: 'rgba(255,255,255,0.2)', alignSelf: 'flex-start', paddingHorizontal: 10, paddingVertical: 4, borderRadius: 10, marginBottom: 8, backdropFilter: 'blur(10px)' }}>
-                          <Text style={{ fontFamily: BOLD_FONT, color: '#FFF', fontSize: 10, textTransform: 'uppercase', letterSpacing: 1 }}>
-                            {item.isPureVeg ? 'Pure Veg' : (item.rating?.average && item.rating.average >= 4.5 ? 'Top Rated' : 'Featured')}
-                          </Text>
-                        </View>
-                        <Text style={{ fontFamily: BOLD_FONT, color: '#FFF', fontSize: 20, marginBottom: 4, textShadowColor: 'rgba(0,0,0,0.5)', textShadowOffset: { width: 0, height: 2 }, textShadowRadius: 4 }}>{item.name}</Text>
-                        <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-                          <Ionicons name="flame" size={14} color="#F59E0B" />
-                          <Text style={{ fontFamily: STYLISH_FONT, color: '#FCD34D', fontSize: 12, marginLeft: 4 }}>
-                            {item.cuisines?.slice(0, 2).join(' • ') || 'Kitchen Special'}
-                          </Text>
-                        </View>
-                      </LinearGradient>
-                    </TouchableOpacity>
-                  ))
-                )}
-              </ScrollView>
-            </View>
+                    ))
+                  )}
+                </ScrollView>
+              </View>
             )}
 
             {/* MUST-TRY PRODUCTS */}
             {feedConfig.mustTry?.enabled !== false && (
-            <View style={{ paddingBottom: 16 }}>
-              {mustTryProducts && mustTryProducts.length > 0 && (
-                <View style={{ marginBottom: 16 }}>
-                  <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: 16, marginBottom: 16 }}>
-                    <View>
-                      <Text style={{ fontFamily: BOLD_FONT, fontSize: 18, color: Colors.text, letterSpacing: -0.5 }}>{feedConfig.mustTry?.title || 'Must-Try Products'}</Text>
-                      <Text style={{ fontFamily: BOLD_FONT, fontSize: 11, color: Colors.textSecondary }}>{feedConfig.mustTry?.subtitle || 'Handpicked dishes from top restaurants'}</Text>
-                    </View>
-                    <TouchableOpacity activeOpacity={0.7} onPress={() => router.push('/(tabs)/search')} style={{ backgroundColor: '#F0FDFA', paddingHorizontal: 12, paddingVertical: 6, borderRadius: 12, borderWidth: 1, borderColor: '#99F6E4' }}>
-                      <Text style={{ fontFamily: BOLD_FONT, fontSize: 12, color: Colors.primary }}>See All</Text>
-                    </TouchableOpacity>
-                  </View>
-                  <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ paddingHorizontal: 16, gap: 14 }}>
-                    {mustTryProducts.slice(0, feedConfig.mustTry?.limit || 15).map((prod: any, idx: number) => {
-                      const restId = prod.restaurant?._id || (typeof prod.restaurant === 'string' ? prod.restaurant : null) || prod.restaurantId;
-                      const restaurantName = prod.restaurant?.name || prod.restaurantName;
-                      const dishImage = getFoodProductImage(prod);
-                      const tagText = (prod.tags && prod.tags.length > 0) ? prod.tags[0] : (prod.tag || (prod.isVeg !== false ? '🌱 Pure Veg' : '🍗 Non-Veg'));
-
-                      const handleCardPress = () => {
-                        const targetId = prod._id || prod.id;
-                        if (targetId) {
-                          router.push({ pathname: '/food/[id]', params: { id: targetId } } as any);
-                        } else if (restId) {
-                          router.push(`/restaurant/${restId}`);
-                        } else {
-                          handleAddMustTryProduct(prod);
-                        }
-                      };
-
-                      return (
-                      <TouchableOpacity
-                        key={prod._id || `p-${idx}`}
-                        activeOpacity={0.93}
-                        onPress={handleCardPress}
-                        style={{
-                          width: 154,
-                          backgroundColor: '#FFF',
-                          borderRadius: 20,
-                          padding: 12,
-                          shadowColor: '#000',
-                          shadowOffset: { width: 0, height: 4 },
-                          shadowOpacity: 0.06,
-                          shadowRadius: 8,
-                          elevation: 3,
-                          borderWidth: 1,
-                          borderColor: '#F3F4F6',
-                        }}
-                      >
-                        {/* Image */}
-                        <View style={{ width: '100%', height: 110, borderRadius: 12, backgroundColor: '#F9FAFB', overflow: 'hidden', marginBottom: 10 }}>
-                          <Image
-                            source={{ uri: dishImage }}
-                            style={{ width: '100%', height: '100%' }}
-                          />
-                          {/* FSSAI Veg/Non-Veg Indicator */}
-                          <View style={{ position: 'absolute', bottom: 6, left: 6, backgroundColor: 'rgba(255,255,255,0.95)', padding: 3, borderRadius: 4 }}>
-                            <View style={{ width: 10, height: 10, borderWidth: 1.5, borderColor: prod.isVeg !== false ? '#16A34A' : '#DC2626', alignItems: 'center', justifyContent: 'center', borderRadius: 2 }}>
-                              <View style={{ width: 5, height: 5, borderRadius: 2.5, backgroundColor: prod.isVeg !== false ? '#16A34A' : '#DC2626' }} />
-                            </View>
-                          </View>
-                          {/* Category Tag */}
-                          <View style={{ position: 'absolute', top: 8, left: 8, backgroundColor: 'rgba(0,0,0,0.55)', paddingHorizontal: 7, paddingVertical: 3, borderRadius: 8 }}>
-                            <Text style={{ fontFamily: BOLD_FONT, fontSize: 10, color: '#FFF' }} numberOfLines={1}>{tagText}</Text>
-                          </View>
-                          {/* Favorite Heart Toggle */}
-                          <TouchableOpacity
-                            onPress={(e: any) => {
-                              e.stopPropagation();
-                              const prodId = prod._id || `mt-${prod.name.replace(/\s+/g, '-')}`;
-                              toggleFavorite({
-                                _id: prodId,
-                                name: prod.name,
-                                price: prod.price,
-                                images: prod.images || [dishImage],
-                                image: dishImage,
-                                tag: tagText,
-                                isVeg: prod.isVeg,
-                                type: 'product' as const,
-                                addedAt: Date.now(),
-                              });
-                            }}
-                            style={{ position: 'absolute', top: 6, right: 6, width: 28, height: 28, borderRadius: 14, backgroundColor: 'rgba(255,255,255,0.92)', justifyContent: 'center', alignItems: 'center', shadowColor: '#000', shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.1, shadowRadius: 2, elevation: 2 }}
-                            activeOpacity={0.7}
-                          >
-                            <Ionicons
-                              name={isFavorite(prod._id || `mt-${prod.name.replace(/\s+/g, '-')}`) ? 'heart' : 'heart-outline'}
-                              size={16}
-                              color={isFavorite(prod._id || `mt-${prod.name.replace(/\s+/g, '-')}`) ? '#EF4444' : '#9CA3AF'}
-                            />
-                          </TouchableOpacity>
-                        </View>
-
-                        {/* Name */}
-                        <Text style={{ fontFamily: BOLD_FONT, fontSize: 13, color: Colors.text, marginBottom: 2 }} numberOfLines={1}>{prod.name}</Text>
-
-                        {/* Restaurant Name */}
-                        {restaurantName ? (
-                          <Text style={{ fontFamily: STYLISH_FONT, fontSize: 11, color: Colors.textSecondary, marginBottom: 8 }} numberOfLines={1}>
-                            {restaurantName}
-                          </Text>
-                        ) : (
-                          <View style={{ height: 6 }} />
-                        )}
-
-                        {/* Price + Add Button */}
-                        <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginTop: 'auto' }}>
-                          <Text style={{ fontFamily: BOLD_FONT, fontSize: 15, color: Colors.primary }}>
-                            {formatPaise(Number(prod.price) >= 100 ? Number(prod.price) : Number(prod.price) * 100)}
-                          </Text>
-                          <TouchableOpacity onPress={() => handleAddMustTryProduct(prod)} style={{ width: 30, height: 30, backgroundColor: '#0D9488', borderRadius: 15, justifyContent: 'center', alignItems: 'center', shadowColor: '#0D9488', shadowOffset: { width: 0, height: 3 }, shadowOpacity: 0.3, shadowRadius: 5, elevation: 3 }}>
-                            <Ionicons name="add" size={18} color="#FFF" />
-                          </TouchableOpacity>
-                        </View>
+              <View style={{ paddingBottom: 16 }}>
+                {mustTryProducts && mustTryProducts.length > 0 && (
+                  <View style={{ marginBottom: 16 }}>
+                    <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: 16, marginBottom: 16 }}>
+                      <View>
+                        <Text style={{ fontFamily: BOLD_FONT, fontSize: 18, color: Colors.text, letterSpacing: -0.5 }}>{feedConfig.mustTry?.title || 'Must-Try Products'}</Text>
+                        <Text style={{ fontFamily: BOLD_FONT, fontSize: 11, color: Colors.textSecondary }}>{feedConfig.mustTry?.subtitle || 'Handpicked dishes from top restaurants'}</Text>
+                      </View>
+                      <TouchableOpacity activeOpacity={0.7} onPress={() => router.push('/(tabs)/search')} style={{ backgroundColor: '#F0FDFA', paddingHorizontal: 12, paddingVertical: 6, borderRadius: 12, borderWidth: 1, borderColor: '#99F6E4' }}>
+                        <Text style={{ fontFamily: BOLD_FONT, fontSize: 12, color: Colors.primary }}>See All</Text>
                       </TouchableOpacity>
-                    ); })}
-                  </ScrollView>
-                </View>
-              )}
-            </View>
+                    </View>
+                    <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ paddingHorizontal: 16, gap: 14 }}>
+                      {mustTryProducts.slice(0, feedConfig.mustTry?.limit || 15).map((prod: any, idx: number) => {
+                        const restId = prod.restaurant?._id || (typeof prod.restaurant === 'string' ? prod.restaurant : null) || prod.restaurantId;
+                        const restaurantName = prod.restaurant?.name || prod.restaurantName;
+                        const dishImage = getFoodProductImage(prod);
+                        const tagText = (prod.tags && prod.tags.length > 0) ? prod.tags[0] : (prod.tag || (prod.isVeg !== false ? '🌱 Pure Veg' : '🍗 Non-Veg'));
+
+                        const handleCardPress = () => {
+                          const targetId = prod._id || prod.id;
+                          if (targetId) {
+                            router.push({ pathname: '/food/[id]', params: { id: targetId } } as any);
+                          } else if (restId) {
+                            router.push(`/restaurant/${restId}`);
+                          } else {
+                            handleAddMustTryProduct(prod);
+                          }
+                        };
+
+                        return (
+                          <TouchableOpacity
+                            key={prod._id || `p-${idx}`}
+                            activeOpacity={0.93}
+                            onPress={handleCardPress}
+                            style={{
+                              width: 154,
+                              backgroundColor: '#FFF',
+                              borderRadius: 20,
+                              padding: 12,
+                              shadowColor: '#000',
+                              shadowOffset: { width: 0, height: 4 },
+                              shadowOpacity: 0.06,
+                              shadowRadius: 8,
+                              elevation: 3,
+                              borderWidth: 1,
+                              borderColor: '#F3F4F6',
+                            }}
+                          >
+                            {/* Image */}
+                            <View style={{ width: '100%', height: 110, borderRadius: 12, backgroundColor: '#F9FAFB', overflow: 'hidden', marginBottom: 10 }}>
+                              <Image
+                                source={{ uri: dishImage }}
+                                style={{ width: '100%', height: '100%' }}
+                              />
+                              {/* FSSAI Veg/Non-Veg Indicator */}
+                              <View style={{ position: 'absolute', bottom: 6, left: 6, backgroundColor: 'rgba(255,255,255,0.95)', padding: 3, borderRadius: 4 }}>
+                                <View style={{ width: 10, height: 10, borderWidth: 1.5, borderColor: prod.isVeg !== false ? '#16A34A' : '#DC2626', alignItems: 'center', justifyContent: 'center', borderRadius: 2 }}>
+                                  <View style={{ width: 5, height: 5, borderRadius: 2.5, backgroundColor: prod.isVeg !== false ? '#16A34A' : '#DC2626' }} />
+                                </View>
+                              </View>
+                              {/* Category Tag */}
+                              <View style={{ position: 'absolute', top: 8, left: 8, backgroundColor: 'rgba(0,0,0,0.55)', paddingHorizontal: 7, paddingVertical: 3, borderRadius: 8 }}>
+                                <Text style={{ fontFamily: BOLD_FONT, fontSize: 10, color: '#FFF' }} numberOfLines={1}>{tagText}</Text>
+                              </View>
+                              {/* Favorite Heart Toggle */}
+                              <TouchableOpacity
+                                onPress={(e: any) => {
+                                  e.stopPropagation();
+                                  const prodId = prod._id || `mt-${prod.name.replace(/\s+/g, '-')}`;
+                                  toggleFavorite({
+                                    _id: prodId,
+                                    name: prod.name,
+                                    price: prod.price,
+                                    images: prod.images || [dishImage],
+                                    image: dishImage,
+                                    tag: tagText,
+                                    isVeg: prod.isVeg,
+                                    type: 'product' as const,
+                                    addedAt: Date.now(),
+                                  });
+                                }}
+                                style={{ position: 'absolute', top: 6, right: 6, width: 28, height: 28, borderRadius: 14, backgroundColor: 'rgba(255,255,255,0.92)', justifyContent: 'center', alignItems: 'center', shadowColor: '#000', shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.1, shadowRadius: 2, elevation: 2 }}
+                                activeOpacity={0.7}
+                              >
+                                <Ionicons
+                                  name={isFavorite(prod._id || `mt-${prod.name.replace(/\s+/g, '-')}`) ? 'heart' : 'heart-outline'}
+                                  size={16}
+                                  color={isFavorite(prod._id || `mt-${prod.name.replace(/\s+/g, '-')}`) ? '#EF4444' : '#9CA3AF'}
+                                />
+                              </TouchableOpacity>
+                            </View>
+
+                            {/* Name */}
+                            <Text style={{ fontFamily: BOLD_FONT, fontSize: 13, color: Colors.text, marginBottom: 2 }} numberOfLines={1}>{prod.name}</Text>
+
+                            {/* Restaurant Name */}
+                            {restaurantName ? (
+                              <Text style={{ fontFamily: STYLISH_FONT, fontSize: 11, color: Colors.textSecondary, marginBottom: 8 }} numberOfLines={1}>
+                                {restaurantName}
+                              </Text>
+                            ) : (
+                              <View style={{ height: 6 }} />
+                            )}
+
+                            {/* Price + Add Button */}
+                            <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginTop: 'auto' }}>
+                              <Text style={{ fontFamily: BOLD_FONT, fontSize: 15, color: Colors.primary }}>
+                                {formatPaise(Number(prod.price) >= 100 ? Number(prod.price) : Number(prod.price) * 100)}
+                              </Text>
+                              <TouchableOpacity onPress={() => handleAddMustTryProduct(prod)} style={{ width: 30, height: 30, backgroundColor: '#0D9488', borderRadius: 15, justifyContent: 'center', alignItems: 'center', shadowColor: '#0D9488', shadowOffset: { width: 0, height: 3 }, shadowOpacity: 0.3, shadowRadius: 5, elevation: 3 }}>
+                                <Ionicons name="add" size={18} color="#FFF" />
+                              </TouchableOpacity>
+                            </View>
+                          </TouchableOpacity>
+                        );
+                      })}
+                    </ScrollView>
+                  </View>
+                )}
+              </View>
             )}
 
             <TouchableOpacity

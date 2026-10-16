@@ -139,7 +139,7 @@ export default function Index() {
             ]}
           >
             <Image
-              source={require('../assets/logo/ftafat_full_name_transparent.png')}
+              source={require('../assets/logo/full Name Ftafat.png')}
               style={styles.logoTextImage}
               resizeMode="contain"
             />
@@ -156,10 +156,12 @@ export default function Index() {
             ]}
           >
             {/* Dynamic Slogan */}
-            <Text style={styles.taglineText}>{chosenTagline.text}</Text>
+            <View style={styles.taglinePill}>
+              <Text style={styles.taglineText}>{chosenTagline.text}</Text>
+            </View>
 
             {/* Sub-tagline */}
-            <Text style={styles.subTagline}>Food • Groceries • Daily Essentials</Text>
+            <Text style={styles.subTagline}>Food  •  Groceries  •  Daily Essentials</Text>
 
             {/* Glowing Slim Progress Pill */}
             <View style={styles.progressTrack}>
@@ -237,24 +239,37 @@ const styles = StyleSheet.create({
   textContainer: {
     alignItems: 'center',
   },
+  taglinePill: {
+    backgroundColor: 'rgba(0,0,0,0.18)',
+    borderRadius: 16,
+    paddingHorizontal: 18,
+    paddingVertical: 10,
+    marginBottom: 12,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.15)',
+  },
   taglineText: {
-    fontSize: 21,
-    fontWeight: '900',
-    color: '#FFFFFF',
+    fontFamily: Platform.select({ ios: 'Georgia', android: 'serif' }),
+    fontStyle: 'italic',
+    fontSize: 20,
+    fontWeight: '700',
+    color: '#FFF5E0',
     textAlign: 'center',
-    letterSpacing: -0.3,
-    marginBottom: 8,
-    textShadowColor: 'rgba(0, 0, 0, 0.35)',
+    letterSpacing: 0.3,
+    textShadowColor: 'rgba(0, 0, 0, 0.45)',
     textShadowOffset: { width: 0, height: 2 },
-    textShadowRadius: 6,
+    textShadowRadius: 8,
   },
   subTagline: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: 'rgba(255, 255, 255, 0.85)',
+    fontFamily: Platform.select({ ios: 'Georgia', android: 'serif' }),
+    fontSize: 12.5,
+    fontWeight: '400',
+    fontStyle: 'italic',
+    color: 'rgba(255, 255, 255, 0.8)',
     textAlign: 'center',
-    letterSpacing: 0.2,
+    letterSpacing: 2.5,
     marginBottom: 26,
+    textTransform: 'uppercase',
   },
 
   // ── Progress Bar ──────────────────────────────────────────────────────────
